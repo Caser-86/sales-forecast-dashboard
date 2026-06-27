@@ -1,0 +1,37 @@
+version: "3.8"
+
+services:
+  backend:
+    build: ./backend
+    container_name: sales-backend
+    ports:
+      - "8000:8000"
+    volumes:
+      # 持久化数据与模型（不进镜像，便于升级时保留）
+      - ./backend/data:/app/data
+      - ./backend/ml/saved_models:/app/ml/saved_models
+      - ./backend/logs:/app/logs
+    environment:
+      - ENV=production
+      - DEBUG=false
+      - LOG_LEVEL=INFO
+      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:3000,http://127.0.0.1:3000}
+      # 可选：启用 API Token 认证（取消注释并设置值）
+      # - API_TOKEN=your-secret-token-here
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
+
+  frontend:
+    build: ./frontend
+    container_name: sales-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped

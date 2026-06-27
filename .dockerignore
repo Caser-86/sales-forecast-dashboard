@@ -1,0 +1,45 @@
+# 通用忽略
+.git
+.gitignore
+.vscode
+.idea
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+**/.pytest_cache/
+**/.mypy_cache/
+**/.ruff_cache/
+
+# 环境与密钥（绝不进镜像）
+.env
+.env.local
+.env.*.local
+
+# 日志与临时文件
+**/logs/
+**/*.log
+**/tmp/
+
+# 测试与文档（生产镜像不需要）
+**/tests/
+**/*.md
+**/README*
+LICENSE
+
+# 本地数据库
+*.db
+*.sqlite*
+dashboard.db
+
+# 前端构建缓存
+**/node_modules/
+**/dist/
+**/.vite/
+
+# 操作系统
+Thumbs.db
+.DS_Store
+
+# 开发工具配置
+.editorconfig
+.pre-commit-config.yaml

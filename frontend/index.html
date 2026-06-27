@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>销售数据预测与可视化大屏</title>
+    <link rel="stylesheet" href="css/dashboard.css">
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js"></script>
+</head>
+<body>
+    <div class="dashboard">
+        <!-- 标题栏 -->
+        <header class="header">
+            <div class="header-title">销售数据预测与可视化大屏</div>
+            <div class="header-info">
+                <span id="currentDate"></span>
+                <span id="currentTime"></span>
+                <span class="status-dot"></span>
+                <span class="status-text">实时</span>
+            </div>
+        </header>
+
+        <!-- KPI 卡片 -->
+        <section class="kpi-row">
+            <div class="kpi-card">
+                <div class="kpi-label">总销售额（30天）</div>
+                <div class="kpi-value" id="kpiTotalSales">0</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">预测销量（30天）</div>
+                <div class="kpi-value" id="kpiTotalPredicted">0</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">增长率</div>
+                <div class="kpi-value" id="kpiGrowth">0%</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">预测准确率</div>
+                <div class="kpi-value" id="kpiAccuracy">0%</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">预警商品数</div>
+                <div class="kpi-value" id="kpiAlert">0</div>
+            </div>
+        </section>
+
+        <!-- 销量趋势图 -->
+        <section class="chart-row main-chart">
+            <div class="panel">
+                <div class="panel-header">
+                    <span class="panel-title">销量趋势图（历史 + 预测）</span>
+                    <div class="panel-controls">
+                        <select id="productSelect" class="select"></select>
+                        <select id="storeSelect" class="select"></select>
+                    </div>
+                </div>
+                <div id="salesLine" class="chart"></div>
+            </div>
+        </section>
+
+        <!-- 库存热力图 + 品类饼图 -->
+        <section class="chart-row two-col">
+            <div class="panel">
+                <div class="panel-header">
+                    <span class="panel-title">库存热力图（ABC 分级）</span>
+                </div>
+                <div id="inventoryHeatmap" class="chart"></div>
+            </div>
+            <div class="panel">
+                <div class="panel-header">
+                    <span class="panel-title">品类销售占比</span>
+                </div>
+                <div id="categoryPie" class="chart"></div>
+            </div>
+        </section>
+
+        <!-- Top 10 商品 -->
+        <section class="chart-row">
+            <div class="panel">
+                <div class="panel-header">
+                    <span class="panel-title">Top 10 商品销量排行 + 采购建议</span>
+                </div>
+                <div id="topProducts" class="chart"></div>
+            </div>
+        </section>
+    </div>
+
+    <!-- 加载遮罩 -->
+    <div id="loading" class="loading">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">正在加载大屏数据...</div>
+    </div>
+
+    <!-- 错误提示横幅 -->
+    <div id="errorBanner" class="error-banner hidden"></div>
+
+    <script src="js/api.js?v=2"></script>
+    <script src="js/charts/kpi-cards.js?v=2"></script>
+    <script src="js/charts/sales-line.js?v=2"></script>
+    <script src="js/charts/inventory-heatmap.js?v=2"></script>
+    <script src="js/charts/category-pie.js?v=2"></script>
+    <script src="js/charts/top-products.js?v=2"></script>
+    <script src="js/dashboard.js?v=2"></script>
+</body>
+</html>
