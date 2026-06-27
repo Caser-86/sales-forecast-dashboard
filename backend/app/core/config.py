@@ -10,9 +10,9 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 # backend/app/core/config.py → 项目根目录
-APP_DIR = Path(__file__).resolve().parent.parent          # backend/app
-BACKEND_DIR = APP_DIR.parent                                # backend
-PROJECT_ROOT = BACKEND_DIR.parent                           # sales-forecast-dashboard
+APP_DIR = Path(__file__).resolve().parent.parent    # backend/app
+BACKEND_DIR = APP_DIR.parent                        # backend
+PROJECT_ROOT = BACKEND_DIR.parent                   # sales-forecast-dashboard
 
 
 class Settings(BaseSettings):
@@ -134,9 +134,6 @@ def get_settings() -> Settings:
 settings = get_settings()
 
 # 模块级路径常量（保持向后兼容）
-APP_DIR_LEGACY = APP_DIR
-BACKEND_DIR_LEGACY = BACKEND_DIR
-PROJECT_ROOT_LEGACY = PROJECT_ROOT
 DATA_RAW_DIR = Path(settings.DATA_RAW_DIR)
 DATA_PROCESSED_DIR = Path(settings.DATA_PROCESSED_DIR)
 SALES_CSV = settings.SALES_CSV

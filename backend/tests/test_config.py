@@ -52,6 +52,22 @@ class TestConfig:
         s.ensure_dirs()
         assert (tmp_path / "logs").exists()
 
+    def test_ensure_dirs_idempotent(self, tmp_path):
+        """ensure_dirs 幂等：重复调用不会报错。"""
+        from app.core.config import Settings
+        s = Settings(
+            LOG_DIR=str(tmp_path / "logs"),
+            DATA_RAW_DIR=str(tmp_path / "raw"),
+            DATA_PROCESSED_DIR=str(tmp_path / "processed"),
+            MODELS_DIR=str(tmp_path / "models"),
+        )
+        s.ensure_dirs()
+        s.ensure_dirs()
+        assert (tmp_path / "logs").is_dir()
+        assert (tmp_path / "raw").is_dir()
+        assert (tmp_path / "processed").is_dir()
+        assert (tmp_path / "models").is_dir()
+
     def test_settings_singleton(self):
         """get_settings 返回同一实例。"""
         from app.core.config import get_settings
@@ -65,3 +81,11 @@ class TestConfig:
         assert settings.SALES_CSV.is_absolute()
         assert settings.LSTM_PATH.is_absolute()
         assert settings.LGBM_PATH.is_absolute()
+
+    def test_legacy_path_constants_match_settings(self):
+        """app.config 兼容层常量与 settings 一致。"""
+        from app.core.config import settings
+        from app.config import SALES_CSV, FEATURES_CSV, REPORT_JSON
+        assert SALES_CSV == settings.SALES_CSV
+        assert FEATURES_CSV == settings.FEATURES_CSV
+        assert REPORT_JSON == settings.REPORT_JSON

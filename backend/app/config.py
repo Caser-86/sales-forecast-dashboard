@@ -8,7 +8,7 @@ from __future__ import annotations
 # 所有常量从新配置模块重新导出
 from app.core.config import (  # noqa: F401
     API_PREFIX,
-    BACKEND_DIR_LEGACY as BACKEND_DIR,
+    BACKEND_DIR,
     DATA_PROCESSED_DIR,
     DATA_RAW_DIR,
     DATABASE_URL,
@@ -16,7 +16,7 @@ from app.core.config import (  # noqa: F401
     LGBM_PATH,
     LSTM_PATH,
     MODELS_DIR,
-    PROJECT_ROOT_LEGACY as PROJECT_ROOT,
+    PROJECT_ROOT,
     REPORT_JSON,
     SALES_CSV,
     settings,

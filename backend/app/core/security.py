@@ -2,6 +2,11 @@
 
 启用方式：在 .env 中设置 API_TOKEN=xxx
 禁用方式：API_TOKEN 留空（默认）
+
+注意：当前 API 路由尚未挂载认证依赖（TokenDependency），
+认证中间件已就绪但默认不启用，保持服务对前端大屏开放。
+如需启用，可在 router 或 app.include_router 中加入：
+    dependencies=[security.TokenDependency]
 """
 from __future__ import annotations
 
@@ -37,5 +42,6 @@ def verify_token(
     return "authenticated"
 
 
-# 依赖对象，供路由直接使用: dependencies=[Depends(verify_token)] 或路由级
+# 预构造的依赖对象，供后续在路由上启用认证时使用。
+# 当前未被任何路由引用（默认开放），保留以保证认证扩展能力。
 TokenDependency = Depends(verify_token)
