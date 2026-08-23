@@ -17,6 +17,7 @@ build/
 *.pth
 *.txt
 !requirements.txt
+!requirements-dev.txt
 backend/ml/saved_models/*
 !backend/ml/saved_models/.gitkeep
 backend/data/raw/*

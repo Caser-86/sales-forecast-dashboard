@@ -13,18 +13,21 @@ import json
 import os
 from typing import Tuple
 
+import joblib
+import lightgbm_model as lgbm_wrapper
 import numpy as np
 import pandas as pd
 import torch
 import torch.nn as nn
-from sklearn.preprocessing import StandardScaler
-import joblib
-
-from lstm_model import SalesLSTM, build_sequences, save_model as save_lstm, SEQ_LEN
-import lightgbm_model as lgbm_wrapper
 from feature_engineering import (
-    load_features, FEATURE_COLS, TARGET_COL, LSTM_FEATURE_COLS,
+    FEATURE_COLS,
+    LSTM_FEATURE_COLS,
+    TARGET_COL,
+    load_features,
 )
+from lstm_model import SEQ_LEN, SalesLSTM, build_sequences
+from lstm_model import save_model as save_lstm
+from sklearn.preprocessing import StandardScaler
 
 BACKEND_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PROCESSED_DIR = os.path.join(BACKEND_DIR, "data", "processed")
@@ -71,7 +74,7 @@ def _prepare_lstm_data(df: pd.DataFrame, scaler_x: StandardScaler,
                        scaler_y: StandardScaler) -> Tuple[np.ndarray, np.ndarray]:
     """把每个 (store, product) 序列切分成样本。"""
     X_all, y_all = [], []
-    for (sid, pid), g in df.groupby(["store_id", "product_id"]):
+    for (_sid, _pid), g in df.groupby(["store_id", "product_id"]):
         g = g.sort_values("date")
         feats = g[LSTM_FEATURE_COLS].values.astype(np.float32)
         targets = g[TARGET_COL].values.astype(np.float32).reshape(-1, 1)
@@ -169,7 +172,7 @@ def eval_lstm(model: SalesLSTM, test_df: pd.DataFrame, scalers: dict) -> Tuple[p
     trues = []
     preds = []
     with torch.no_grad():
-        for (sid, pid), g in test_df.groupby(["store_id", "product_id"]):
+        for (_sid, _pid), g in test_df.groupby(["store_id", "product_id"]):
             g = g.sort_values("date")
             feats = g[LSTM_FEATURE_COLS].values.astype(np.float32)
             targets = g[TARGET_COL].values.astype(np.float32)

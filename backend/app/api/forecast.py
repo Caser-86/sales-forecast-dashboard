@@ -3,8 +3,8 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Query
 
-from app.services import forecast_service
 from app.schemas import ForecastResult
+from app.services import forecast_service
 
 router = APIRouter()
 

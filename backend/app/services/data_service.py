@@ -7,11 +7,11 @@ from __future__ import annotations
 
 from datetime import timedelta
 from functools import lru_cache
-from typing import List, Dict, Any
+from typing import Any, Dict, List
 
 import pandas as pd
 
-from app.config import SALES_CSV, REPORT_JSON
+from app.config import REPORT_JSON, SALES_CSV
 from app.core.exceptions import DataNotInitializedError, NotFoundError
 from app.core.logging import get_logger
 
@@ -104,6 +104,19 @@ def get_total_sales_last_n(days: int = 30) -> int:
     last_date = df["date"].max()
     start = last_date - timedelta(days=days - 1)
     return int(df[df["date"] >= start]["sales"].sum())
+
+
+@lru_cache(maxsize=4)
+def get_recent_product_demand(days: int = 30) -> Dict[int, float]:
+    """返回最近 N 天按商品汇总的需求量，用于商品级 ABC 分级。"""
+    if days <= 0:
+        raise ValueError("days 必须大于 0")
+    df = load_sales()
+    last_date = df["date"].max()
+    start = last_date - timedelta(days=days - 1)
+    recent = df[df["date"] >= start]
+    grouped = recent.groupby("product_id")["sales"].sum()
+    return {int(product_id): float(total) for product_id, total in grouped.items()}
 
 
 def get_category_sales() -> List[Dict[str, Any]]:

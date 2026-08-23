@@ -8,7 +8,6 @@ from typing import List
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-
 # backend/app/core/config.py → 项目根目录
 APP_DIR = Path(__file__).resolve().parent.parent    # backend/app
 BACKEND_DIR = APP_DIR.parent                        # backend
@@ -65,6 +64,12 @@ class Settings(BaseSettings):
     FORECAST_DAYS: int = 30
     LSTM_SEQ_LEN: int = 14
     ENSEMBLE_WEIGHTS: tuple = (0.4, 0.6)  # (LSTM, LightGBM)
+    FORECAST_WORKERS: int = Field(
+        default=4,
+        ge=1,
+        le=16,
+        description="批量预测最大并发数",
+    )
 
     # ---------- 限流 ----------
     RATE_LIMIT_ENABLED: bool = True

@@ -4,14 +4,15 @@
 """
 from __future__ import annotations
 
-from functools import lru_cache
-from typing import Dict, Any
-
-from app.core.logging import get_logger
-
 # 通过 sys.path 注入 ml 目录
 import os
 import sys
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from functools import lru_cache
+from typing import Any, Dict
+
+from app.core.config import settings
+from app.core.logging import get_logger
 
 _ml_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "ml")
 if _ml_dir not in sys.path:
@@ -29,15 +30,29 @@ def get_forecast(product_id: int, store_id: int) -> Dict[str, Any]:
 
 
 def get_forecast_all(products: list[dict], stores: list[dict]) -> list[dict]:
-    """获取所有商品×门店的预测，返回精简列表。"""
-    results = []
-    for p in products:
-        pid = p["product_id"]
-        for s in stores:
+    """获取所有商品×门店的预测，返回稳定顺序的精简列表。
+
+    预测模型加载和推理是批量接口的主要耗时来源，因此使用受控线程池；
+    结果仍按商品、门店输入顺序返回，避免前端因 future 完成顺序而抖动。
+    """
+    items = [(p, s) for p in products for s in stores]
+    if not items:
+        return []
+
+    results: dict[tuple[int, int], dict[str, Any]] = {}
+    max_workers = min(settings.FORECAST_WORKERS, len(items))
+    with ThreadPoolExecutor(max_workers=max_workers, thread_name_prefix="forecast") as executor:
+        future_to_item = {
+            executor.submit(get_forecast, p["product_id"], s["store_id"]): (p, s)
+            for p, s in items
+        }
+        for future in as_completed(future_to_item):
+            p, s = future_to_item[future]
+            pid = p["product_id"]
             sid = s["store_id"]
             try:
-                f = get_forecast(pid, sid)
-                results.append({
+                f = future.result()
+                results[(pid, sid)] = {
                     "product_id": pid,
                     "product_name": p["product_name"],
                     "category": p["category"],
@@ -47,14 +62,14 @@ def get_forecast_all(products: list[dict], stores: list[dict]) -> list[dict]:
                     "suggested_purchase": f["suggested_purchase"],
                     "abc_class": f["abc_class"],
                     "forecast": f["forecast"],
-                })
+                }
             except Exception as e:
-                # 单个失败不影响整体，但记录日志便于排查
+                # 单个失败不影响整体，但记录日志便于排查。
                 logger.warning(
                     "预测失败 product_id=%s store_id=%s: %s", pid, sid, e,
                     exc_info=True,
                 )
-                results.append({
+                results[(pid, sid)] = {
                     "product_id": pid,
                     "product_name": p["product_name"],
                     "category": p["category"],
@@ -65,5 +80,6 @@ def get_forecast_all(products: list[dict], stores: list[dict]) -> list[dict]:
                     "suggested_purchase": 0,
                     "abc_class": "C",
                     "forecast": [],
-                })
-    return results
+                }
+
+    return [results[(p["product_id"], s["store_id"])] for p, s in items]

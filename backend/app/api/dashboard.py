@@ -2,12 +2,13 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Dict, Any
+from typing import Any, Dict
 
+from common.abc import classify_abc
 from fastapi import APIRouter
 
-from app.services import data_service, inventory_service, forecast_service
 from app.schemas import DashboardData, InventoryResult, KpiResult
+from app.services import data_service, forecast_service, inventory_service
 
 router = APIRouter()
 
@@ -38,16 +39,11 @@ def _compute_kpi(all_f: list[dict] | None = None) -> Dict[str, Any]:
     mape = report.get("ensemble", {}).get("mape", 100)
     accuracy = round(max(0.0, 100.0 - mape), 2)
 
-    # ABC 分布（按商品去重，同一商品取所有门店中最高优先级 A>B>C）
-    priority = {"A": 0, "B": 1, "C": 2}
-    product_best: Dict[int, str] = {}
-    for f in all_f:
-        pid = f["product_id"]
-        abc = f.get("abc_class", "C")
-        if pid not in product_best or priority[abc] < priority[product_best[pid]]:
-            product_best[pid] = abc
+    # ABC 分布按商品汇总最近 30 天需求量，不从门店等级取最高值近似。
+    product_demand = data_service.get_recent_product_demand(30)
+    product_abc = classify_abc(product_demand)
     abc_dist = {"A": 0, "B": 0, "C": 0}
-    for abc in product_best.values():
+    for abc in product_abc.values():
         abc_dist[abc] = abc_dist.get(abc, 0) + 1
 
     # 预警商品数（A 类商品数，按商品去重）
@@ -75,23 +71,34 @@ def get_dashboard():
     kpi = _compute_kpi(all_f)
     top = data_service.get_top_products(10)
 
-    # 取每个商品在门店1的预测
-    pid_to_forecast = {}
+    # 按商品汇总所有门店预测，保持与历史销量的商品粒度一致。
+    product_forecasts: Dict[int, Dict[str, int]] = {}
     for f in all_f:
-        if f["store_id"] == 1 and "error" not in f:
-            pid_to_forecast[f["product_id"]] = f
+        if "error" in f:
+            continue
+        aggregate = product_forecasts.setdefault(
+            f["product_id"],
+            {"predicted": 0, "suggested_purchase": 0},
+        )
+        aggregate["predicted"] += int(f.get("total_predicted", 0))
+        aggregate["suggested_purchase"] += int(f.get("suggested_purchase", 0))
+
+    product_abc = classify_abc(data_service.get_recent_product_demand(30))
 
     top_products = []
     for t in top:
-        f = pid_to_forecast.get(t["product_id"], {})
+        aggregate = product_forecasts.get(
+            t["product_id"],
+            {"predicted": 0, "suggested_purchase": 0},
+        )
         top_products.append({
             "product_id": t["product_id"],
             "product_name": t["product_name"],
             "category": t["category"],
             "sales": t["sales"],
-            "predicted": f.get("total_predicted", 0),
-            "suggested_purchase": f.get("suggested_purchase", 0),
-            "abc_class": f.get("abc_class", "C"),
+            "predicted": aggregate["predicted"],
+            "suggested_purchase": aggregate["suggested_purchase"],
+            "abc_class": product_abc.get(t["product_id"], "C"),
         })
 
     category_sales = data_service.get_category_sales()

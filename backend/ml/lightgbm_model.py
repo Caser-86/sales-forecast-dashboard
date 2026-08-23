@@ -4,12 +4,12 @@
 """
 from __future__ import annotations
 
-import os
 import json
+import os
 from typing import Tuple
 
-import numpy as np
 import lightgbm as lgb
+import numpy as np
 
 DEFAULT_PARAMS = {
     "objective": "regression",

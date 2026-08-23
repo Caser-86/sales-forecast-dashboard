@@ -10,16 +10,18 @@ from __future__ import annotations
 import json
 import os
 from datetime import date, timedelta
-from typing import List, Dict
+from threading import Lock
+from typing import Dict, List
 
+import lightgbm_model as lgbm_wrapper
 import numpy as np
 import pandas as pd
 import torch
-from sklearn.preprocessing import LabelEncoder
-
-from lstm_model import SalesLSTM, load_model as load_lstm, SEQ_LEN
-import lightgbm_model as lgbm_wrapper
+from common.abc import classify_abc
 from feature_engineering import FEATURE_COLS, LSTM_FEATURE_COLS
+from lstm_model import SEQ_LEN, SalesLSTM
+from lstm_model import load_model as load_lstm
+from sklearn.preprocessing import LabelEncoder
 
 # 类别编码器：品类集合固定（服装/家居/日化/电子/食品），
 # 在模块加载时构造一次，避免在预测循环内重复 fit。
@@ -51,6 +53,7 @@ class ForecastPredictor:
     """单例式预测器，加载一次模型后可重复调用。"""
 
     _instance: "ForecastPredictor | None" = None
+    _instance_lock = Lock()
 
     def __init__(self):
         import joblib
@@ -64,11 +67,24 @@ class ForecastPredictor:
         # raw 数据仅用于 ABC 分级时的总量统计
         self.raw: pd.DataFrame = pd.read_csv(RAW_PATH)
         self.raw["date"] = pd.to_datetime(self.raw["date"])
+        recent_start = self.raw["date"].max() - pd.Timedelta(days=29)
+        recent_demand = (
+            self.raw[self.raw["date"] >= recent_start]
+            .groupby(["product_id", "store_id"])["sales"]
+            .sum()
+        )
+        self.recent_demand = {
+            (int(product_id), int(store_id)): float(total)
+            for (product_id, store_id), total in recent_demand.items()
+        }
+        self.abc_classes = classify_abc(self.recent_demand)
 
     @classmethod
     def get(cls) -> "ForecastPredictor":
         if cls._instance is None:
-            cls._instance = cls()
+            with cls._instance_lock:
+                if cls._instance is None:
+                    cls._instance = cls()
         return cls._instance
 
     # ---------- 内部工具 ----------
@@ -166,23 +182,6 @@ class ForecastPredictor:
             sales_series.append(pred)
         return preds
 
-    def _abc_class(self, total_predicted: float, all_totals: List[float]) -> str:
-        """ABC 分级：按预测总量累计占比。"""
-        sorted_totals = sorted(all_totals, reverse=True)
-        cum = 0.0
-        grand = sum(sorted_totals)
-        for t in sorted_totals:
-            cum += t
-            if abs(t - total_predicted) < 1e-6:
-                ratio = cum / grand if grand > 0 else 0
-                if ratio <= 0.70:
-                    return "A"
-                elif ratio <= 0.90:
-                    return "B"
-                else:
-                    return "C"
-        return "C"
-
     # ---------- 对外接口 ----------
 
     def forecast(self, product_id: int, store_id: int) -> Dict:
@@ -192,7 +191,10 @@ class ForecastPredictor:
         lstm_preds = self._lstm_forecast(recent)
         lgbm_preds = self._lgbm_forecast(product_id, store_id, recent)
         # 集成
-        ensemble = [LSTM_WEIGHT * lv + LGBM_WEIGHT * gv for lv, gv in zip(lstm_preds, lgbm_preds)]
+        ensemble = [
+            LSTM_WEIGHT * lv + LGBM_WEIGHT * gv
+            for lv, gv in zip(lstm_preds, lgbm_preds, strict=True)
+        ]
 
         # 置信区间：基于集成值 ±15%
         forecast_list = []
@@ -211,14 +213,8 @@ class ForecastPredictor:
         # 安全库存：预测总量 × 1.08
         suggested_purchase = int(round(total_predicted * 1.08))
 
-        # ABC 分级：计算所有商品×门店的预测总量（用历史最近 30 天总量近似）
-        all_totals = []
-        for (pid, sid), g in self.history.groupby(["product_id", "store_id"]):
-            all_totals.append(float(g.tail(30)["sales"].sum()))
-        abc = self._abc_class(float(self.history[
-            (self.history["product_id"] == product_id) &
-            (self.history["store_id"] == store_id)
-        ].tail(30)["sales"].sum()), all_totals)
+        # ABC 分级使用原始销售数据最近 30 天需求量，不与未来预测值混用。
+        abc = self.abc_classes.get((product_id, store_id), "C")
 
         return {
             "product_id": product_id,

@@ -4,7 +4,7 @@
 """
 from __future__ import annotations
 
-from typing import Dict, Any, List
+from typing import Any, Dict, List
 
 from app.services import data_service, forecast_service
 

@@ -12,7 +12,7 @@ PROJECT_ROOT = SCRIPT_DIR.parent
 BACKEND_DIR = PROJECT_ROOT / "backend"
 sys.path.insert(0, str(BACKEND_DIR / "ml"))
 
-from trainer import train_all
+from trainer import train_all  # noqa: E402
 
 
 def main():

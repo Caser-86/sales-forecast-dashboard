@@ -11,7 +11,7 @@
 
 ## 功能特性
 
-- **预测模型**: LSTM + LightGBM 集成，MAPE 9.91%
+- **预测模型**: LSTM + LightGBM 集成，示例 MAPE 11.40%（重新训练后以实际评估报告为准）
 - **数据生成**: 基于真实业务逻辑的模拟销售数据（含周末/促销/节假日效应）
 - **特征工程**: 时间序列特征（lag/rolling）、类别编码、价格弹性特征
 - **可视化大屏**: 5 个 ECharts 图表（销量趋势、库存热力图、品类饼图、KPI 卡片、Top 排行）
@@ -28,7 +28,7 @@ sales-forecast-dashboard/
 │   │   └── services/    # 业务服务（数据/预测/库存）
 │   ├── ml/              # 机器学习模块（数据生成/特征工程/模型/训练/预测）
 │   ├── data/            # 数据文件（原始数据/处理后数据）
-│   ├── tests/           # 测试用例（10 个文件，67 个测试）
+│   ├── tests/           # 测试用例（12 个文件，75 个测试）
 │   └── requirements.txt
 ├── frontend/            # 前端大屏
 │   ├── index.html
@@ -58,6 +58,17 @@ python -m http.server 3000
 - 前端大屏: http://localhost:3000
 - API 文档: http://localhost:8000/docs
 - 健康检查: http://localhost:8000/health
+
+如前端使用非 3000/5500 端口或独立域名，可在加载 `js/api.js` 前配置后端地址：
+
+```html
+<script>
+  window.API_BASE_URL = "https://api.example.com/api";
+</script>
+<script src="js/api.js"></script>
+```
+
+配置值可带或不带末尾 `/api` 和斜杠，前端会统一规范化；使用 Nginx 同源反代时无需配置。
 
 ### Docker 部署
 
@@ -223,14 +234,21 @@ curl http://localhost:8000/api/dashboard
 ```bash
 cd backend
 
-# 运行全部测试（67 个用例）
+# 运行全部测试（当前 75 个用例）
 pytest tests/
 
 # 运行特定测试文件
 pytest tests/test_dashboard.py -v
 
 # 代码检查
-ruff check app tests ml
+python -m ruff check app common tests ml ../scripts
+
+# 从干净环境初始化数据、训练模型并执行完整质量门禁
+cd ..
+python scripts/init_data.py
+python scripts/train_models.py
+python -m ruff check backend/app backend/common backend/ml backend/tests scripts
+python -m pytest backend/tests -q
 
 # 生成测试报告（需要安装 pytest-html）
 pytest tests/ --html=report.html
@@ -240,11 +258,13 @@ pytest tests/ --html=report.html
 
 ## 模型评估结果
 
+以下是当前数据生成和训练流程的一次示例结果。由于数据和模型均按流程生成，重新训练后请以 `backend/data/processed/evaluation_report.json` 为准。
+
 | 模型 | MAPE | RMSE |
 |------|------|------|
-| LSTM | 19.46% | 31.91 |
+| LSTM | 22.37% | 33.04 |
 | LightGBM | 8.60% | 21.94 |
-| 集成模型 (0.4/0.6) | **9.91%** | **16.15** |
+| 集成模型 (0.4/0.6) | **11.40%** | **16.68** |
 
 ---
 
@@ -300,6 +320,7 @@ pytest tests/ --html=report.html
 | FORECAST_DAYS | 预测天数 | 30 |
 | LSTM_SEQ_LEN | LSTM 序列长度 | 14 |
 | ENSEMBLE_WEIGHTS | 集成权重 (LSTM, LightGBM) | (0.4, 0.6) |
+| FORECAST_WORKERS | 大屏批量预测最大并发数 | 4（1-16） |
 
 ### 限流配置
 

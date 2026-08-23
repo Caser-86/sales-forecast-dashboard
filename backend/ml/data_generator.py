@@ -60,7 +60,7 @@ def _build_product_catalog() -> list[dict]:
     products = []
     pid = 1
     for cat_name, spec in CATEGORIES.items():
-        for i in range(spec["sku_count"]):
+        for _i in range(spec["sku_count"]):
             price_lo, price_hi = spec["price_range"]
             base_lo, base_hi = spec["base_range"]
             # 每个 SKU 的固定属性

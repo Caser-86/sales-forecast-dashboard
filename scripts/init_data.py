@@ -6,7 +6,6 @@
 """
 from __future__ import annotations
 
-import os
 import sys
 from pathlib import Path
 
@@ -16,7 +15,7 @@ PROJECT_ROOT = SCRIPT_DIR.parent
 BACKEND_DIR = PROJECT_ROOT / "backend"
 sys.path.insert(0, str(BACKEND_DIR))
 
-from ml import data_generator, feature_engineering
+from ml import data_generator, feature_engineering  # noqa: E402
 
 
 def main():

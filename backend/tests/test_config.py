@@ -84,8 +84,8 @@ class TestConfig:
 
     def test_legacy_path_constants_match_settings(self):
         """app.config 兼容层常量与 settings 一致。"""
+        from app.config import FEATURES_CSV, REPORT_JSON, SALES_CSV
         from app.core.config import settings
-        from app.config import SALES_CSV, FEATURES_CSV, REPORT_JSON
         assert SALES_CSV == settings.SALES_CSV
         assert FEATURES_CSV == settings.FEATURES_CSV
         assert REPORT_JSON == settings.REPORT_JSON

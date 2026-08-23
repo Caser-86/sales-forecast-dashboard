@@ -3,8 +3,8 @@ from __future__ import annotations
 
 from fastapi import APIRouter
 
-from app.services import data_service
 from app.schemas import ProductList
+from app.services import data_service
 
 router = APIRouter()
 

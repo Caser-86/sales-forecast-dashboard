@@ -1,7 +1,7 @@
 """Pydantic 响应模型"""
 from __future__ import annotations
 
-from typing import List, Dict
+from typing import Dict, List
 
 from pydantic import BaseModel
 

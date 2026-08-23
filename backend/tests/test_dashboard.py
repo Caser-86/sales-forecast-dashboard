@@ -3,6 +3,84 @@ from __future__ import annotations
 
 
 class TestDashboard:
+    def test_dashboard_top_product_forecast_is_all_store_sum(self, monkeypatch):
+        """Top 商品预测和采购建议应汇总所有门店。"""
+        from app.api import dashboard
+
+        products = [{
+            "product_id": 1,
+            "product_name": "P1",
+            "category": "服装",
+            "base_price": 10.0,
+        }]
+        stores = [
+            {"store_id": 1, "store_name": "S1"},
+            {"store_id": 2, "store_name": "S2"},
+        ]
+        forecasts = [
+            {
+                "product_id": 1,
+                "product_name": "P1",
+                "category": "服装",
+                "store_id": 1,
+                "store_name": "S1",
+                "total_predicted": 10,
+                "suggested_purchase": 11,
+                "abc_class": "A",
+                "forecast": [],
+            },
+            {
+                "product_id": 1,
+                "product_name": "P1",
+                "category": "服装",
+                "store_id": 2,
+                "store_name": "S2",
+                "total_predicted": 20,
+                "suggested_purchase": 22,
+                "abc_class": "B",
+                "forecast": [],
+            },
+        ]
+        monkeypatch.setattr(dashboard.data_service, "get_products", lambda: products)
+        monkeypatch.setattr(dashboard.data_service, "get_stores", lambda: stores)
+        monkeypatch.setattr(dashboard.data_service, "get_total_sales_last_n", lambda days: 30)
+        monkeypatch.setattr(
+            dashboard.data_service,
+            "get_recent_product_demand",
+            lambda days: {1: 30},
+            raising=False,
+        )
+        monkeypatch.setattr(
+            dashboard.data_service,
+            "load_report",
+            lambda: {"ensemble": {"mape": 10}},
+        )
+        monkeypatch.setattr(
+            dashboard.data_service,
+            "get_top_products",
+            lambda n: [{
+                "product_id": 1,
+                "product_name": "P1",
+                "category": "服装",
+                "sales": 100,
+            }],
+        )
+        monkeypatch.setattr(
+            dashboard.data_service,
+            "get_category_sales",
+            lambda: [{"category": "服装", "sales": 100, "ratio": 1.0}],
+        )
+        monkeypatch.setattr(
+            dashboard.forecast_service,
+            "get_forecast_all",
+            lambda p, s: forecasts,
+        )
+
+        result = dashboard.get_dashboard()
+
+        assert result["top_products"][0]["predicted"] == 30
+        assert result["top_products"][0]["suggested_purchase"] == 33
+
     def test_dashboard_returns_kpi(self, client):
         """大屏接口返回 KPI。"""
         r = client.get("/api/dashboard")
@@ -18,7 +96,7 @@ class TestDashboard:
         assert "abc_distribution" in body
 
     def test_dashboard_kpi_accuracy_near_90(self, client):
-        """模型准确率应接近 90%（MAPE 9.91%）。"""
+        """模型准确率应保持在可接受范围内。"""
         r = client.get("/api/dashboard")
         accuracy = r.json()["kpi"]["accuracy"]
         assert 80 <= accuracy <= 100, f"准确率异常: {accuracy}"
