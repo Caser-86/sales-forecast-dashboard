@@ -5,7 +5,7 @@
 ## 技术栈
 
 - **后端**: Python 3.11 / FastAPI / Pydantic / Uvicorn
-- **机器学习**: PyTorch (LSTM) / LightGBM / Pandas / Scikit-learn
+- **机器学习**: PyTorch CPU (LSTM) / LightGBM / Pandas / Scikit-learn
 - **前端**: ECharts 5 / HTML5 / CSS3
 - **部署**: Docker / Docker Compose / Nginx
 

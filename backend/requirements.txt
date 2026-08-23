@@ -5,11 +5,10 @@ pydantic-settings==2.7.1
 sqlmodel==0.0.22
 pandas==2.2.3
 numpy==1.26.4
-torch==2.5.1
+# CPU-only wheel keeps Docker and CI images free of unused CUDA/NVIDIA packages.
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.5.1+cpu
 lightgbm==4.5.0
 scikit-learn==1.6.0
 joblib==1.4.2
-httpx==0.28.1
-pytest==8.3.4
-pytest-asyncio==0.25.0
 slowapi==0.1.9

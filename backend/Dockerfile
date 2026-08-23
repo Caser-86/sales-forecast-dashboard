@@ -2,9 +2,9 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# 系统依赖（gcc 用于编译 lightgbm，libgomp1 用于 OpenMP）
+# 运行时依赖（LightGBM 需要 libgomp1，curl 用于健康检查）
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    gcc g++ libgomp1 curl \
+    libgomp1 curl \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
