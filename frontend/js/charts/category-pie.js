@@ -54,7 +54,13 @@ const CategoryPieChart = {
     },
 
     async load(categorySales) {
-        if (!categorySales || !categorySales.length) return;
+        if (!categorySales || !categorySales.length) {
+            this.chart.setOption({
+                series: [{ data: [] }],
+                graphic: { style: { text: "当前范围\n暂无数据" } }
+            });
+            return;
+        }
         const colors = ["#6c5ce7", "#00e5ff", "#ffd93d", "#6bcf7f", "#ff6b6b"];
         const data = categorySales.map((c, i) => ({
             name: c.category,

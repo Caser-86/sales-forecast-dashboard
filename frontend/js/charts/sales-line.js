@@ -128,6 +128,8 @@ const SalesLineChart = {
             });
         } catch (e) {
             console.error("销量趋势加载失败:", e);
+            window.showDashboardError?.(`销量趋势加载失败: ${e.message}`);
+            throw e;
         }
     }
 };

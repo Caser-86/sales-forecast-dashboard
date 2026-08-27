@@ -25,7 +25,9 @@ def main():
     print("=" * 60)
     print("模型训练完成。评估报告：")
     for name, m in report.items():
-        print(f"  {name:10s} → MAPE={m['mape']:.2f}%, RMSE={m['rmse']:.2f}")
+        if not isinstance(m, dict) or "mape" not in m or "rmse" not in m:
+            continue
+        print(f"  {name:18s} → MAPE={m['mape']:.2f}%, RMSE={m['rmse']:.2f}")
     print("=" * 60)
     print("下一步: uvicorn app.main:app --reload  (在 backend/ 目录下)")
 

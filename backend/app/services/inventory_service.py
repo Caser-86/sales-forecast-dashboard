@@ -6,6 +6,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, List
 
+from app.core.exceptions import NotFoundError
 from app.services import data_service, forecast_service
 
 
@@ -20,9 +21,21 @@ def _risk_level(predicted: int, suggested: int, abc: str) -> str:
         return "low"
 
 
-def get_inventory() -> Dict[str, Any]:
+def get_inventory(
+    product_id: int | None = None,
+    store_id: int | None = None,
+) -> Dict[str, Any]:
     products = data_service.get_products()
     stores = data_service.get_stores()
+
+    if product_id is not None:
+        products = [p for p in products if p["product_id"] == product_id]
+        if not products:
+            raise NotFoundError(f"product_id={product_id} 不存在")
+    if store_id is not None:
+        stores = [s for s in stores if s["store_id"] == store_id]
+        if not stores:
+            raise NotFoundError(f"store_id={store_id} 不存在")
 
     all_forecasts = forecast_service.get_forecast_all(products, stores)
 

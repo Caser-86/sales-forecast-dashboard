@@ -57,11 +57,18 @@ const InventoryHeatmap = {
         window.addEventListener("resize", () => this.chart.resize());
     },
 
-    async load() {
+    async load(scope = {}) {
         try {
-            const inv = await api.getInventory();
+            const inv = await api.getInventory(scope);
             const cells = inv.cells;
-            if (!cells.length) return;
+            if (!cells.length) {
+                this.chart.setOption({
+                    xAxis: { data: [] },
+                    yAxis: { data: [] },
+                    series: [{ data: [] }]
+                });
+                return;
+            }
 
             const products = [...new Set(cells.map(c => c.product_id))].sort((a, b) => a - b);
             const stores = [...new Set(cells.map(c => c.store_id))].sort((a, b) => a - b);
@@ -90,6 +97,8 @@ const InventoryHeatmap = {
             });
         } catch (e) {
             console.error("库存热力图加载失败:", e);
+            window.showDashboardError?.(`库存热力图加载失败: ${e.message}`);
+            throw e;
         }
     }
 };

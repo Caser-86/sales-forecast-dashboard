@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import json
 import os
+from datetime import datetime, timezone
 from typing import Tuple
 
 import joblib
@@ -54,6 +55,38 @@ def _mape(y_true: np.ndarray, y_pred: np.ndarray) -> float:
 
 def _rmse(y_true: np.ndarray, y_pred: np.ndarray) -> float:
     return float(np.sqrt(np.mean((np.asarray(y_true, float) - np.asarray(y_pred, float)) ** 2)))
+
+
+def _evaluate_seasonal_naive(
+    df: pd.DataFrame,
+    test_df: pd.DataFrame,
+    lag_days: int = 7,
+) -> dict:
+    """用同商品同门店前一周同日销量作为无模型基线。"""
+    if lag_days <= 0:
+        raise ValueError("lag_days 必须大于 0")
+
+    history = df.set_index(["store_id", "product_id", "date"])[TARGET_COL]
+    y_true: list[float] = []
+    y_pred: list[float] = []
+    for row in test_df.itertuples():
+        previous_date = pd.Timestamp(row.date) - pd.Timedelta(days=lag_days)
+        key = (row.store_id, row.product_id, previous_date)
+        if key not in history:
+            continue
+        y_true.append(float(getattr(row, TARGET_COL)))
+        y_pred.append(float(history[key]))
+
+    if not y_true:
+        return {"mape": 0.0, "rmse": 0.0, "samples": 0}
+
+    true_arr = np.asarray(y_true, dtype=float)
+    pred_arr = np.asarray(y_pred, dtype=float)
+    return {
+        "mape": round(_mape(true_arr, pred_arr), 4),
+        "rmse": round(_rmse(true_arr, pred_arr), 4),
+        "samples": len(y_true),
+    }
 
 
 def _time_split(df: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
@@ -254,7 +287,30 @@ def train_all() -> dict:
     print(f"  集成  → MAPE={ensemble_metrics['mape']:.2f}%, RMSE={ensemble_metrics['rmse']:.2f} "
           f"(对齐样本数: {len(align)})")
 
+    baseline_metrics = _evaluate_seasonal_naive(df, test_df)
+    print(f"  前一周同日基线 → MAPE={baseline_metrics['mape']:.2f}%, "
+          f"RMSE={baseline_metrics['rmse']:.2f} (样本数: {baseline_metrics['samples']})")
+
     report = {
+        "metadata": {
+            "trained_at_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+            "horizon_days": 30,
+            "feature_count": len(FEATURE_COLS),
+            "data": {
+                "rows": int(len(df)),
+                "date_start": str(df["date"].min().date()),
+                "date_end": str(df["date"].max().date()),
+            },
+            "split": {
+                "train_rows": int(len(train_df)),
+                "validation_rows": int(len(val_df)),
+                "test_rows": int(len(test_df)),
+                "train_end": str(train_df["date"].max().date()),
+                "validation_end": str(val_df["date"].max().date()),
+            },
+            "ensemble_weights": {"lstm": 0.4, "lightgbm": 0.6},
+        },
+        "seasonal_naive_7d": baseline_metrics,
         "lstm": lstm_metrics,
         "lightgbm": lgbm_metrics,
         "ensemble": ensemble_metrics,

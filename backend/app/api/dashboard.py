@@ -2,29 +2,39 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Dict
+from typing import Annotated, Any, Dict
 
 from common.abc import classify_abc
-from fastapi import APIRouter
+from fastapi import APIRouter, Query
 
+from app.core.exceptions import NotFoundError
 from app.schemas import DashboardData, InventoryResult, KpiResult
 from app.services import data_service, forecast_service, inventory_service
 
 router = APIRouter()
 
 
-def _compute_kpi(all_f: list[dict] | None = None) -> Dict[str, Any]:
+def _compute_kpi(
+    all_f: list[dict] | None = None,
+    products: list[dict] | None = None,
+    stores: list[dict] | None = None,
+    product_id: int | None = None,
+    store_id: int | None = None,
+) -> Dict[str, Any]:
     """计算 KPI 指标。
 
     Args:
         all_f: 已计算的预测全集。若为 None，则内部调用一次。
         传入可避免与 get_dashboard 重复调用 get_forecast_all。
     """
-    products = data_service.get_products()
-    stores = data_service.get_stores()
+    products = products if products is not None else data_service.get_products()
+    stores = stores if stores is not None else data_service.get_stores()
 
     # 最近 30 天总销量（所有门店×所有商品）
-    total_sales = data_service.get_total_sales_last_n(30)
+    if product_id is None and store_id is None:
+        total_sales = data_service.get_total_sales_last_n(30)
+    else:
+        total_sales = data_service.get_total_sales_last_n(30, product_id, store_id)
 
     # 所有商品×门店的预测总量（与 total_sales 同口径）
     if all_f is None:
@@ -40,7 +50,10 @@ def _compute_kpi(all_f: list[dict] | None = None) -> Dict[str, Any]:
     accuracy = round(max(0.0, 100.0 - mape), 2)
 
     # ABC 分布按商品汇总最近 30 天需求量，不从门店等级取最高值近似。
-    product_demand = data_service.get_recent_product_demand(30)
+    if product_id is None and store_id is None:
+        product_demand = data_service.get_recent_product_demand(30)
+    else:
+        product_demand = data_service.get_recent_product_demand(30, product_id, store_id)
     product_abc = classify_abc(product_demand)
     abc_dist = {"A": 0, "B": 0, "C": 0}
     for abc in product_abc.values():
@@ -61,15 +74,23 @@ def _compute_kpi(all_f: list[dict] | None = None) -> Dict[str, Any]:
 
 
 @router.get("/dashboard", response_model=DashboardData, summary="大屏聚合数据")
-def get_dashboard():
-    """返回大屏所有商品汇总指标。"""
-    products = data_service.get_products()
-    stores = data_service.get_stores()
+def get_dashboard(
+    product_id: Annotated[int | None, Query(ge=1)] = None,
+    store_id: Annotated[int | None, Query(ge=1)] = None,
+):
+    """返回大屏指标，默认全量，也支持按商品和门店缩小范围。"""
+    all_products = data_service.get_products()
+    all_stores = data_service.get_stores()
+    products = _select_scope(all_products, "product_id", product_id)
+    stores = _select_scope(all_stores, "store_id", store_id)
     # 预测全集只算一次，KPI 与 Top 商品复用
     all_f = forecast_service.get_forecast_all(products, stores)
 
-    kpi = _compute_kpi(all_f)
-    top = data_service.get_top_products(10)
+    kpi = _compute_kpi(all_f, products, stores, product_id, store_id)
+    if product_id is None and store_id is None:
+        top = data_service.get_top_products(10)
+    else:
+        top = data_service.get_top_products(10, product_id, store_id)
 
     # 按商品汇总所有门店预测，保持与历史销量的商品粒度一致。
     product_forecasts: Dict[int, Dict[str, int]] = {}
@@ -83,7 +104,11 @@ def get_dashboard():
         aggregate["predicted"] += int(f.get("total_predicted", 0))
         aggregate["suggested_purchase"] += int(f.get("suggested_purchase", 0))
 
-    product_abc = classify_abc(data_service.get_recent_product_demand(30))
+    if product_id is None and store_id is None:
+        demand = data_service.get_recent_product_demand(30)
+    else:
+        demand = data_service.get_recent_product_demand(30, product_id, store_id)
+    product_abc = classify_abc(demand)
 
     top_products = []
     for t in top:
@@ -101,7 +126,10 @@ def get_dashboard():
             "abc_class": product_abc.get(t["product_id"], "C"),
         })
 
-    category_sales = data_service.get_category_sales()
+    if product_id is None and store_id is None:
+        category_sales = data_service.get_category_sales()
+    else:
+        category_sales = data_service.get_category_sales(product_id, store_id)
 
     return {
         "kpi": kpi,
@@ -113,12 +141,25 @@ def get_dashboard():
 
 
 @router.get("/inventory", response_model=InventoryResult, summary="库存分级热力图")
-def get_inventory():
+def get_inventory(
+    product_id: Annotated[int | None, Query(ge=1)] = None,
+    store_id: Annotated[int | None, Query(ge=1)] = None,
+):
     """返回 ABC 分级热力图数据。"""
-    return inventory_service.get_inventory()
+    return inventory_service.get_inventory(product_id, store_id)
 
 
 @router.get("/kpi", response_model=KpiResult, summary="KPI 指标卡片")
 def get_kpi():
     """返回核心指标卡片数据。"""
     return _compute_kpi()
+
+
+def _select_scope(items: list[dict], key: str, value: int | None) -> list[dict]:
+    """选择作用域并对不存在的筛选 ID 返回明确错误。"""
+    if value is None:
+        return items
+    selected = [item for item in items if item[key] == value]
+    if not selected:
+        raise NotFoundError(f"{key}={value} 不存在")
+    return selected

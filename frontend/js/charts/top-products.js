@@ -71,7 +71,13 @@ const TopProductsChart = {
     },
 
     async load(topProducts) {
-        if (!topProducts || !topProducts.length) return;
+        if (!topProducts || !topProducts.length) {
+            this.chart.setOption({
+                yAxis: { data: [] },
+                series: [{ data: [] }]
+            });
+            return;
+        }
         // 从小到大排列（ECharts 横向柱状图从下到上）
         const sorted = [...topProducts].sort((a, b) => a.sales - b.sales);
         const names = sorted.map(p => p.product_name.length > 8

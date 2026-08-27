@@ -31,6 +31,17 @@ function getBase() {
     return "/api";
 }
 
+function queryString(params = {}) {
+    const query = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== "") {
+            query.set(key, value);
+        }
+    });
+    const encoded = query.toString();
+    return encoded ? `?${encoded}` : "";
+}
+
 const BASE = getBase();
 
 const api = {
@@ -63,7 +74,19 @@ const api = {
     getForecast(productId, storeId) {
         return this.get(`/forecast?product_id=${productId}&store_id=${storeId}`);
     },
-    getDashboard() { return this.get("/dashboard"); },
-    getInventory() { return this.get("/inventory"); },
+    getDashboard(scope = {}) {
+        return this.get(`/dashboard${queryString({
+            product_id: scope.productId,
+            store_id: scope.storeId
+        })}`);
+    },
+    getInventory(scope = {}) {
+        return this.get(`/inventory${queryString({
+            product_id: scope.productId,
+            store_id: scope.storeId
+        })}`);
+    },
     getKpi() { return this.get("/kpi"); },
+    getModelInfo() { return this.get("/model-info"); },
+    getDataQuality() { return this.get("/data-quality"); },
 };

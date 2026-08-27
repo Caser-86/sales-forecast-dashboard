@@ -16,7 +16,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import dashboard, forecast, products, sales
+from app.api import dashboard, forecast, products, quality, sales
 from app.core.config import settings
 from app.core.health import router as health_router
 from app.core.logging import setup_logging
@@ -65,6 +65,7 @@ app.include_router(products.router, prefix=settings.API_PREFIX, tags=["商品"])
 app.include_router(sales.router, prefix=settings.API_PREFIX, tags=["历史销量"])
 app.include_router(forecast.router, prefix=settings.API_PREFIX, tags=["预测"])
 app.include_router(dashboard.router, prefix=settings.API_PREFIX, tags=["大屏"])
+app.include_router(quality.router, prefix=settings.API_PREFIX, tags=["质量与模型"])
 
 
 @app.get("/", tags=["健康检查"])
@@ -85,6 +86,8 @@ def api_root():
             "/api/dashboard",
             "/api/inventory",
             "/api/kpi",
+            "/api/model-info",
+            "/api/data-quality",
         ]
     }
 

@@ -122,6 +122,16 @@ class TestDashboard:
         assert "top_products" in body
         assert len(body["top_products"]) == 10
 
+    def test_dashboard_scope_filters_product_and_store(self, client):
+        """筛选后的 KPI 与 Top 商品应只使用指定商品和门店。"""
+        r = client.get("/api/dashboard", params={"product_id": 1, "store_id": 1})
+
+        assert r.status_code == 200
+        body = r.json()
+        assert body["kpi"]["sku_count"] == 1
+        assert len(body["top_products"]) == 1
+        assert body["top_products"][0]["product_id"] == 1
+
 
 class TestInventory:
     def test_inventory_returns_cells(self, client):
@@ -155,6 +165,15 @@ class TestInventory:
         r = client.get("/api/inventory")
         for cell in r.json()["cells"]:
             assert cell["risk_level"] in ("high", "medium", "low")
+
+    def test_inventory_scope_filters_product_and_store(self, client):
+        r = client.get("/api/inventory", params={"product_id": 1, "store_id": 1})
+
+        assert r.status_code == 200
+        body = r.json()
+        assert body["total"] == 1
+        assert body["cells"][0]["product_id"] == 1
+        assert body["cells"][0]["store_id"] == 1
 
 
 class TestKpi:

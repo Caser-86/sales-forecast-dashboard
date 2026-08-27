@@ -16,9 +16,30 @@
                 <span id="currentDate"></span>
                 <span id="currentTime"></span>
                 <span class="status-dot"></span>
-                <span class="status-text">实时</span>
+                <span class="status-text">服务在线</span>
             </div>
         </header>
+
+        <!-- Dashboard 作用域与运行状态 -->
+        <section class="dashboard-toolbar" aria-label="大屏筛选与状态">
+            <div class="toolbar-group">
+                <label for="scopeProductSelect">商品范围</label>
+                <select id="scopeProductSelect" class="select">
+                    <option value="">全部商品</option>
+                </select>
+            </div>
+            <div class="toolbar-group">
+                <label for="scopeStoreSelect">门店范围</label>
+                <select id="scopeStoreSelect" class="select">
+                    <option value="">全部门店</option>
+                </select>
+            </div>
+            <button id="refreshDashboard" class="refresh-button" type="button">刷新数据</button>
+            <span id="scopeLabel" class="scope-label">当前范围：全部商品 · 全部门店</span>
+            <span id="systemStatus" class="system-status pending" aria-live="polite">状态检查中</span>
+            <span id="modelSummary" class="model-summary">模型指标：--</span>
+            <span id="lastUpdated" class="last-updated">数据更新时间：--</span>
+        </section>
 
         <!-- KPI 卡片 -->
         <section class="kpi-row">
@@ -85,6 +106,10 @@
         </section>
     </div>
 
+    <div id="emptyState" class="empty-state hidden" role="status">
+        当前筛选范围暂无可展示数据
+    </div>
+
     <!-- 加载遮罩 -->
     <div id="loading" class="loading">
         <div class="loading-spinner"></div>
@@ -92,7 +117,7 @@
     </div>
 
     <!-- 错误提示横幅 -->
-    <div id="errorBanner" class="error-banner hidden"></div>
+    <div id="errorBanner" class="error-banner hidden" role="alert" aria-live="assertive"></div>
 
     <script src="js/api.js?v=2"></script>
     <script src="js/charts/kpi-cards.js?v=2"></script>

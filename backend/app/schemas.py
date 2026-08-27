@@ -1,9 +1,9 @@
 """Pydantic 响应模型"""
 from __future__ import annotations
 
-from typing import Dict, List
+from typing import Any, Dict, List, Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class Product(BaseModel):
@@ -107,3 +107,31 @@ class KpiResult(BaseModel):
     sku_count: int
     alert_count: int
     abc_distribution: Dict[str, int]
+
+
+class ModelInfoResult(BaseModel):
+    status: str
+    trained_at_utc: Optional[str] = None
+    data_start: Optional[str] = None
+    data_end: Optional[str] = None
+    horizon_days: int
+    feature_count: Optional[int] = None
+    ensemble_weights: Dict[str, float] = Field(default_factory=dict)
+    split: Dict[str, Any] = Field(default_factory=dict)
+    metrics: Dict[str, Dict[str, float]] = Field(default_factory=dict)
+
+
+class DataQualityResult(BaseModel):
+    status: str
+    checked_at: str
+    source: str
+    rows: int
+    date_start: Optional[str] = None
+    date_end: Optional[str] = None
+    product_count: int
+    store_count: int
+    missing_values: Dict[str, int] = Field(default_factory=dict)
+    duplicate_rows: int
+    date_gap_count: int
+    negative_sales_count: int
+    issues: List[str] = Field(default_factory=list)
