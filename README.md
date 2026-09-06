@@ -60,9 +60,12 @@ flowchart LR
 项目已包含生成的数据、特征、评估报告和模型文件时，可以直接启动：
 
 ```bash
+cp .env.example .env
 docker compose up --build -d
 docker compose ps
 ```
+
+Windows PowerShell 对应命令为 `Copy-Item .env.example .env`。如果不需要修改配置，也可以直接执行 `docker compose up --build -d`；`.env` 只用于覆盖默认值，不应提交真实 Token。
 
 访问：
 
@@ -77,6 +80,8 @@ docker compose ps
 ```bash
 docker compose down
 ```
+
+更完整的启动、验收和面试前检查见 [`docs/deployment-checklist.md`](docs/deployment-checklist.md)。
 
 ### 方式二：本地运行
 
@@ -118,6 +123,8 @@ python -m http.server 3000
 6. 打开 `/api/data-quality`，解释数据完整性检查和生产环境接入点。
 7. 最后主动说明当前边界和下一步，而不是回避 Demo 属性。
 
+正式面试前可直接照着 [`docs/deployment-checklist.md`](docs/deployment-checklist.md) 做一次启动、接口和浏览器验收；完整讲稿见 [`docs/interview-demo.md`](docs/interview-demo.md)。
+
 ## 模型评估
 
 本次在仓库生成数据上重新训练得到以下结果；后续重新训练后应以 `backend/data/processed/evaluation_report.json` 和 `/api/model-info` 为准：
@@ -156,16 +163,28 @@ python -m pytest backend/tests -q
 python -m ruff check backend/app backend/common backend/ml backend/tests scripts
 
 # 前端脚本语法检查
-node --check frontend/js/api.js
-node --check frontend/js/dashboard.js
-node --check frontend/js/charts/sales-line.js
-node --check frontend/js/charts/inventory-heatmap.js
+# macOS/Linux
+find frontend/js -name '*.js' -print0 | xargs -0 -n1 node --check
+
+# Windows PowerShell
+Get-ChildItem frontend/js -Recurse -Filter *.js | ForEach-Object { node --check $_.FullName }
 
 # Docker 配置检查
 docker compose config --quiet
 ```
 
 新增能力的测试重点：模型报告兼容旧格式、基线计算使用前一周数据、筛选结果的范围一致性、前端关键控件契约和 API 错误可见性。
+
+## CI
+
+`.github/workflows/ci.yml` 会在 push 和 pull request 中执行以下质量门禁：
+
+- 从空工作区重新生成被 Git 忽略的演示数据、特征和模型产物。
+- 运行后端测试与 Ruff 检查。
+- 检查 `frontend/js` 下所有 JavaScript 文件的语法。
+- 验证 Docker Compose 配置可以解析。
+
+远程是否通过以 GitHub Actions 页面中的实际运行结果为准；本地检查通过不等于已经完成公开部署。
 
 ## 项目结构
 
@@ -197,14 +216,16 @@ sales-forecast-dashboard/
 
 ## 环境变量
 
-后端配置位于 `backend/app/core/config.py`，也可通过 `backend/.env` 或环境变量覆盖。面试演示最常用的是：
+后端配置位于 `backend/app/core/config.py`。本地直接运行 FastAPI 时可使用 `backend/.env` 或环境变量覆盖；使用 Docker Compose 时，根目录 `.env` 会由 Compose 注入容器。可以从 `.env.example` 开始：
 
 | 变量 | 默认值 | 用途 |
 |---|---|---|
 | `ENV` | `development` | 运行环境 |
 | `DEBUG` | `false` | 调试开关 |
+| `LOG_LEVEL` | `INFO` | 日志级别 |
 | `CORS_ORIGINS` | 本地前端地址 | CORS 白名单 |
-| `API_TOKEN` | 空 | 可选 API Token |
+| `API_TOKEN` | 空 | 预留 Token 扩展点，当前路由未挂载鉴权 |
+| `API_TOKEN_HEADER` | `X-API-Token` | Token 请求头名称 |
 | `FORECAST_DAYS` | `30` | 预测周期 |
 | `FORECAST_WORKERS` | `4` | 批量预测最大并发数 |
 

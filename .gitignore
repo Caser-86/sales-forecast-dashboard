@@ -55,3 +55,5 @@ docker-compose.override.yml
 .ruff_cache/
 .coverage
 htmlcov/
+.playwright-cli/
+output/playwright/

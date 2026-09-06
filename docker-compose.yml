@@ -10,12 +10,14 @@ services:
       - ./backend/ml/saved_models:/app/ml/saved_models
       - ./backend/logs:/app/logs
     environment:
-      - ENV=production
-      - DEBUG=false
-      - LOG_LEVEL=INFO
+      - ENV=${ENV:-production}
+      - DEBUG=${DEBUG:-false}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
       - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:3000,http://127.0.0.1:3000}
-      # 可选：启用 API Token 认证（取消注释并设置值）
-      # - API_TOKEN=your-secret-token-here
+      - API_TOKEN=${API_TOKEN:-}
+      - API_TOKEN_HEADER=${API_TOKEN_HEADER:-X-API-Token}
+      - FORECAST_DAYS=${FORECAST_DAYS:-30}
+      - FORECAST_WORKERS=${FORECAST_WORKERS:-4}
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://localhost:8000/health"]

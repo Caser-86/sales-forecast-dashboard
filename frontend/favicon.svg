@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
+  <title>Sales Forecast Dashboard</title>
+  <rect width="64" height="64" rx="16" fill="#0f172a"/>
+  <path d="M14 44V30h8v14h-8Zm14 0V20h8v24h-8Zm14 0V12h8v32h-8Z" fill="#38bdf8"/>
+  <path d="m13 25 12-9 10 6 16-10" fill="none" stroke="#fbbf24" stroke-linecap="round" stroke-linejoin="round" stroke-width="4"/>
+</svg>
