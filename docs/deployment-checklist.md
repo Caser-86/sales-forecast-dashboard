@@ -11,9 +11,12 @@
 - 如果数据或模型产物不存在，先执行：
 
 ```bash
+python -m pip install -r backend/requirements-dev.txt
 python scripts/init_data.py
 python scripts/train_models.py
 ```
+
+这一步是 GitHub 新克隆场景必需的，因为生成数据和模型文件被 `.gitignore` 排除，且 Compose 会把本机目录挂载进后端容器。
 
 首次需要覆盖 Compose 配置时复制环境模板；不要把生成的 `.env` 提交到 Git：
 

@@ -25,4 +25,3 @@ class TestQualityEndpoints:
         assert "missing_values" in body
         assert "date_gap_count" in body
         assert "issues" in body
-

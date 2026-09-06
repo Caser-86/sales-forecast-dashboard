@@ -57,7 +57,15 @@ flowchart LR
 
 ### 方式一：Docker Compose（推荐演示）
 
-项目已包含生成的数据、特征、评估报告和模型文件时，可以直接启动：
+Docker Compose 会把本机的 `backend/data` 和 `backend/ml/saved_models` 挂载到容器中。首次从 GitHub 克隆时，这些产物不会在仓库里，需要先生成：
+
+```bash
+python -m pip install -r backend/requirements-dev.txt
+python scripts/init_data.py
+python scripts/train_models.py
+```
+
+如果这些产物已经存在，可以跳过上面的步骤，直接启动：
 
 ```bash
 cp .env.example .env

@@ -44,4 +44,3 @@ Make the sales forecast dashboard interview-ready without pretending the generat
 - Run pytest, Ruff, JavaScript syntax checks, `git diff --check`, Docker Compose validation, and live endpoint checks.
 - Review the diff for compatibility, privacy, and unsupported claims.
 - Commit and push only after the verification evidence is available.
-

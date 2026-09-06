@@ -17,4 +17,3 @@ def get_model_info():
 @router.get("/data-quality", response_model=DataQualityResult, summary="数据质量检查")
 def get_data_quality():
     return data_service.get_data_quality()
-

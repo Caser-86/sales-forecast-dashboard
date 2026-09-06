@@ -22,4 +22,3 @@ def test_seasonal_naive_uses_same_store_product_from_previous_week():
     assert result["samples"] == 1
     assert result["mape"] == 16.6667
     assert result["rmse"] == 20.0
-
