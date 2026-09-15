@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import os
+import stat
 import subprocess
 import sys
 from pathlib import Path
@@ -50,6 +51,17 @@ def test_publish_model_package_writes_manifest_and_active_pointer(tmp_path):
     assert set(manifest["files"]) == set(REQUIRED_FILES)
     assert manifest["data_version"] == "sales-test"
     assert all(len(checksum) == 64 for checksum in manifest["checksums"].values())
+
+
+def test_active_model_pointer_is_readable_by_runtime_users(tmp_path):
+    source = tmp_path / "source"
+    versions = tmp_path / "versions"
+    active = tmp_path / "active.json"
+    _write_complete_source(source)
+
+    publish_model_package(source_dir=source, versions_dir=versions, active_file=active)
+
+    assert stat.S_IMODE(active.stat().st_mode) & 0o444 == 0o444
 
 
 def test_publish_model_package_rejects_missing_artifact_without_changing_active(tmp_path):

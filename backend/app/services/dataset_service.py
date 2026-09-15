@@ -94,6 +94,8 @@ def _write_active_pointer(pointer_path: Path, dataset_id: str) -> None:
             json.dumps({"dataset_id": dataset_id, "manifest": "manifest.json"}, ensure_ascii=False),
             encoding="utf-8",
         )
+        # Keep host-generated pointers readable by the container runtime user.
+        os.chmod(temporary, 0o644)
         os.replace(temporary, pointer_path)
     finally:
         temporary.unlink(missing_ok=True)

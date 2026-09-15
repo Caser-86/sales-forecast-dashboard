@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import stat
 from pathlib import Path
 
 import pandas as pd
@@ -49,6 +50,7 @@ def test_import_sales_dataset_writes_manifest_and_atomic_active_pointer(tmp_path
     assert Path(result["sales_path"]).is_file()
     assert json.loads(active.read_text(encoding="utf-8"))["dataset_id"] == result["dataset_id"]
     assert get_active_sales_path(active_file=active, fallback=source) == Path(result["sales_path"])
+    assert stat.S_IMODE(active.stat().st_mode) & 0o444 == 0o444
 
 
 def test_invalid_sales_dataset_does_not_replace_previous_active_version(tmp_path):

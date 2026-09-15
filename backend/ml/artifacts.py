@@ -65,6 +65,8 @@ def _write_json_atomically(path: Path, payload: dict[str, Any]) -> None:
     os.close(file_descriptor)
     try:
         temporary.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+        # The pointer is read by the runtime user after host-side publishing.
+        os.chmod(temporary, 0o644)
         os.replace(temporary, path)
     finally:
         temporary.unlink(missing_ok=True)
