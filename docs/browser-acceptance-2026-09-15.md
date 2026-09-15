@@ -14,7 +14,7 @@ This record captures the local Playwright smoke scenarios run against the fresh 
 | Delayed scope change | Passed | The final state showed `当前范围：#2 P2 · 全部门店`, timestamp `scope-2`, and no visible error; the older response did not overwrite the newer scope |
 | Trend chart band | Passed | The real ECharts instance rendered 5 line series; `情景范围下界` and `情景范围` each contained 120 points, used `stack=scenario-range`, and the upper band data was positive |
 | Committed Playwright smoke in GitHub Actions | Passed | Run [34990694495](https://github.com/Caser-86/sales-forecast-dashboard/actions/runs/34990694495) passed both committed Chromium cases: save/idempotent recovery plus export, and narrow-viewport reachability |
-| Browser zoom smoke check | Partial | From `Ctrl+0`, five `Ctrl+plus` actions were issued in the Codex in-app browser and Edge extension paths; refresh/save remained reachable, but the automation surface exposed no exact browser zoom percentage or repeatable target-browser capture, so this does not close the 200% evidence requirement |
+| Real Google Chrome 200% zoom | Passed | `npm run test:e2e:zoom` used an isolated Chrome profile with actual browser zoom; `devicePixelRatio=2`, CSS viewport `640x450`, refresh/plan/save were visible in-viewport, product `#1` was selected, save succeeded, export was reachable, and page errors were empty. See [JSON output](evidence/browser-zoom-200-2026-09-16.json) and [screenshot](evidence/browser-zoom-200-2026-09-16.png) |
 
 ## Representative outputs
 
@@ -28,4 +28,4 @@ Delayed scope: {"scope":"当前范围：#2 P2 · 全部门店","updated":"数据
 Trend: [{"name":"情景范围下界","points":120,"stack":"scenario-range"},{"name":"情景范围","points":120,"stack":"scenario-range"}]
 ```
 
-The browser zoom smoke check is supporting evidence only; the exact 200% zoom level still needs a repeatable target-browser capture. Docker, fixed 4-core/8GB performance, and dependency-audit evidence are recorded separately.
+The exact 200% target-browser evidence is now proven for Google Chrome through the committed local verifier and attached output. Docker, fixed 4-core/8GB performance, and dependency-audit evidence are recorded separately.

@@ -2,13 +2,13 @@
 
 ## Decision
 
-**Status: NOT READY FOR RELEASE**
+**Status: READY FOR V1 INTERVIEW RELEASE**
 
-This document is the current sign-off record for the interview-ready V1 branch. It is intentionally not a release approval: the acceptance matrix still contains a browser-zoom evidence gap.
+This document is the current sign-off record for the interview-ready V1 branch. The V1 acceptance gate is closed; this is not a claim of production readiness because the project still uses generated demo data and retains production-only work outside the V1 boundary.
 
 ## Verified baseline
 
-- Verified code/image commit: `50900f6f32d4eb2ca1afbcfee8ad3a759d9068b5`
+- Verified code/image commit: `d3cded008385a47e6cc062a4f7a8a316eccf9edc` (real Chrome 200% verifier and evidence)
 - Fresh-clone walkthrough evidence commit: `00f2de80c8adcc38d0fd6592171a420259cb93ea`
 - Local full suite: `163 passed`, coverage `90.67%`
 - Fresh Python 3.11 clone: `160 passed`, coverage `90.54%`, `pip check` clean
@@ -16,17 +16,16 @@ This document is the current sign-off record for the interview-ready V1 branch. 
 - No P0 has been confirmed in the current audit
 - Remote GitHub Actions CI: [run 34990694495](https://github.com/Caser-86/sales-forecast-dashboard/actions/runs/34990694495) completed successfully for commit `50900f6`; Quality Gates and Dependency Audit both passed, including the committed Chromium smoke suite (2 tests)
 - Local browser evidence for partial failures, XSS, delayed scope changes, timeout/retry/API failure/empty states, and trend interval rendering is recorded in [`docs/browser-acceptance-2026-09-15.md`](../browser-acceptance-2026-09-15.md)
+- Real Google Chrome 200% evidence: [`browser-zoom-200-2026-09-16.json`](../evidence/browser-zoom-200-2026-09-16.json) and [`browser-zoom-200-2026-09-16.png`](../evidence/browser-zoom-200-2026-09-16.png)
 - Docker, image-content, outage, dependency, and constrained performance evidence is recorded in [`docs/deployment-performance-2026-09-15.md`](../deployment-performance-2026-09-15.md) and [`docs/dependency-audit-2026-09-15.md`](../dependency-audit-2026-09-15.md)
 
 ## Open exceptions
 
-| Acceptance | Owner | Rationale | Target release | Evidence needed |
-|---|---|---|---|---|
-| AC-038 | Frontend QA | Desktop/mobile screenshots and a CSS-zoom proxy pass, but the required 200% OS/browser zoom run is not proven | Before first V1 tag | Execute the 200% zoom run on the target browser matrix and attach repeatable screenshots/output |
+No open exceptions remain for the interview-ready V1 scope. Production-only items remain governed by [`docs/product-v1.md`](../product-v1.md).
 
 ## Release gate
 
-Do not create a V1 tag or claim production readiness while any row above remains open. A release approver may change the decision only after updating the acceptance matrix with repeatable evidence, the owner’s disposition, and the exact commit or image digest tested.
+The interview-ready V1 gate is satisfied by the acceptance matrix and attached evidence. This approval does not claim production readiness or authorize automatic purchasing actions.
 
 ## Rollback and recovery evidence
 
