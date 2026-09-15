@@ -1,0 +1,61 @@
+{
+  "browser": "Google Chrome",
+  "zoomLevel": "200%",
+  "zoom": {
+    "devicePixelRatio": 2,
+    "innerWidth": 640,
+    "innerHeight": 450,
+    "bodyZoom": "1",
+    "scrollHeight": 1993,
+    "viewport": 450
+  },
+  "controls": {
+    "refreshDashboard": {
+      "visible": true,
+      "inViewport": true,
+      "rect": {
+        "x": 23,
+        "y": 160.75,
+        "width": 289.25,
+        "height": 38,
+        "top": 160.75,
+        "right": 312.25,
+        "bottom": 198.75,
+        "left": 23
+      }
+    },
+    "planName": {
+      "visible": true,
+      "inViewport": true,
+      "rect": {
+        "x": 23,
+        "y": 206.75,
+        "width": 130,
+        "height": 28,
+        "top": 206.75,
+        "right": 153,
+        "bottom": 234.75,
+        "left": 23
+      }
+    },
+    "savePlan": {
+      "visible": true,
+      "inViewport": true,
+      "rect": {
+        "x": 23,
+        "y": 242.75,
+        "width": 586.5,
+        "height": 38,
+        "top": 242.75,
+        "right": 609.5,
+        "bottom": 280.75,
+        "left": 23
+      }
+    }
+  },
+  "status": "已保存草案：plan-18374a538d284b6a9598d83e6670f56a",
+  "exportVisible": true,
+  "exportHref": "http://127.0.0.1:8000/api/plans/plan-18374a538d284b6a9598d83e6670f56a/export",
+  "pageErrors": [],
+  "screenshot": "D:\\LLM Files\\files\\sales-forecast-dashboard\\docs\\evidence\\browser-zoom-200-2026-09-16.png"
+}
