@@ -1,49 +1,83 @@
-"""深度健康检查端点。
-
-检查项:
-- 数据文件是否存在
-- 模型文件是否存在
-- 评估报告是否可用
-"""
+"""Liveness and readiness endpoints."""
 from __future__ import annotations
 
+import json
+from pathlib import Path
 from typing import Any, Dict
 
 from fastapi import APIRouter
+from fastapi.responses import JSONResponse
 
 from app.core.config import settings
 
 router = APIRouter(tags=["健康检查"])
 
 
-@router.get("/health", summary="深度健康检查")
-def health_check() -> Dict[str, Any]:
-    """返回服务与依赖组件的健康状态。"""
-    checks: Dict[str, Dict[str, Any]] = {}
+def _file_status(path: Path) -> str:
+    """Return a safe status without exposing the local path to callers."""
+    try:
+        return "ok" if path.is_file() and path.stat().st_size > 0 else "missing"
+    except OSError:
+        return "unreadable"
 
-    # 数据文件检查
-    sales_ok = settings.SALES_CSV.exists()
-    features_ok = settings.FEATURES_CSV.exists()
-    report_ok = settings.REPORT_JSON.exists()
 
-    # 模型文件检查
-    lstm_ok = settings.LSTM_PATH.exists()
-    lgbm_ok = settings.LGBM_PATH.exists()
+def _report_status(path: Path) -> str:
+    status = _file_status(path)
+    if status != "ok":
+        return status
+    try:
+        with path.open("r", encoding="utf-8") as report_file:
+            report = json.load(report_file)
+        return "ok" if isinstance(report, dict) and isinstance(report.get("ensemble"), dict) else "invalid"
+    except (OSError, ValueError, TypeError):
+        return "invalid"
 
-    checks["sales_data"] = {"status": "ok" if sales_ok else "missing", "path": str(settings.SALES_CSV)}
-    checks["features"] = {"status": "ok" if features_ok else "missing", "path": str(settings.FEATURES_CSV)}
-    checks["evaluation_report"] = {"status": "ok" if report_ok else "missing", "path": str(settings.REPORT_JSON)}
-    checks["lstm_model"] = {"status": "ok" if lstm_ok else "missing", "path": str(settings.LSTM_PATH)}
-    checks["lightgbm_model"] = {"status": "ok" if lgbm_ok else "missing", "path": str(settings.LGBM_PATH)}
 
-    # 整体状态
-    all_ok = all(c["status"] == "ok" for c in checks.values())
-    overall = "healthy" if all_ok else "degraded"
+def _model_runtime_status() -> str:
+    """Load the active predictor once so readiness means more than file presence."""
+    try:
+        from predictor import ForecastPredictor
 
+        ForecastPredictor.get()
+        return "ok"
+    except Exception:
+        return "unreadable"
+
+
+def _readiness_payload() -> Dict[str, Any]:
+    models_dir = Path(settings.MODELS_DIR)
+    checks: Dict[str, Dict[str, str]] = {
+        "sales_data": {"status": _file_status(settings.SALES_CSV)},
+        "features": {"status": _file_status(settings.FEATURES_CSV)},
+        "evaluation_report": {"status": _report_status(settings.REPORT_JSON)},
+        "lstm_model": {"status": _file_status(settings.LSTM_PATH)},
+        "lightgbm_model": {"status": _file_status(settings.LGBM_PATH)},
+        "lstm_scaler_x": {"status": _file_status(models_dir / "lstm_scaler_x.joblib")},
+        "lstm_scaler_y": {"status": _file_status(models_dir / "lstm_scaler_y.joblib")},
+    }
+
+    assets_ready = all(check["status"] == "ok" for check in checks.values())
+    checks["model_runtime"] = {"status": _model_runtime_status() if assets_ready else "skipped"}
+    all_ok = assets_ready and checks["model_runtime"]["status"] == "ok"
     return {
-        "status": overall,
+        "status": "healthy" if all_ok else "degraded",
         "env": settings.ENV,
         "version": settings.APP_VERSION,
         "auth_enabled": settings.auth_enabled,
         "checks": checks,
     }
+
+
+@router.get("/live", summary="存活检查")
+def liveness_check() -> Dict[str, str]:
+    """Confirm that the process is serving requests, without checking dependencies."""
+    return {"status": "alive", "env": settings.ENV, "version": settings.APP_VERSION}
+
+
+@router.get("/health", summary="就绪检查")
+@router.get("/ready", summary="就绪检查")
+def health_check() -> JSONResponse:
+    """Return 503 until every required runtime dependency is usable."""
+    payload = _readiness_payload()
+    status_code = 200 if payload["status"] == "healthy" else 503
+    return JSONResponse(status_code=status_code, content=payload)

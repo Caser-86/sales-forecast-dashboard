@@ -29,7 +29,7 @@ This matrix is the execution checklist for `docs/product-v1.md`. A row is accept
 | AC-023 | Plans | Repeating an idempotency key does not create duplicate drafts | API integration test | Not started |
 | AC-024 | Failure semantics | Negative input is `422`, unknown resource is `404`, unavailable dependency is `503`, and all failed forecasts are not represented as zero | API error tests | Not started |
 | AC-025 | Failure semantics | Partial prediction includes requested/succeeded/failed counts and prevents saving an incomplete draft | Service/API/UI tests | Not started |
-| AC-026 | Readiness | Liveness can be healthy while readiness fails for missing, corrupt, or incompatible data/model artifacts | Health tests and container probe | Not started |
+| AC-026 | Readiness | Liveness can be healthy while readiness fails for missing, corrupt, or incompatible data/model artifacts | Health tests and container probe | Partial: app tests cover missing/runtime failure; container probe pending Docker daemon |
 | AC-027 | Versioning | A dataset/model activation is atomic; interrupted activation leaves the previous active version usable | Artifact lifecycle integration test | Not started |
 | AC-028 | Versioning | Cache keys and saved results include data/model/policy versions | Cache and plan snapshot test | Not started |
 | AC-029 | Security | Configured API authentication protects real routers, not only an unused helper | Auth integration tests | Passed: missing token 401 and correct token 200 on `/api/products` |

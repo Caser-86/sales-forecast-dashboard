@@ -37,3 +37,38 @@ class TestHealth:
         body = r.json()
         for name, check in body["checks"].items():
             assert check["status"] == "ok", f"{name} 状态异常: {check}"
+
+    def test_health_returns_503_when_required_assets_are_missing(self, client, monkeypatch):
+        """就绪检查发现依赖缺失时必须阻止流量进入。"""
+        from app.core import health
+
+        monkeypatch.setattr(health, "_file_status", lambda _path: "missing")
+
+        response = client.get("/health")
+
+        assert response.status_code == 503
+        assert response.json()["status"] == "degraded"
+
+    def test_liveness_endpoint_stays_available_without_model_assets(self, client, monkeypatch):
+        """存活检查只确认进程，不依赖数据和模型文件。"""
+        from app.core import health
+
+        monkeypatch.setattr(health, "_file_status", lambda _path: "missing")
+
+        response = client.get("/live")
+
+        assert response.status_code == 200
+        assert response.json()["status"] == "alive"
+
+    def test_health_returns_503_when_model_runtime_cannot_load(self, client, monkeypatch):
+        """模型文件存在但运行时加载失败时不能宣称 ready。"""
+        from app.core import health
+
+        monkeypatch.setattr(health, "_file_status", lambda _path: "ok")
+        monkeypatch.setattr(health, "_report_status", lambda _path: "ok")
+        monkeypatch.setattr(health, "_model_runtime_status", lambda: "unreadable")
+
+        response = client.get("/health")
+
+        assert response.status_code == 503
+        assert response.json()["checks"]["model_runtime"]["status"] == "unreadable"
