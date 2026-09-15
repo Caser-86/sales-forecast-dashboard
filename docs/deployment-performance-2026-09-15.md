@@ -13,6 +13,8 @@ frontend container -> healthy
 
 The rebuilt backend image file list contains application code and `requirements.txt`, but no `.env`, database backup, runtime data, inventory snapshot, saved model, logs, tests, or pytest cache. `python -m pip check` inside the image returned `No broken requirements found.`
 
+The Compose deployment keeps the mutable plan database in the named `backend_runtime` volume at `/app/runtime` and logs in `backend_logs` at `/app/logs`, instead of placing writable SQLite state in the host-owned demo-data bind mount. A cold Linux-container check confirmed the non-root `appuser` could write the database and logs; the committed Playwright save/export flow passed locally and in GitHub Actions.
+
 The Compose healthcheck uses `127.0.0.1` for nginx. A previous `localhost` probe resolved to IPv6 `::1` and incorrectly marked the otherwise reachable frontend unhealthy; the fixed probe remained `healthy`.
 
 PowerShell endpoint verification against the running Compose stack returned HTTP 200 for `/`, `/health`, `/live`, `/api/products`, `/api/dashboard`, `/api/inventory`, `/api/kpi`, `/api/forecast`, `/api/sales`, `/api/stores`, `/api/metadata`, and frontend port `3000`. An unknown sales combination returned HTTP 404.

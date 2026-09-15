@@ -58,7 +58,7 @@ flowchart LR
 
 ### 方式一：Docker Compose（推荐演示）
 
-Docker Compose 会把本机的 `backend/data` 和 `backend/ml/saved_models` 挂载到容器中。首次从 GitHub 克隆时，这些产物不会在仓库里，需要先生成：
+Docker Compose 会把本机的 `backend/data` 和 `backend/ml/saved_models` 挂载到容器中，并用 Docker named volumes 持久化可写的计划数据库与日志。首次从 GitHub 克隆时，演示数据和模型产物不会在仓库里，需要先生成：
 
 ```bash
 python -m pip install -r backend/requirements-dev.txt

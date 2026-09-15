@@ -1,6 +1,6 @@
 # Browser Acceptance Evidence
 
-This record captures the local Playwright smoke scenarios run against the fresh Python 3.11 clone on 2026-09-15. The browser session used the local frontend at `http://127.0.0.1:5500/`; injected fixtures were used only to exercise deterministic failure and security boundaries.
+This record captures the local Playwright smoke scenarios run against the fresh Python 3.11 clone on 2026-09-15. The browser session used the local frontend at `http://127.0.0.1:5500/`; injected fixtures were used only to exercise deterministic failure and security boundaries. The committed smoke suite also runs in GitHub Actions against the Docker Compose stack.
 
 ## Scenarios
 
@@ -13,6 +13,7 @@ This record captures the local Playwright smoke scenarios run against the fresh 
 | Empty data | Passed | The page showed `当前筛选范围暂无可展示数据`; loading settled and the browser console had no unexpected messages |
 | Delayed scope change | Passed | The final state showed `当前范围：#2 P2 · 全部门店`, timestamp `scope-2`, and no visible error; the older response did not overwrite the newer scope |
 | Trend chart band | Passed | The real ECharts instance rendered 5 line series; `情景范围下界` and `情景范围` each contained 120 points, used `stack=scenario-range`, and the upper band data was positive |
+| Committed Playwright smoke in GitHub Actions | Passed | Run [34990694495](https://github.com/Caser-86/sales-forecast-dashboard/actions/runs/34990694495) passed both committed Chromium cases: save/idempotent recovery plus export, and narrow-viewport reachability |
 | Browser zoom smoke check | Partial | From `Ctrl+0`, five `Ctrl+plus` actions were issued in the Codex in-app browser and Edge extension paths; refresh/save remained reachable, but the automation surface exposed no exact browser zoom percentage or repeatable target-browser capture, so this does not close the 200% evidence requirement |
 
 ## Representative outputs
