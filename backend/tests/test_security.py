@@ -11,6 +11,9 @@ class TestCors:
         r = client.get("/api/products", headers={"Origin": "http://localhost:3000"})
         assert r.headers.get("access-control-allow-origin") == "http://localhost:3000"
 
+        loopback = client.get("/api/products", headers={"Origin": "http://127.0.0.1:5500"})
+        assert loopback.headers.get("access-control-allow-origin") == "http://127.0.0.1:5500"
+
     def test_cors_disallowed_origin(self, client):
         """白名单外的源不应返回 CORS 头。"""
         r = client.get("/api/products", headers={"Origin": "http://evil.com"})

@@ -128,3 +128,13 @@ def test_frontend_has_mobile_scroll_focus_and_chart_accessibility_contract():
     assert "overflow-y: auto" in css
     assert ":focus-visible" in css
     assert "SalesLineChart.init();" in dashboard
+
+
+def test_frontend_has_a_tablet_desktop_layout_for_1366_viewports():
+    css = (PROJECT_ROOT / "frontend" / "css" / "dashboard.css").read_text(encoding="utf-8")
+
+    assert "min-width: 701px" in css
+    assert "max-width: 1366px" in css
+    assert "grid-template-columns: max-content max-content max-content max-content max-content minmax(0, 1fr)" in css
+    assert "overflow-y: auto" in css
+    assert "min-height: 430px" in css

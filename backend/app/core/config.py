@@ -38,7 +38,10 @@ class Settings(BaseSettings):
     # ---------- 安全 ----------
     # CORS 允许的源。生产环境应配置为前端实际域名，多个用逗号分隔。
     # 示例: "http://localhost:3000,http://dashboard.example.com"
-    CORS_ORIGINS: str = "http://localhost:3000,http://127.0.0.1:3000,http://localhost:5500"
+    CORS_ORIGINS: str = (
+        "http://localhost:3000,http://127.0.0.1:3000,"
+        "http://localhost:5500,http://127.0.0.1:5500"
+    )
     # 可选 API Token 认证。留空则不启用认证。
     API_TOKEN: str = ""
     API_TOKEN_HEADER: str = "X-API-Token"

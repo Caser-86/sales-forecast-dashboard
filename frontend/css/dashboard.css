@@ -384,6 +384,49 @@ select:focus-visible,
     .kpi-value { font-size: 24px; }
 }
 
+@media screen and (min-width: 701px) and (max-width: 1366px) {
+    html, body {
+        height: auto;
+        min-height: 100%;
+        overflow-x: hidden;
+        overflow-y: auto;
+    }
+
+    .dashboard {
+        height: auto;
+        min-height: 100vh;
+    }
+
+    .dashboard-toolbar {
+        display: grid;
+        grid-template-columns: max-content max-content max-content max-content max-content minmax(0, 1fr);
+        align-items: center;
+    }
+
+    .dashboard-toolbar > .toolbar-group:nth-child(1) { grid-column: 1; }
+    .dashboard-toolbar > .toolbar-group:nth-child(2) { grid-column: 2; }
+    .dashboard-toolbar > #refreshDashboard { grid-column: 3; }
+    .dashboard-toolbar > #planName { grid-column: 4; }
+    .dashboard-toolbar > #savePlan,
+    .dashboard-toolbar > #exportPlan { grid-column: 5; }
+    .dashboard-toolbar > #planStatus { grid-column: 6; min-width: 0; }
+    .dashboard-toolbar > #scopeLabel { grid-column: 1 / span 2; margin-left: 0; }
+    .dashboard-toolbar > #systemStatus { grid-column: 3; }
+    .dashboard-toolbar > #modelSummary { grid-column: 4; }
+    .dashboard-toolbar > #versionSummary { grid-column: 5 / span 2; min-width: 0; }
+    .dashboard-toolbar > #lastUpdated { grid-column: 1 / -1; }
+
+    .chart-row {
+        flex: none;
+        min-height: 360px;
+    }
+
+    .chart-row.main-chart {
+        flex: none;
+        min-height: 430px;
+    }
+}
+
 /* 错误提示横幅 */
 .error-banner {
     position: fixed;
