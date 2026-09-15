@@ -162,3 +162,64 @@ class DataQualityResult(BaseModel):
     date_gap_count: int
     negative_sales_count: int
     issues: List[str] = Field(default_factory=list)
+
+
+class PlanCoverage(BaseModel):
+    status: str
+    requested: int = Field(ge=0)
+    succeeded: int = Field(ge=0)
+    failed: int = Field(ge=0)
+
+
+class PlanItem(BaseModel):
+    product_id: int = Field(ge=1)
+    store_id: int = Field(ge=1)
+    product_name: str
+    store_name: str
+    predicted_sales: int = Field(ge=0)
+    suggested_purchase: int = Field(ge=0)
+    risk_level: str
+    on_hand: float = Field(ge=0)
+    confirmed_inbound: float = Field(ge=0)
+    reserved: float = Field(ge=0)
+    lead_time_days: int = Field(ge=0)
+    review_period_days: int = Field(ge=0)
+    safety_stock: float = Field(ge=0)
+    pack_size: int = Field(gt=0)
+    minimum_order_quantity: int = Field(ge=0)
+    adjustment_quantity: int = Field(default=0)
+    adjustment_reason: str = ""
+
+
+class PlanDraftCreate(BaseModel):
+    name: str = Field(min_length=1, max_length=120)
+    as_of_date: str
+    inventory_as_of_date: str
+    data_version: str = Field(min_length=1, max_length=100)
+    model_version: str = Field(min_length=1, max_length=100)
+    inventory_version: str = Field(min_length=1, max_length=100)
+    policy_version: str = Field(min_length=1, max_length=100)
+    coverage: PlanCoverage
+    items: List[PlanItem] = Field(min_length=1)
+    adjustments: List[Dict[str, Any]] = Field(default_factory=list)
+
+
+class PlanSaveResult(BaseModel):
+    plan_id: str
+    created: bool
+    created_at: str
+
+
+class PlanSummary(BaseModel):
+    plan_id: str
+    name: str
+    created_at: str
+    item_count: int
+    data_version: str
+    model_version: str
+    inventory_version: str
+    policy_version: str
+
+
+class PlanDetail(PlanSummary):
+    snapshot: PlanDraftCreate

@@ -74,6 +74,11 @@ class ConflictError(AppError):
     http_status = 409
 
 
+class PlanValidationError(ValidationError):
+    """补货草案不满足可保存契约。"""
+    code = "PLAN_INVALID"
+
+
 class UnauthorizedError(AppError):
     code = "UNAUTHORIZED"
     http_status = 401
