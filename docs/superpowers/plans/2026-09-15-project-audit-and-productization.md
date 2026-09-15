@@ -746,7 +746,7 @@ README、部署清单、演示稿、历史设计和计划齐全，且主动说�
 | TASK-011 | 30天同口径回测 | P1 | L | 010 | 已完成 | validation 只用于选择 LSTM/LightGBM/seasonal-naive/候选集成权重，train+validation 重训后仅在 test 评估；报告记录同key、同horizon、per-horizon/segment指标，发布包按选择策略运行 |
 | TASK-012 | 区间校准/绘图 | P1 | M | 002、011 | 已完成（情景范围路径） | 统计校准明确移出 V1，不再称为置信区间；API/前端明确scenario范围，图表使用下界+带宽且空历史不抛异常；真实浏览器已确认120点下界与120点带宽渲染 |
 | TASK-013 | 模型/依赖/内容安全 | P1 | L | 004、009 | 已完成（当前依赖集） | 模型包路径/checksum校验、Torch weights_only加载、JSON scaler/feature schema、tooltip HTML escape、随包ECharts和CI pip-audit门禁已实现；`torch==2.14.0+cpu` 从PyTorch CPU index解析，OSV严格审计、干净镜像检查和容器依赖扫描均无已知漏洞 |
-| TASK-014 | 请求一致性/恢复 | P2 | L | 002、003、005、006 | 部分完成 | API timeout/AbortSignal、dashboard/trend/heatmap请求序号与busy收尾已实现；浏览器已验证延迟乱序、首次超时后重试恢复、API 500、空数据和部分失败状态，Docker backend outage 已验证，真实断网恢复矩阵仍待补 |
+| TASK-014 | 请求一致性/恢复 | P2 | L | 002、003、005、006 | 已完成 | API timeout/AbortSignal、dashboard/trend/heatmap请求序号与busy收尾已实现；浏览器已验证延迟乱序、首次超时后重试恢复、API 500、空数据和部分失败状态，Docker backend outage 以及 Compose bridge 网络断开/重连恢复均已验证 |
 | TASK-015 | 响应式/空态/无障碍 | P2 | M | 012、014 | 部分完成 | 1920/1366/390 三视口截图、1366 网格修复、移动端滚动、焦点样式、aria labels、保存/导出键盘路径、空态和真实浏览器 Tab 路径已验证；从Ctrl+0执行五次Ctrl+plus的浏览器实验仍无法取得精确200%信号与可复现目标浏览器截图 |
 | TASK-016 | 库存与补货规则 | P1 | L | 007、008、011 | 部分完成 | inventory快照schema/CLI/active版本、可复现 Demo 快照生成、可手算补货公式、MOQ/包装/缺输入/超horizon边界、freshness检查、库存拆解字段和缺少商品/门店记录的明确503已实现；人工调整/审批仍不在V1 |
 | TASK-017 | 草案/导出/追溯 | P1 | L | 003、009、014、016 | 已完成 | SQLite不可变快照、幂等键、partial拒收、重启/备份恢复、CSV安全导出、版本元数据已实现；真实浏览器已完成保存、重启恢复、导出和键盘路径验证；人工调整编辑不在V1 |

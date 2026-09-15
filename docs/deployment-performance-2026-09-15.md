@@ -19,6 +19,8 @@ PowerShell endpoint verification against the running Compose stack returned HTTP
 
 For outage injection, stopping `sales-backend` produced a refused backend health connection and frontend `/api/products` returned `502`; starting the backend again returned to `healthy` and `/health=200`.
 
+For network recovery, `sales-backend` was disconnected from the Compose bridge `sales-forecast-dashboard_default`. During the disconnect, frontend `/api/products` received no response within the 3-second bounded probe (`curl` exit/status `000`); reconnecting the backend to the same bridge restored frontend `/api/products=200` and backend `/health=200`. `docker compose ps` showed both containers healthy after recovery.
+
 ## Dependency scan
 
 The container-local `pip-audit 2.7.3` scan reported no known vulnerabilities after upgrading FastAPI, Starlette, LightGBM, pip, setuptools, and `torch==2.14.0+cpu`. The requirements audit uses the OSV service and both PyPI and the PyTorch CPU index, so the CPU wheel is resolved from its actual source rather than treated as an un-auditable PyPI-only package.
