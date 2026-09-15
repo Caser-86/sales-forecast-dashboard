@@ -219,6 +219,12 @@ class PlanItem(BaseModel):
     safety_stock: float = Field(ge=0)
     pack_size: int = Field(gt=0)
     minimum_order_quantity: int = Field(ge=0)
+    inventory_version: Optional[str] = None
+    inventory_as_of_date: Optional[str] = None
+    window_demand: Optional[float] = None
+    net_available: Optional[float] = None
+    target_stock: Optional[float] = None
+    raw_replenishment: Optional[float] = None
     adjustment_quantity: int = Field(default=0)
     adjustment_reason: str = ""
 

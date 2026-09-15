@@ -36,6 +36,10 @@
                 </select>
             </div>
             <button id="refreshDashboard" class="refresh-button" type="button">刷新数据</button>
+            <input id="planName" class="plan-name" type="text" maxlength="120" value="补货草案" aria-label="补货草案名称">
+            <button id="savePlan" class="refresh-button plan-button" type="button" disabled>保存草案</button>
+            <a id="exportPlan" class="refresh-button plan-link hidden" href="#" download>导出草案</a>
+            <span id="planStatus" class="plan-status" aria-live="polite">需要新鲜库存快照后可保存</span>
             <span id="scopeLabel" class="scope-label">当前范围：全部商品 · 全部门店</span>
             <span id="systemStatus" class="system-status pending" aria-live="polite">状态检查中</span>
             <span id="modelSummary" class="model-summary">模型指标：--</span>

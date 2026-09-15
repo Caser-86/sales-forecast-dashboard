@@ -15,6 +15,8 @@ def test_dashboard_has_scope_controls_and_refresh_action():
     assert 'id="refreshDashboard"' in html
     assert 'id="modelSummary"' in html
     assert 'id="versionSummary"' in html
+    assert 'id="savePlan"' in html
+    assert 'id="exportPlan"' in html
     assert "loadSystemStatus" in script
     assert "showEmptyState" in script
     assert "api.getStores()" in script
@@ -28,6 +30,8 @@ def test_frontend_api_exposes_quality_endpoints():
     assert "getDataQuality" in api
     assert "getStores" in api
     assert "getMetadata" in api
+    assert "createPlan" in api
+    assert "Idempotency-Key" in api
     assert "product_id" in api
     assert "store_id" in api
 
@@ -98,6 +102,8 @@ def test_frontend_requests_have_timeout_cancellation_and_stale_guards():
     assert "dashboardRequestId" in dashboard
     assert "requestId !== this.requestId" in trend
     assert "requestId !== this.requestId" in inventory
+    assert "updatePlanAvailability" in dashboard
+    assert "api.createPlan" in dashboard
 
 
 def test_frontend_has_mobile_scroll_focus_and_chart_accessibility_contract():

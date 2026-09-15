@@ -86,6 +86,52 @@ const api = {
         }
     },
 
+    async post(path, body, { signal, timeoutMs = 10000, headers = {} } = {}) {
+        const controller = new AbortController();
+        let timedOut = false;
+        const timeout = setTimeout(() => {
+            timedOut = true;
+            controller.abort();
+        }, timeoutMs);
+        const abortFromCaller = () => controller.abort();
+        if (signal) {
+            if (signal.aborted) controller.abort();
+            signal.addEventListener("abort", abortFromCaller, { once: true });
+        }
+        try {
+            const resp = await fetch(BASE + path, {
+                method: "POST",
+                headers: { "Content-Type": "application/json", ...headers },
+                body: JSON.stringify(body),
+                signal: controller.signal
+            });
+            if (!resp.ok) {
+                let message = `API ${path} 失败: ${resp.status}`;
+                try {
+                    const responseBody = await resp.json();
+                    if (responseBody.error && responseBody.error.message) {
+                        message = responseBody.error.message;
+                    }
+                } catch (_) {
+                    // 非 JSON 错误体，保留默认 message
+                }
+                throw new Error(message);
+            }
+            return resp.json();
+        } catch (e) {
+            if (e.name === "AbortError" && timedOut) {
+                const timeoutError = new Error(`请求超时: ${path}`);
+                timeoutError.name = "TimeoutError";
+                throw timeoutError;
+            }
+            console.error(`请求失败 ${path}:`, e.message);
+            throw e;
+        } finally {
+            clearTimeout(timeout);
+            signal?.removeEventListener("abort", abortFromCaller);
+        }
+    },
+
     getProducts(options) { return this.get("/products", options); },
     getStores(options) { return this.get("/stores", options); },
     getSales(productId, storeId, days = 90, options) {
@@ -110,4 +156,11 @@ const api = {
     getModelInfo(options) { return this.get("/model-info", options); },
     getDataQuality(options) { return this.get("/data-quality", options); },
     getMetadata(options) { return this.get("/metadata", options); },
+    createPlan(payload, idempotencyKey, options = {}) {
+        return this.post("/plans", payload, {
+            ...options,
+            headers: { ...(options.headers || {}), "Idempotency-Key": idempotencyKey }
+        });
+    },
+    planExportUrl(planId) { return `${BASE}/plans/${encodeURIComponent(planId)}/export`; },
 };

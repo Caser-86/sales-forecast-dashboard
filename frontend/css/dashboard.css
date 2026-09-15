@@ -105,6 +105,32 @@ select:focus-visible,
     white-space: nowrap;
 }
 
+.plan-name {
+    width: 130px;
+    min-height: 28px;
+    padding: 4px 8px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--bg-main);
+    color: var(--text);
+    font-size: 12px;
+}
+
+.plan-button,
+.plan-link {
+    border-color: var(--accent-yellow);
+    color: var(--accent-yellow);
+    text-decoration: none;
+}
+
+.plan-status {
+    color: var(--text-dim);
+    font-size: 11px;
+    max-width: 260px;
+}
+
+.hidden { display: none; }
+
 .version-summary {
     color: var(--text-dim);
     font-size: 11px;
@@ -437,6 +463,10 @@ select:focus-visible,
     .scope-label,
     .model-summary,
     .version-summary,
+    .plan-name,
+    .plan-button,
+    .plan-link,
+    .plan-status,
     .system-status,
     .last-updated {
         grid-column: 1 / -1;

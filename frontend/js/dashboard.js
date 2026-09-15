@@ -3,6 +3,11 @@ let productsCache = [];
 let storesCache = [];
 let dashboardRequestId = 0;
 let dashboardController = null;
+let lastDashboardData = null;
+let lastInventoryData = null;
+let lastMetadata = null;
+let lastSavedPlanId = null;
+let planRequestKey = null;
 
 async function init() {
     updateClock();
@@ -80,6 +85,7 @@ async function loadSelectors() {
     document.getElementById("scopeProductSelect").addEventListener("change", loadDashboard);
     document.getElementById("scopeStoreSelect").addEventListener("change", loadDashboard);
     document.getElementById("refreshDashboard").addEventListener("click", refreshAll);
+    document.getElementById("savePlan").addEventListener("click", savePlanDraft);
 }
 
 function currentScope() {
@@ -144,6 +150,7 @@ async function loadDashboard() {
     try {
         const dashboard = await api.getDashboard(scope, { signal });
         if (requestId !== dashboardRequestId) return;
+        lastDashboardData = dashboard;
         const coverage = dashboard.coverage || {};
         if (coverage.status === "partial") {
             showDashboardError(
@@ -163,7 +170,10 @@ async function loadDashboard() {
         document.getElementById("lastUpdated").textContent =
             `数据更新时间：${dashboard.last_updated || "--"}`;
 
-        await Promise.all([loadTrend(), InventoryHeatmap.load(scope)]);
+        const [, inventory] = await Promise.all([loadTrend(), InventoryHeatmap.load(scope)]);
+        if (requestId !== dashboardRequestId) return;
+        lastInventoryData = inventory || InventoryHeatmap.lastData;
+        updatePlanAvailability();
     } catch (e) {
         if (e.name === "AbortError") return;
         console.error("大屏数据加载失败:", e);
@@ -186,6 +196,8 @@ async function loadSystemStatus() {
             api.getDataQuality(),
             api.getMetadata()
         ]);
+        lastMetadata = metadata;
+        updatePlanAvailability();
         const healthy = model.status === "ready" && quality.status === "healthy" &&
             metadata.inventory_status === "fresh";
         status.className = `system-status ${healthy ? "healthy" : "warning"}`;
@@ -210,6 +222,92 @@ async function loadSystemStatus() {
         headerStatus.className = "status-text error";
         status.title = e.message;
         console.error("系统状态检查失败:", e);
+    }
+}
+
+function planItemsReady() {
+    const cells = lastInventoryData?.cells || [];
+    const requiredFields = [
+        "inventory_as_of_date", "inventory_version", "on_hand", "confirmed_inbound",
+        "reserved", "lead_time_days", "review_period_days", "safety_stock", "pack_size",
+        "minimum_order_quantity"
+    ];
+    return cells.length > 0 && cells.every(cell => requiredFields.every(field =>
+        cell[field] !== null && cell[field] !== undefined && cell[field] !== ""
+    ));
+}
+
+function updatePlanAvailability() {
+    const button = document.getElementById("savePlan");
+    if (!button) return;
+    const available = lastMetadata?.inventory_status === "fresh" &&
+        lastInventoryData?.coverage?.status === "ok" && planItemsReady();
+    button.disabled = !available;
+    document.getElementById("planStatus").textContent = available
+        ? "预测覆盖完整，可保存当前补货草案"
+        : "需要新鲜库存快照、完整预测覆盖和库存明细后可保存";
+}
+
+function makePlanPayload() {
+    const cells = lastInventoryData.cells;
+    const inventoryDate = cells[0].inventory_as_of_date;
+    return {
+        name: document.getElementById("planName").value.trim() || "补货草案",
+        as_of_date: lastMetadata.as_of_date,
+        inventory_as_of_date: inventoryDate,
+        data_version: lastMetadata.data_version,
+        model_version: lastMetadata.model_version,
+        inventory_version: lastMetadata.inventory_version,
+        policy_version: "replenishment-v1",
+        coverage: lastInventoryData.coverage,
+        items: cells.map(cell => ({
+            product_id: cell.product_id,
+            store_id: cell.store_id,
+            product_name: cell.product_name,
+            store_name: cell.store_name,
+            predicted_sales: cell.predicted_sales,
+            suggested_purchase: cell.suggested_purchase,
+            risk_level: cell.risk_level,
+            on_hand: cell.on_hand,
+            confirmed_inbound: cell.confirmed_inbound,
+            reserved: cell.reserved,
+            lead_time_days: cell.lead_time_days,
+            review_period_days: cell.review_period_days,
+            safety_stock: cell.safety_stock,
+            pack_size: cell.pack_size,
+            minimum_order_quantity: cell.minimum_order_quantity,
+            inventory_version: cell.inventory_version,
+            inventory_as_of_date: cell.inventory_as_of_date,
+            window_demand: cell.window_demand,
+            net_available: cell.net_available,
+            target_stock: cell.target_stock,
+            raw_replenishment: cell.raw_replenishment,
+            adjustment_quantity: 0,
+            adjustment_reason: ""
+        })),
+        adjustments: []
+    };
+}
+
+async function savePlanDraft() {
+    if (document.getElementById("savePlan").disabled) return;
+    const button = document.getElementById("savePlan");
+    button.disabled = true;
+    document.getElementById("planStatus").textContent = "正在保存草案...";
+    planRequestKey = planRequestKey || (window.crypto?.randomUUID?.() || `plan-${Date.now()}`);
+    try {
+        const saved = await api.createPlan(makePlanPayload(), planRequestKey);
+        lastSavedPlanId = saved.plan_id;
+        const exportLink = document.getElementById("exportPlan");
+        exportLink.href = api.planExportUrl(lastSavedPlanId);
+        exportLink.classList.remove("hidden");
+        document.getElementById("planStatus").textContent =
+            `${saved.created ? "已保存" : "已幂等恢复"}：${saved.plan_id}`;
+        planRequestKey = null;
+    } catch (e) {
+        document.getElementById("planStatus").textContent = `保存失败：${e.message}`;
+    } finally {
+        updatePlanAvailability();
     }
 }
 

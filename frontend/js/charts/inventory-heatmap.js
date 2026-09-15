@@ -1,6 +1,7 @@
 /* 库存热力图：商品 × 门店，按风险等级着色 */
 const InventoryHeatmap = {
     chart: null,
+    lastData: null,
     requestId: 0,
     controller: null,
 
@@ -67,6 +68,7 @@ const InventoryHeatmap = {
         try {
             const inv = await api.getInventory(scope, { signal });
             if (requestId !== this.requestId) return;
+            this.lastData = inv;
             const cells = inv.cells;
             if (!cells.length) {
                 this.chart.setOption({
@@ -74,7 +76,7 @@ const InventoryHeatmap = {
                     yAxis: { data: [] },
                     series: [{ data: [] }]
                 });
-                return;
+                return inv;
             }
 
             const products = [...new Set(cells.map(c => c.product_id))].sort((a, b) => a - b);
@@ -102,6 +104,7 @@ const InventoryHeatmap = {
                 yAxis: { data: stores.map(s => storeName[s]) },
                 series: [{ data }]
             });
+            return inv;
         } catch (e) {
             if (e.name === "AbortError") return;
             console.error("库存热力图加载失败:", e);
