@@ -44,6 +44,7 @@ class TestDashboard:
         monkeypatch.setattr(dashboard.data_service, "get_products", lambda: products)
         monkeypatch.setattr(dashboard.data_service, "get_stores", lambda: stores)
         monkeypatch.setattr(dashboard.data_service, "get_total_sales_last_n", lambda days: 30)
+        aggregate_windows = []
         monkeypatch.setattr(
             dashboard.data_service,
             "get_recent_product_demand",
@@ -58,7 +59,7 @@ class TestDashboard:
         monkeypatch.setattr(
             dashboard.data_service,
             "get_top_products",
-            lambda n: [{
+            lambda n, product_id=None, store_id=None, days=30: aggregate_windows.append(days) or [{
                 "product_id": 1,
                 "product_name": "P1",
                 "category": "服装",
@@ -68,7 +69,9 @@ class TestDashboard:
         monkeypatch.setattr(
             dashboard.data_service,
             "get_category_sales",
-            lambda: [{"category": "服装", "sales": 100, "ratio": 1.0}],
+            lambda product_id=None, store_id=None, days=30: aggregate_windows.append(days) or [{
+                "category": "服装", "sales": 100, "ratio": 1.0,
+            }],
         )
         monkeypatch.setattr(
             dashboard.forecast_service,
@@ -80,6 +83,7 @@ class TestDashboard:
 
         assert result["top_products"][0]["predicted"] == 30
         assert result["top_products"][0]["suggested_purchase"] == 33
+        assert aggregate_windows == [30, 30]
 
     def test_dashboard_returns_kpi(self, client):
         """大屏接口返回 KPI。"""

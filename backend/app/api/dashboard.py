@@ -13,6 +13,7 @@ from app.schemas import DashboardData, InventoryResult, KpiResult
 from app.services import data_service, forecast_service, inventory_service
 
 router = APIRouter()
+HISTORICAL_DAYS = 30
 
 
 def _compute_kpi(
@@ -31,11 +32,11 @@ def _compute_kpi(
     products = products if products is not None else data_service.get_products()
     stores = stores if stores is not None else data_service.get_stores()
 
-    # 最近 30 天总销量（所有门店×所有商品）
+    # Keep every historical dashboard aggregate on the same documented window.
     if product_id is None and store_id is None:
-        total_sales = data_service.get_total_sales_last_n(30)
+        total_sales = data_service.get_total_sales_last_n(HISTORICAL_DAYS)
     else:
-        total_sales = data_service.get_total_sales_last_n(30, product_id, store_id)
+        total_sales = data_service.get_total_sales_last_n(HISTORICAL_DAYS, product_id, store_id)
 
     # 所有商品×门店的预测总量（与 total_sales 同口径）
     if all_f is None:
@@ -52,10 +53,10 @@ def _compute_kpi(
     report = data_service.load_report()
     mape = report.get("ensemble", {}).get("mape", 100)
     accuracy = round(max(0.0, 100.0 - mape), 2)
-    window = data_service.get_metric_window(30, settings.FORECAST_DAYS)
+    window = data_service.get_metric_window(HISTORICAL_DAYS, settings.FORECAST_DAYS)
 
     # ABC 总体固定为全量商品，再按当前筛选范围取等级，避免筛选导致等级漂移。
-    global_product_demand = data_service.get_recent_product_demand(30)
+    global_product_demand = data_service.get_recent_product_demand(HISTORICAL_DAYS)
     global_product_abc = classify_abc(global_product_demand)
     selected_product_ids = {p["product_id"] for p in products}
     product_abc = {
@@ -98,9 +99,9 @@ def get_dashboard(
 
     kpi = _compute_kpi(all_f, products, stores, product_id, store_id)
     if product_id is None and store_id is None:
-        top = data_service.get_top_products(10)
+        top = data_service.get_top_products(10, days=HISTORICAL_DAYS)
     else:
-        top = data_service.get_top_products(10, product_id, store_id)
+        top = data_service.get_top_products(10, product_id, store_id, HISTORICAL_DAYS)
 
     # 按商品汇总所有门店预测，保持与历史销量的商品粒度一致。
     product_forecasts: Dict[int, Dict[str, int]] = {}
@@ -114,7 +115,7 @@ def get_dashboard(
         aggregate["predicted"] += int(f.get("total_predicted", 0))
         aggregate["suggested_purchase"] += int(f.get("suggested_purchase", 0))
 
-    global_product_demand = data_service.get_recent_product_demand(30)
+    global_product_demand = data_service.get_recent_product_demand(HISTORICAL_DAYS)
     global_product_abc = classify_abc(global_product_demand)
     selected_product_ids = {p["product_id"] for p in products}
     product_abc = {
@@ -139,9 +140,9 @@ def get_dashboard(
         })
 
     if product_id is None and store_id is None:
-        category_sales = data_service.get_category_sales()
+        category_sales = data_service.get_category_sales(days=HISTORICAL_DAYS)
     else:
-        category_sales = data_service.get_category_sales(product_id, store_id)
+        category_sales = data_service.get_category_sales(product_id, store_id, HISTORICAL_DAYS)
 
     return {
         "kpi": kpi,

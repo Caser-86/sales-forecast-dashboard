@@ -734,7 +734,7 @@ README、部署清单、演示稿、历史设计和计划齐全，且主动说�
 | ID | 任务 | 优先级 | 复杂度 | 依赖 | 状态 | 验收标准 |
 |---|---|---|---|---|---|---|
 | TASK-001 | 冻结V1契约 | P1 | S | 无 | 已完成 | `docs/product-v1.md` 冻结边界；`docs/acceptance-matrix.md` 建立46条验收项；82条现有测试通过 |
-| TASK-002 | 指标术语和Top字段 | P1 | M | 001 | 已完成 | 数量文案、30天窗口、原始MAPE和Top字段已统一；84条测试、Ruff、JS语法、Compose通过 |
+| TASK-002 | 指标术语和Top字段 | P1 | M | 001 | 已完成 | 数量文案、显式 30 天窗口、原始MAPE和Top字段已统一；dashboard 回归测试锁定 KPI/Top/品类共用历史窗口；全量测试、Ruff、JS语法、Compose通过 |
 | TASK-003 | 鉴权与限流 | P1 | M | 001 | 已完成 | 业务路由真实返回401/200/429；生产缺Token拒绝启动；87条测试与Ruff通过 |
 | TASK-004 | Docker构建排除 | P1 | M | 001 | 部分完成 | backend/frontend上下文规则与89条测试通过；实际镜像内容待Docker daemon恢复后验证 |
 | TASK-005 | liveness/readiness | P1 | M | 004 | 部分完成 | `/health`/`/ready`真实检查缺件与模型加载并503，`/live`独立存活；容器探针待Docker daemon恢复 |
