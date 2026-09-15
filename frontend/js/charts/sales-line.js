@@ -1,6 +1,8 @@
 /* 销量折线图：历史 + 预测 + 情景范围 */
 const SalesLineChart = {
     chart: null,
+    requestId: 0,
+    controller: null,
 
     init() {
         this.chart = echarts.init(document.getElementById("salesLine"));
@@ -98,11 +100,16 @@ const SalesLineChart = {
     },
 
     async load(productId, storeId) {
+        const requestId = ++this.requestId;
+        this.controller?.abort();
+        this.controller = new AbortController();
+        const signal = this.controller.signal;
         try {
             const [sales, forecast] = await Promise.all([
-                api.getSales(productId, storeId, 90),
-                api.getForecast(productId, storeId)
+                api.getSales(productId, storeId, 90, { signal }),
+                api.getForecast(productId, storeId, { signal })
             ]);
+            if (requestId !== this.requestId) return;
 
             // 合并日期轴
             const histDates = sales.points.map(p => p.date);
@@ -141,9 +148,12 @@ const SalesLineChart = {
                 ]
             });
         } catch (e) {
+            if (e.name === "AbortError") return;
             console.error("销量趋势加载失败:", e);
             window.showDashboardError?.(`销量趋势加载失败: ${e.message}`);
             throw e;
+        } finally {
+            if (requestId === this.requestId) this.controller = null;
         }
     }
 };

@@ -45,9 +45,20 @@ function queryString(params = {}) {
 const BASE = getBase();
 
 const api = {
-    async get(path) {
+    async get(path, { signal, timeoutMs = 10000 } = {}) {
+        const controller = new AbortController();
+        let timedOut = false;
+        const timeout = setTimeout(() => {
+            timedOut = true;
+            controller.abort();
+        }, timeoutMs);
+        const abortFromCaller = () => controller.abort();
+        if (signal) {
+            if (signal.aborted) controller.abort();
+            signal.addEventListener("abort", abortFromCaller, { once: true });
+        }
         try {
-            const resp = await fetch(BASE + path);
+            const resp = await fetch(BASE + path, { signal: controller.signal });
             if (!resp.ok) {
                 let message = `API ${path} 失败: ${resp.status}`;
                 try {
@@ -62,31 +73,39 @@ const api = {
             }
             return resp.json();
         } catch (e) {
+            if (e.name === "AbortError" && timedOut) {
+                const timeoutError = new Error(`请求超时: ${path}`);
+                timeoutError.name = "TimeoutError";
+                throw timeoutError;
+            }
             console.error(`请求失败 ${path}:`, e.message);
             throw e;
+        } finally {
+            clearTimeout(timeout);
+            signal?.removeEventListener("abort", abortFromCaller);
         }
     },
 
-    getProducts() { return this.get("/products"); },
-    getSales(productId, storeId, days = 90) {
-        return this.get(`/sales?product_id=${productId}&store_id=${storeId}&days=${days}`);
+    getProducts(options) { return this.get("/products", options); },
+    getSales(productId, storeId, days = 90, options) {
+        return this.get(`/sales?product_id=${productId}&store_id=${storeId}&days=${days}`, options);
     },
-    getForecast(productId, storeId) {
-        return this.get(`/forecast?product_id=${productId}&store_id=${storeId}`);
+    getForecast(productId, storeId, options) {
+        return this.get(`/forecast?product_id=${productId}&store_id=${storeId}`, options);
     },
-    getDashboard(scope = {}) {
+    getDashboard(scope = {}, options) {
         return this.get(`/dashboard${queryString({
             product_id: scope.productId,
             store_id: scope.storeId
-        })}`);
+        })}`, options);
     },
-    getInventory(scope = {}) {
+    getInventory(scope = {}, options) {
         return this.get(`/inventory${queryString({
             product_id: scope.productId,
             store_id: scope.storeId
-        })}`);
+        })}`, options);
     },
-    getKpi() { return this.get("/kpi"); },
-    getModelInfo() { return this.get("/model-info"); },
-    getDataQuality() { return this.get("/data-quality"); },
+    getKpi(options) { return this.get("/kpi", options); },
+    getModelInfo(options) { return this.get("/model-info", options); },
+    getDataQuality(options) { return this.get("/data-quality", options); },
 };

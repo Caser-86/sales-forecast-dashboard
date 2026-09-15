@@ -1,6 +1,8 @@
 /* 大屏主逻辑：初始化、筛选、刷新与可见状态反馈 */
 let productsCache = [];
 let storesCache = [];
+let dashboardRequestId = 0;
+let dashboardController = null;
 
 async function init() {
     SalesLineChart.init();
@@ -138,11 +140,16 @@ function showEmptyState(message = "") {
 }
 
 async function loadDashboard() {
+    const requestId = ++dashboardRequestId;
+    dashboardController?.abort();
+    dashboardController = new AbortController();
+    const signal = dashboardController.signal;
     setBusy(true);
     clearDashboardError();
     const scope = currentScope();
     try {
-        const dashboard = await api.getDashboard(scope);
+        const dashboard = await api.getDashboard(scope, { signal });
+        if (requestId !== dashboardRequestId) return;
         const coverage = dashboard.coverage || {};
         if (coverage.status === "partial") {
             showDashboardError(
@@ -164,10 +171,14 @@ async function loadDashboard() {
 
         await Promise.all([loadTrend(), InventoryHeatmap.load(scope)]);
     } catch (e) {
+        if (e.name === "AbortError") return;
         console.error("大屏数据加载失败:", e);
         showDashboardError(`数据加载失败: ${e.message}`);
     } finally {
-        setBusy(false);
+        if (requestId === dashboardRequestId) {
+            dashboardController = null;
+            setBusy(false);
+        }
     }
 }
 

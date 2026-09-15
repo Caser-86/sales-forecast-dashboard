@@ -1,6 +1,8 @@
 /* 库存热力图：商品 × 门店，按风险等级着色 */
 const InventoryHeatmap = {
     chart: null,
+    requestId: 0,
+    controller: null,
 
     init() {
         this.chart = echarts.init(document.getElementById("inventoryHeatmap"));
@@ -58,8 +60,13 @@ const InventoryHeatmap = {
     },
 
     async load(scope = {}) {
+        const requestId = ++this.requestId;
+        this.controller?.abort();
+        this.controller = new AbortController();
+        const signal = this.controller.signal;
         try {
-            const inv = await api.getInventory(scope);
+            const inv = await api.getInventory(scope, { signal });
+            if (requestId !== this.requestId) return;
             const cells = inv.cells;
             if (!cells.length) {
                 this.chart.setOption({
@@ -96,9 +103,12 @@ const InventoryHeatmap = {
                 series: [{ data }]
             });
         } catch (e) {
+            if (e.name === "AbortError") return;
             console.error("库存热力图加载失败:", e);
             window.showDashboardError?.(`库存热力图加载失败: ${e.message}`);
             throw e;
+        } finally {
+            if (requestId === this.requestId) this.controller = null;
         }
     }
 };

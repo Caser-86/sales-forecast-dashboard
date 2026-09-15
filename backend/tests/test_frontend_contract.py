@@ -79,3 +79,17 @@ def test_chart_tooltips_escape_api_text_before_html_rendering():
     assert "safe-text.js" in html
     assert "escapeHtml(d.product_name)" in top
     assert "escapeHtml(d.product_name)" in inventory
+
+
+def test_frontend_requests_have_timeout_cancellation_and_stale_guards():
+    api = (PROJECT_ROOT / "frontend" / "js" / "api.js").read_text(encoding="utf-8")
+    dashboard = (PROJECT_ROOT / "frontend" / "js" / "dashboard.js").read_text(encoding="utf-8")
+    trend = (PROJECT_ROOT / "frontend" / "js" / "charts" / "sales-line.js").read_text(encoding="utf-8")
+    inventory = (PROJECT_ROOT / "frontend" / "js" / "charts" / "inventory-heatmap.js").read_text(encoding="utf-8")
+
+    assert "AbortController" in api
+    assert "timeoutMs = 10000" in api
+    assert "TimeoutError" in api
+    assert "dashboardRequestId" in dashboard
+    assert "requestId !== this.requestId" in trend
+    assert "requestId !== this.requestId" in inventory
