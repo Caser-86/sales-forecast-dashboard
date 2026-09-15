@@ -8,4 +8,5 @@ dist/
 .git/
 .gitignore
 *.md
+!vendor/THIRD_PARTY_NOTICES.md
 *.log

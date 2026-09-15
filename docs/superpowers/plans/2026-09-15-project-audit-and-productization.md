@@ -37,9 +37,9 @@
 | 配置 | pydantic-settings 2.7.1、环境变量、两份 env 模板 | 有基础，但 ML 硬编码未统一 |
 | 数据 | pandas 2.2.3、NumPy 1.26.4、CSV/JSON | 没有实际数据库读写 |
 | 模型 | PyTorch 固定 2.5.1+cpu、LightGBM 4.5.0 | 真正训练/预测，不是 LLM |
-| 特征/持久化 | scikit-learn 1.6.0、joblib 1.4.2 | 编码器、scaler 与模型需要绑定版本 |
+| 特征/持久化 | scikit-learn 1.6.0、JSON scaler 参数 | 编码器、scaler 与模型需要绑定版本，避免应用直接加载 pickle |
 | 未接入依赖 | SQLModel 0.0.22、slowapi 0.1.9 | 安装了，但数据库与限流没有接通 |
-| 前端 | 原生 JS、HTML/CSS、ECharts 5.5.1 CDN | 无 React、无 npm 构建系统 |
+| 前端 | 原生 JS、HTML/CSS、随包分发的 ECharts 5.5.1 | 无 React、无 npm 构建系统 |
 | 测试 | pytest、pytest-asyncio、httpx、Ruff | 单元/API/契约检查存在，无浏览器 E2E |
 | 部署 | 两个 Dockerfile、Compose、独立 nginx.conf、Shell | 配置能解析，不等于镜像能发布 |
 | CI | GitHub Actions 单一质量任务 | 生成数据/训练/测试/语法/Compose 校验，无发布流水线 |
@@ -166,7 +166,7 @@ P0 表示当前场景下已证实的灾难性/紧急发布阻断；P1 为必须�
 | R07 | 一步观测式测试不等于30步递推回测；LSTM/集成与LightGBM/基线的样本集合不同 | backend/ml/trainer.py:199、245、281 | 011 |
 | R08 | 固定±15%被称为置信区间，没有覆盖率或校准；前端还未绘制正确上下界带 | backend/ml/predictor.py:203；frontend/js/charts/sales-line.js:132 | 002、012 |
 | R09 | 采购量=预测×1.08；库存风险基本为ABC映射，无库存量/在途/交期事实 | backend/ml/predictor.py:214；services/inventory_service.py:14 | 002、016 |
-| R10 | 不可信模型文件可经torch/joblib反序列化执行代码；固定Torch版本存在已公布安全问题 | backend/ml/lstm_model.py:75；ml/predictor.py:62 | 013 |
+| R10 | 不可信模型文件曾可经torch/joblib反序列化执行代码；固定Torch版本仍需升级审计 | backend/ml/lstm_model.py；ml/predictor.py | 013 |
 | R11 | 部署脚本等待超时仍宣称完成；根路由返回不能证明可预测 | scripts/deploy.sh:23 | 019 |
 
 R02 是可导致敏感文件进入未来镜像的构建缺陷，本轮没有证明某个已发布镜像含真实密钥。R10 需要攻击者能够替换模型文件；项目当前没有公开上传模型接口，不能描述为未认证远程RCE已复现。
@@ -182,7 +182,7 @@ R02 是可导致敏感文件进入未来镜像的构建缺陷，本轮没有证�
 | R16 | schema缺失或非法日期可使质量检查直接失败；无新鲜度/稀疏商品门店清单；类别/节假日硬编码 | data_service.py:22、83；ml/predictor.py:28、44 | 008、010 |
 | R17 | 快速筛选/定时刷新响应可乱序，旧数据覆盖新选择；无请求超时 | frontend/js/dashboard.js:142；api.js:53 | 014 |
 | R18 | 门店选择器依赖全量库存推理，初始化重复调用库存；选择器失败时刷新监听未注册 | frontend/js/dashboard.js:52、81 | 014、018 |
-| R19 | ECharts初始化在try外，CDN失败可一直loading；静态“服务在线”与真实状态无关；旧图表没有过期标记 | frontend/js/dashboard.js:5；index.html:24 | 014 |
+| R19 | ECharts初始化在try外，旧版CDN失败可一直loading；静态“服务在线”与真实状态无关；旧图表没有过期标记 | frontend/js/dashboard.js；index.html；frontend/vendor/echarts.min.js | 014 |
 | R20 | Top tooltip使用suggested/abc，但API是suggested_purchase/abc_class；custom series无数据 | frontend/js/charts/top-products.js:20、61 | 002 |
 | R21 | 历史为空时new Array(-1)报错；固定高度/隐藏溢出使窄屏存在裁切风险 | sales-line.js:117；css/dashboard.css:27 | 015 |
 | R22 | tooltip插入未转义商品/门店文本，接入恶意外部数据后存在HTML注入风险 | charts/top-products.js:20；inventory-heatmap.js | 013 |
@@ -241,14 +241,14 @@ FastAPI -> 明确数据快照 -> 共享预测服务 -> 版本化缓存
 | CSRF | 当前无登录cookie/写操作链路，不是当前主要攻击面；新增保存功能需按选定认证方式设计 |
 | SSRF/命令注入/路径穿越 | 当前API未见接收任意URL、shell命令或路径的入口；不是全局“已安全认证” |
 | 文件上传 | 当前无上传API；未来优先本地受控CLI，禁止未经验证的pickle/模型上传 |
-| 反序列化 | torch.load(weights_only=False)、joblib.load必须只读可信模型包；目录权限和来源校验重要 |
+| 反序列化 | LSTM 使用 `torch.load(weights_only=True)`，scaler 使用 JSON；旧 flat joblib scaler 不再执行，目录权限和来源校验仍重要 |
 | 敏感信息 | /health向未认证调用者暴露绝对文件路径；生产错误日志与API错误需要分层脱敏 |
 | AI专项 | 无LLM/Agent/RAG，Prompt Injection、Tool权限、RAG污染不适用；适用的是数据投毒、模型供应链、预测输出有限值与合理范围校验 |
-| 第三方前端资源 | CDN单点依赖且无完整性校验；推荐固定版本随发布分发并记录许可证 |
+| 第三方前端资源 | ECharts 已固定版本随前端发布并记录许可证；新增第三方资源仍需同样审计 |
 
 **已核验依赖安全证据：** PyTorch官方GHSA-53q9-r3pm-6pq6说明 `<=2.5.1` 受影响，2.6.0修复该项 `weights_only=True` 加载漏洞。当前代码甚至显式使用False，不能只改成True而保留旧版本。应定向选择经兼容性验证、无已知适用高危漏洞的版本，不把2.6.0视为截至今天的全面安全版本。[PyTorch官方公告](https://github.com/pytorch/pytorch/security/advisories/GHSA-53q9-r3pm-6pq6)
 
-本轮环境无pip-audit，未安装新依赖做完整扫描。其他直接/传递依赖的全部CVE及可达性无法确认；必须在发布前生成锁定清单、扫描报告和风险处置记录，不能根据pip check宣称无漏洞。
+本轮已运行 `pip-audit==2.7.3`，但扫描因 `torch==2.5.1+cpu` 不存在于 PyPI 而退出，未产生完整依赖结论。其他直接/传递依赖的全部CVE及可达性无法确认；必须在发布前使用支持 PyTorch CPU 索引的审计方案生成锁定清单、扫描报告和风险处置记录，不能根据 pip check 宣称无漏洞。
 
 # 12. 性能问题
 
@@ -741,12 +741,12 @@ README、部署清单、演示稿、历史设计和计划齐全，且主动说�
 | TASK-006 | ID与预测失败语义 | P1 | M | 001 | 已完成 | 无效422/404、全失败503、部分失败coverage与前端警告已实现；97条测试、Ruff、JS语法通过 |
 | TASK-007 | ABC总体/边界 | P2 | M | 001、002 | 部分完成 | ABC单项/阈值/并列/全量总体稳定与需求优先级文案已完成；库存风险公式待TASK-016 |
 | TASK-008 | 数据契约/导入 | P1 | L | 001、006 | 部分完成 | 销售CSV校验、不可变版本、原子active指针和CLI已实现；库存快照与模型版本兼容待TASK-009/016 |
-| TASK-009 | 模型包/缓存版本 | P1 | L | 005、008 | 部分完成 | 模型包manifest/校验、active原子切换、失败发布保留旧版本、JSON scaler/feature schema和预测缓存data/model版本键已实现；中断/重启证据与完整模型元数据待补 |
+| TASK-009 | 模型包/缓存版本 | P1 | L | 005、008 | 已完成（代码证据） | 模型包携带评估报告、manifest/checksum、data version、JSON scaler/feature schema和选择元数据；active原子切换、失败发布保留旧版本、模拟中断清理临时文件、fresh-process恢复和预测缓存data/model版本键均有测试；真实部署演练仍待Docker |
 | TASK-010 | 未来特征一致性 | P1 | L | 008、009 | 部分完成 | 共享future_features已接入LSTM/LightGBM，递推只使用历史/预测值，类别编码器和feature schema随模型包发布；真实重训和预测器smoke已验证，线上浏览器/部署证据待补 |
 | TASK-011 | 30天同口径回测 | P1 | L | 010 | 已完成 | validation 只用于选择 LSTM/LightGBM/seasonal-naive/候选集成权重，train+validation 重训后仅在 test 评估；报告记录同key、同horizon、per-horizon/segment指标，发布包按选择策略运行 |
 | TASK-012 | 区间校准/绘图 | P1 | M | 002、011 | 已完成（情景范围路径） | 未做统计校准，不再称为置信区间；API/前端明确scenario范围，图表使用下界+带宽且空历史不抛异常；真实浏览器截图待TASK-015 |
-| TASK-013 | 模型/依赖/内容安全 | P1 | L | 004、009 | 部分完成 | 模型包路径/checksum校验、Torch weights_only加载、JSON scaler/feature schema、tooltip HTML escape和CI pip-audit门禁已实现；旧版flat模型仍保留joblib兼容读取、ECharts本地资源和远程审计结果待补 |
-| TASK-014 | 请求一致性/恢复 | P2 | L | 002、003、005、006 | 部分完成 | API timeout/AbortSignal、dashboard/trend/heatmap请求序号与busy收尾已实现；延迟请求、断网恢复和CDN初始化浏览器证据待补 |
+| TASK-013 | 模型/依赖/内容安全 | P1 | L | 004、009 | 部分完成 | 模型包路径/checksum校验、Torch weights_only加载、JSON scaler/feature schema、tooltip HTML escape、随包ECharts和CI pip-audit门禁已实现；旧版flat joblib路径已禁止执行，Torch定向升级和可完成的依赖审计报告仍待补 |
+| TASK-014 | 请求一致性/恢复 | P2 | L | 002、003、005、006 | 部分完成 | API timeout/AbortSignal、dashboard/trend/heatmap请求序号与busy收尾已实现；延迟请求、断网恢复、缺少本地ECharts资源的浏览器证据待补 |
 | TASK-015 | 响应式/空态/无障碍 | P2 | M | 012、014 | 部分完成 | 移动端滚动/堆叠、图表最小高度、焦点样式、aria labels和真实header readiness状态已实现；四视口/200%缩放/键盘浏览器证据待补 |
 | TASK-016 | 库存与补货规则 | P1 | L | 007、008、011 | 部分完成 | inventory快照schema/CLI/active版本、可手算补货公式、MOQ/包装/缺输入/超horizon边界、freshness检查、库存拆解字段和缺少商品/门店记录的明确503已实现；人工调整/审批仍不在V1 |
 | TASK-017 | 草案/导出/追溯 | P1 | L | 003、009、014、016 | 部分完成 | SQLite不可变快照、幂等键、partial拒收、重启/备份恢复、CSV安全导出、版本元数据和前端保存/导出入口已实现；人工调整编辑与浏览器E2E证据待补 |

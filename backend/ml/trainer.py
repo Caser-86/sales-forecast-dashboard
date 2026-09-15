@@ -551,6 +551,10 @@ def train_all() -> dict:
     os.makedirs(PROCESSED_DIR, exist_ok=True)
     with open(REPORT_PATH, "w", encoding="utf-8") as f:
         json.dump(report, f, ensure_ascii=False, indent=2)
+    (Path(MODELS_DIR) / "evaluation_report.json").write_text(
+        json.dumps(report, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
     print(f"[6/6] 评估报告已保存 → {REPORT_PATH}")
     category_encoder_path = Path(MODELS_DIR) / "category_encoder.json"
     category_encoder_path.write_text(

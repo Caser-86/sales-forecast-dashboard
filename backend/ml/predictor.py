@@ -147,16 +147,10 @@ class ForecastPredictor:
 
         scaler_x_json = model_dir / "lstm_scaler_x.json"
         scaler_y_json = model_dir / "lstm_scaler_y.json"
-        if scaler_x_json.is_file() and scaler_y_json.is_file():
-            self.scaler_x = load_scaler(scaler_x_json)
-            self.scaler_y = load_scaler(scaler_y_json)
-        else:
-            # Legacy flat artifacts predate the JSON scaler format. New published
-            # packages cannot reach this branch because the manifest requires JSON.
-            import joblib
-
-            self.scaler_x = joblib.load(model_dir / "lstm_scaler_x.joblib")
-            self.scaler_y = joblib.load(model_dir / "lstm_scaler_y.joblib")
+        if not scaler_x_json.is_file() or not scaler_y_json.is_file():
+            raise ModelArtifactError("模型必须使用 JSON scaler；旧版 joblib 产物需要重新训练")
+        self.scaler_x = load_scaler(scaler_x_json)
+        self.scaler_y = load_scaler(scaler_y_json)
         # 加载含工程特征的历史数据（用于构建 LSTM 输入序列与 LightGBM lag）
         self.history: pd.DataFrame = pd.read_csv(FEATURES_PATH)
         self.history["date"] = pd.to_datetime(self.history["date"])

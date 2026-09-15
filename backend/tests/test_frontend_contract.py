@@ -36,6 +36,17 @@ def test_frontend_api_exposes_quality_endpoints():
     assert "store_id" in api
 
 
+def test_frontend_bundles_pinned_echarts_without_runtime_cdn_dependency():
+    html = (PROJECT_ROOT / "frontend" / "index.html").read_text(encoding="utf-8")
+    vendor = PROJECT_ROOT / "frontend" / "vendor" / "echarts.min.js"
+    notices = PROJECT_ROOT / "frontend" / "vendor" / "THIRD_PARTY_NOTICES.md"
+
+    assert 'src="vendor/echarts.min.js"' in html
+    assert "cdn.jsdelivr.net" not in html
+    assert vendor.is_file() and vendor.stat().st_size > 100_000
+    assert "Apache License 2.0" in notices.read_text(encoding="utf-8")
+
+
 def test_dashboard_surfaces_partial_forecast_coverage():
     script = (PROJECT_ROOT / "frontend" / "js" / "dashboard.js").read_text(encoding="utf-8")
 

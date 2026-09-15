@@ -14,7 +14,7 @@ from typing import Any
 from app.core.config import settings
 from app.core.exceptions import ModelArtifactError
 
-REQUIRED_MODEL_FILES = (
+CORE_MODEL_FILES = (
     "lstm_model.pth",
     "lightgbm_model.txt",
     "lightgbm_model.txt.meta.json",
@@ -22,9 +22,13 @@ REQUIRED_MODEL_FILES = (
     "lstm_scaler_y.json",
     "category_encoder.json",
     "feature_schema.json",
-    "model_selection.json",
 )
-LEGACY_MODEL_FILES = tuple(name for name in REQUIRED_MODEL_FILES if name != "model_selection.json")
+REQUIRED_MODEL_FILES = CORE_MODEL_FILES + (
+    "model_selection.json",
+    "evaluation_report.json",
+)
+MODEL_SELECTION_FILES = CORE_MODEL_FILES + ("model_selection.json",)
+LEGACY_MODEL_FILES = CORE_MODEL_FILES
 _MODEL_ID_PATTERN = re.compile(r"^model-[0-9a-f]{16}$")
 
 
@@ -56,9 +60,14 @@ def _validate_source(source_dir: Path) -> dict[str, str]:
 
 def _write_json_atomically(path: Path, payload: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    temporary = path.with_name(f".{path.name}.tmp")
-    temporary.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
-    os.replace(temporary, path)
+    file_descriptor, temporary_name = tempfile.mkstemp(prefix=f".{path.name}.", dir=path.parent)
+    temporary = Path(temporary_name)
+    os.close(file_descriptor)
+    try:
+        temporary.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+        os.replace(temporary, path)
+    finally:
+        temporary.unlink(missing_ok=True)
 
 
 def _read_pointer(active_file: Path) -> str | None:
@@ -82,7 +91,12 @@ def _validate_package(model_dir: Path) -> dict[str, Any]:
         raise ModelArtifactError("模型 manifest 无效") from exc
     files = manifest.get("files")
     checksums = manifest.get("checksums")
-    if files not in (list(REQUIRED_MODEL_FILES), list(LEGACY_MODEL_FILES)) or not isinstance(checksums, dict):
+    allowed_file_lists = (
+        list(REQUIRED_MODEL_FILES),
+        list(MODEL_SELECTION_FILES),
+        list(LEGACY_MODEL_FILES),
+    )
+    if files not in allowed_file_lists or not isinstance(checksums, dict):
         raise ModelArtifactError("模型 manifest 文件清单无效")
     for filename in files:
         path = model_dir / filename
