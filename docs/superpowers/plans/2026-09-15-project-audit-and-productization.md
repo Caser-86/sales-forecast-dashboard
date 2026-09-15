@@ -752,7 +752,7 @@ README、部署清单、演示稿、历史设计和计划齐全，且主动说�
 | TASK-017 | 草案/导出/追溯 | P1 | L | 003、009、014、016 | 已完成 | SQLite不可变快照、幂等键、partial拒收、重启/备份恢复、CSV安全导出、版本元数据已实现；真实浏览器已完成保存、重启恢复、导出和键盘路径验证；人工调整编辑不在V1 |
 | TASK-018 | 元数据API/容量 | P2 | M | 008、009、014 | 已完成（本地受限环境） | `/api/stores` 与 `/api/metadata` 已实现，前端选择器不再触发预测；`scripts/benchmark_api.py`和300秒并发记录已验证，4核/8GB下1500次请求0失败、P95 247.88ms、内存无持续增长；默认限流超额返回429 |
 | TASK-019 | 可验证同源部署 | P1 | M | 003、004、005、013 | 已完成（本地Docker） | frontend nginx已反代同源API、计划数据库已持久化、Compose配置可解析；`scripts/deploy.sh` 已改为可配置路径、`docker compose`、健康检查、前端检查和失败日志；干净镜像、健康探针、接口验收及backend停止后的502故障路径已验证 |
-| TASK-020 | CI测试门禁分层 | P1 | L | 006、010-015、017、019 | 已完成（含浏览器E2E） | CI已加入85%覆盖率、pip check、空白检查、镜像构建、部署健康检查、2个Chromium浏览器E2E和OSV pip-audit job；GitHub Actions [run 34990694495](https://github.com/Caser-86/sales-forecast-dashboard/actions/runs/34990694495) 的 Quality Gates 与 Dependency Audit 均成功 |
+| TASK-020 | CI测试门禁分层 | P1 | L | 006、010-015、017、019 | 已完成（含浏览器E2E） | CI已加入85%覆盖率、pip check、空白检查、镜像构建、部署健康检查、2个Chromium浏览器E2E和OSV pip-audit job；GitHub Actions [run 34993938865](https://github.com/Caser-86/sales-forecast-dashboard/actions/runs/34993938865) 的 Quality Gates 与 Dependency Audit 均成功 |
 | TASK-021 | 文档/日志/恢复手册 | P2 | M | 009、011、017-020 | 已完成（本地与远端证据） | README、部署清单、恢复手册、fresh clone、Docker/性能、依赖审计和Actions证据已同步版本/Token/metadata/plans路径；销售数据/模型 CLI 回滚、SQLite 草案恢复、Python 3.11 干净环境和 Docker 停服恢复均已演练 |
 | TASK-022 | 小范围清理 | P3 | M | 017、020、021 | 未开始 | 删除有六类证据，完整回归通过 |
 | TASK-023 | Release验收 | P1 | M | 必须任务；022可延后 | 已完成（面试版V1） | `docs/releases/v1-acceptance.md` 已记录 commit、测试、fresh clone、恢复、Docker、依赖、远端Actions、浏览器、Chrome 200% 缩放和受限性能证据；V1 面试发布门已关闭，生产化能力仍按 `docs/product-v1.md` 边界管理 |

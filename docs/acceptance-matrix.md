@@ -57,7 +57,7 @@ The following are facts from the audit before TASK-001 implementation:
 
 - 82 backend tests passed in 10.33 seconds.
 - Ruff, JavaScript syntax checks, Compose config validation, and `pip check` passed.
-- Remote CI run [34990694495](https://github.com/Caser-86/sales-forecast-dashboard/actions/runs/34990694495) passed Quality Gates and Dependency Audit for commit `50900f6`; current local coverage, browser, load, image-content, and dependency evidence is recorded in the linked evidence documents.
+- Remote CI run [34993938865](https://github.com/Caser-86/sales-forecast-dashboard/actions/runs/34993938865) passed Quality Gates and Dependency Audit for commit `efe5e10`; current local coverage, browser, load, image-content, and dependency evidence is recorded in the linked evidence documents.
 - Read-only fault injection reproduced: configured token without a request header returned 200; missing assets returned HTTP 200 with `degraded`; negative forecast ID returned 500; all forecasts failing returned a normal dashboard with predicted total 0.
 
 These baseline results are retained as evidence for the work items that must change them. They are not acceptance of the corresponding V1 rows.
