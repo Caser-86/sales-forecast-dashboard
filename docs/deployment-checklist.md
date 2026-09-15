@@ -40,7 +40,7 @@ docker compose ps
 - `sales-backend` 状态包含 `healthy`。
 - `sales-frontend` 状态为 `Up`。
 - Dashboard 地址为 <http://localhost:3000>。
-- API 文档地址为 <http://localhost:8000/docs>。
+- API 文档地址为 <http://localhost:8000/docs>（默认 development；production 会关闭文档）。
 
 ## 3. API 验收
 
@@ -72,12 +72,12 @@ bash scripts/verify_deployment.sh http://localhost:8000
 
 按以下顺序演示，控制在 60-90 秒：
 
-1. 打开 <http://localhost:3000>，确认页面显示“服务在线”和模型摘要。
+1. 打开 <http://localhost:3000>，确认页面显示服务状态、版本摘要和模型摘要。
 2. 先展示全量 KPI、销售趋势、Top 商品和库存风险热力图。
 3. 选择一个商品和门店，点击“刷新数据”。
 4. 确认 KPI、Top 商品、品类占比和库存热力图同步缩小到筛选范围。
-5. 打开 `/api/model-info`，说明时间切分、集成权重和基线。
-6. 打开 `/api/data-quality`，说明缺失值、重复、日期断档和负销量检查。
+5. 打开 `/api/metadata`，说明数据、模型版本和库存新鲜度。
+6. 打开 `/api/model-info` 与 `/api/data-quality`，说明时间切分、集成权重、基线和数据质量检查。
 7. 如果面试官追问失败场景，说明页面会显示错误提示或空结果状态，而不是静默展示旧数据。
 
 ## 5. 出错时的最小回退
@@ -110,7 +110,7 @@ docker compose up -d --force-recreate backend
 
 - 当前数据由脚本生成，尚未接入真实 ERP/WMS 或数据库。
 - 模型是离线训练，尚未接入定时训练、漂移监控、模型注册和回滚。
-- 当前 API 路由默认开放；`API_TOKEN` 是预留扩展点，尚未挂载到路由依赖，不应把它描述成已完成的生产鉴权。
+- development 默认可不配置 Token；production 必须设置 `API_TOKEN`，当前单租户 API 路由已挂载 Token 依赖。
 - 公网 URL、域名、TLS、密钥托管、远程监控和 GitHub Actions 实际运行结果需要外部基础设施，本仓库本地检查未覆盖。
 
 停止本地服务：

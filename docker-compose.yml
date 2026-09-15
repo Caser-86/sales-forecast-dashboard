@@ -10,14 +10,16 @@ services:
       - ./backend/ml/saved_models:/app/ml/saved_models
       - ./backend/logs:/app/logs
     environment:
-      - ENV=${ENV:-production}
+      - ENV=${ENV:-development}
       - DEBUG=${DEBUG:-false}
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
       - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:3000,http://127.0.0.1:3000}
       - API_TOKEN=${API_TOKEN:-}
       - API_TOKEN_HEADER=${API_TOKEN_HEADER:-X-API-Token}
+      - DATABASE_URL=${DATABASE_URL:-sqlite:////app/data/dashboard.db}
       - FORECAST_DAYS=${FORECAST_DAYS:-30}
       - FORECAST_WORKERS=${FORECAST_WORKERS:-4}
+      - INVENTORY_MAX_AGE_DAYS=${INVENTORY_MAX_AGE_DAYS:-7}
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://localhost:8000/health"]
@@ -34,4 +36,10 @@ services:
     depends_on:
       backend:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "--quiet", "http://localhost/"]
+      interval: 30s
+      timeout: 5s
+      start_period: 5s
+      retries: 3
     restart: unless-stopped

@@ -75,10 +75,10 @@ docker compose ps
 
 Windows PowerShell 对应命令为 `Copy-Item .env.example .env`。如果不需要修改配置，也可以直接执行 `docker compose up --build -d`；`.env` 只用于覆盖默认值，不应提交真实 Token。
 
-访问：
+访问（模板默认 `ENV=development`，便于面试演示）：
 
 - Dashboard：http://localhost:3000
-- API 文档：http://localhost:8000/docs
+- API 文档：http://localhost:8000/docs（仅非 production 环境开放）
 - 健康检查：http://localhost:8000/health
 - 模型信息：http://localhost:8000/api/model-info
 - 数据质量：http://localhost:8000/api/data-quality
@@ -176,6 +176,11 @@ python scripts/import_sales.py path/to/sales.csv --no-activate
 | GET | `/api/inventory?product_id=1&store_id=1` | 指定范围库存风险 |
 | GET | `/api/model-info` | 模型状态、切分、指标和集成权重 |
 | GET | `/api/data-quality` | 输入销售数据完整性检查 |
+| GET | `/api/stores` | 轻量门店目录，不触发预测 |
+| GET | `/api/metadata` | 数据、模型、库存版本与新鲜度 |
+| POST | `/api/plans` | 幂等保存补货草案（需要 `Idempotency-Key`） |
+| GET | `/api/plans/{plan_id}` | 查看不可变补货草案 |
+| GET | `/api/plans/{plan_id}/export` | 导出补货草案 CSV |
 
 ## 测试与质量门禁
 
@@ -233,7 +238,7 @@ sales-forecast-dashboard/
 - 真实 ERP/WMS 数据接入、增量同步和数据库存储。
 - 定时训练、模型注册、灰度发布和回滚。
 - 预测漂移、数据漂移和分层业务告警。
-- 用户登录、权限模型和生产密钥管理。
+- 多用户登录、权限模型和生产密钥托管；V1 使用单租户 API Token。
 - 多副本部署、队列化推理和完整可观测性平台。
 
 下一阶段可以按风险优先级推进：先接入真实数据并建立数据契约，再补定时训练与漂移监控，最后完善鉴权、队列和部署可观测性。
@@ -248,7 +253,7 @@ sales-forecast-dashboard/
 | `DEBUG` | `false` | 调试开关 |
 | `LOG_LEVEL` | `INFO` | 日志级别 |
 | `CORS_ORIGINS` | 本地前端地址 | CORS 白名单 |
-| `API_TOKEN` | 空 | 预留 Token 扩展点，当前路由未挂载鉴权 |
+| `API_TOKEN` | 空 | 开发环境可为空；生产环境必须配置并保护 API 路由 |
 | `API_TOKEN_HEADER` | `X-API-Token` | Token 请求头名称 |
 | `FORECAST_DAYS` | `30` | 预测周期 |
 | `FORECAST_WORKERS` | `4` | 批量预测最大并发数 |
