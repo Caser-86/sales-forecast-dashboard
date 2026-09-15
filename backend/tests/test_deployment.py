@@ -10,10 +10,13 @@ def test_backend_docker_context_excludes_runtime_and_secret_files():
     rules = (PROJECT_ROOT / "backend" / ".dockerignore").read_text(encoding="utf-8").splitlines()
 
     assert ".env" in rules
+    assert "data/" in rules
     assert "logs/" in rules
     assert "data/raw/" in rules
     assert "data/processed/" in rules
     assert "ml/saved_models/" in rules
+    assert "*.db.bak" in rules
+    assert ".pytest_cache/" in rules
     assert "tests/" in rules
 
 
@@ -41,6 +44,7 @@ def test_compose_persists_plan_database_and_frontend_waits_for_backend():
     assert "DATABASE_URL=${DATABASE_URL:-sqlite:////app/data/dashboard.db}" in compose
     assert "condition: service_healthy" in compose
     assert "healthcheck:" in compose
+    assert '"http://127.0.0.1/"' in compose
 
 
 def test_deploy_script_uses_current_compose_and_fails_closed():

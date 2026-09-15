@@ -736,8 +736,8 @@ README、部署清单、演示稿、历史设计和计划齐全，且主动说�
 | TASK-001 | 冻结V1契约 | P1 | S | 无 | 已完成 | `docs/product-v1.md` 冻结边界；`docs/acceptance-matrix.md` 建立46条验收项；82条现有测试通过 |
 | TASK-002 | 指标术语和Top字段 | P1 | M | 001 | 已完成 | 数量文案、显式 30 天窗口、原始MAPE和Top字段已统一；dashboard 回归测试锁定 KPI/Top/品类共用历史窗口；全量测试、Ruff、JS语法、Compose通过 |
 | TASK-003 | 鉴权与限流 | P1 | M | 001 | 已完成 | 业务路由真实返回401/200/429；生产缺Token拒绝启动；87条测试与Ruff通过 |
-| TASK-004 | Docker构建排除 | P1 | M | 001 | 部分完成 | backend/frontend上下文规则与89条测试通过；实际镜像内容待Docker daemon恢复后验证 |
-| TASK-005 | liveness/readiness | P1 | M | 004 | 部分完成 | `/health`/`/ready`真实检查缺件与模型加载并503，`/live`独立存活；容器探针待Docker daemon恢复 |
+| TASK-004 | Docker构建排除 | P1 | M | 001 | 已完成（本地Docker） | backend/frontend上下文规则与测试通过；重建镜像检查确认无运行数据、备份数据库、库存快照、模型和pytest缓存 |
+| TASK-005 | liveness/readiness | P1 | M | 004 | 已完成（本地Docker） | `/health`/`/ready`真实检查缺件与模型加载并503，`/live`独立存活；Compose backend/frontend 探针均已健康，故障注入后非健康路径已验证 |
 | TASK-006 | ID与预测失败语义 | P1 | M | 001 | 已完成 | 无效422/404、全失败503、部分失败coverage与前端警告已实现；97条测试、Ruff、JS语法通过 |
 | TASK-007 | ABC总体/边界 | P2 | M | 001、002 | 已完成 | ABC单项/阈值/并列/全量总体稳定与需求优先级文案已完成；库存服务已移除 ABC-only 风险回退，缺少有效库存快照时明确返回不可用 |
 | TASK-008 | 数据契约/导入 | P1 | L | 001、006 | 部分完成 | 销售CSV校验、不可变版本、原子active指针和CLI已实现；库存快照与模型版本兼容待TASK-009/016 |
@@ -745,14 +745,14 @@ README、部署清单、演示稿、历史设计和计划齐全，且主动说�
 | TASK-010 | 未来特征一致性 | P1 | L | 008、009 | 部分完成 | 共享future_features已接入LSTM/LightGBM，递推只使用历史/预测值，类别编码器和feature schema随模型包发布；真实重训和预测器smoke已验证，线上浏览器/部署证据待补 |
 | TASK-011 | 30天同口径回测 | P1 | L | 010 | 已完成 | validation 只用于选择 LSTM/LightGBM/seasonal-naive/候选集成权重，train+validation 重训后仅在 test 评估；报告记录同key、同horizon、per-horizon/segment指标，发布包按选择策略运行 |
 | TASK-012 | 区间校准/绘图 | P1 | M | 002、011 | 已完成（情景范围路径） | 统计校准明确移出 V1，不再称为置信区间；API/前端明确scenario范围，图表使用下界+带宽且空历史不抛异常；真实浏览器已确认120点下界与120点带宽渲染 |
-| TASK-013 | 模型/依赖/内容安全 | P1 | L | 004、009 | 部分完成 | 模型包路径/checksum校验、Torch weights_only加载、JSON scaler/feature schema、tooltip HTML escape、随包ECharts和CI pip-audit门禁已实现；真实浏览器 XSS fixture 已证明无脚本执行和无注入元素，Torch定向升级、依赖审计报告和Docker镜像检查仍待补 |
+| TASK-013 | 模型/依赖/内容安全 | P1 | L | 004、009 | 部分完成 | 模型包路径/checksum校验、Torch weights_only加载、JSON scaler/feature schema、tooltip HTML escape、随包ECharts和CI pip-audit门禁已实现；真实浏览器 XSS fixture、干净镜像检查和容器依赖扫描已完成，只有PyTorch CPU wheel供应源审计仍待补 |
 | TASK-014 | 请求一致性/恢复 | P2 | L | 002、003、005、006 | 部分完成 | API timeout/AbortSignal、dashboard/trend/heatmap请求序号与busy收尾已实现；浏览器已验证延迟乱序、首次超时后重试恢复、API 500、空数据和部分失败状态，Docker/断网矩阵仍待补 |
-| TASK-015 | 响应式/空态/无障碍 | P2 | M | 012、014 | 部分完成 | 1920/1366/390 三视口截图、1366 网格修复、移动端滚动、焦点样式、aria labels、保存/导出键盘路径、空态和真实浏览器 Tab 路径已验证；真实 OS/browser 200%缩放待补 |
+| TASK-015 | 响应式/空态/无障碍 | P2 | M | 012、014 | 部分完成 | 1920/1366/390 三视口截图、1366 网格修复、移动端滚动、焦点样式、aria labels、保存/导出键盘路径、空态和真实浏览器 Tab 路径已验证；Codex浏览器两次Ctrl+plus已确认大字号下刷新/保存仍可见，但精确200%与可复现截图仍待补 |
 | TASK-016 | 库存与补货规则 | P1 | L | 007、008、011 | 部分完成 | inventory快照schema/CLI/active版本、可复现 Demo 快照生成、可手算补货公式、MOQ/包装/缺输入/超horizon边界、freshness检查、库存拆解字段和缺少商品/门店记录的明确503已实现；人工调整/审批仍不在V1 |
 | TASK-017 | 草案/导出/追溯 | P1 | L | 003、009、014、016 | 已完成 | SQLite不可变快照、幂等键、partial拒收、重启/备份恢复、CSV安全导出、版本元数据已实现；真实浏览器已完成保存、重启恢复、导出和键盘路径验证；人工调整编辑不在V1 |
-| TASK-018 | 元数据API/容量 | P2 | M | 008、009、014 | 部分完成 | `/api/stores` 与 `/api/metadata` 已实现，前端选择器不再触发预测；`scripts/benchmark_api.py`已提供可复现实测格式；模型报告已改为进程内单飞缓存并通过摘要接口限制响应体；实际 10 并发短压、冷启动和 5 分钟容量运行均达标，RSS 未见持续无界增长，但固定 4 核/8GB 复测和超容量拒绝策略待补 |
-| TASK-019 | 可验证同源部署 | P1 | M | 003、004、005、013 | 部分完成 | frontend nginx已反代同源API、计划数据库已持久化、Compose配置可解析；`scripts/deploy.sh` 已改为可配置路径、`docker compose`、健康检查、前端检查和失败日志；Docker daemon下的干净构建/启动和故障非0退出待补 |
+| TASK-018 | 元数据API/容量 | P2 | M | 008、009、014 | 已完成（本地受限环境） | `/api/stores` 与 `/api/metadata` 已实现，前端选择器不再触发预测；`scripts/benchmark_api.py`和300秒并发记录已验证，4核/8GB下1500次请求0失败、P95 247.88ms、内存无持续增长；默认限流超额返回429 |
+| TASK-019 | 可验证同源部署 | P1 | M | 003、004、005、013 | 已完成（本地Docker） | frontend nginx已反代同源API、计划数据库已持久化、Compose配置可解析；`scripts/deploy.sh` 已改为可配置路径、`docker compose`、健康检查、前端检查和失败日志；干净镜像、健康探针、接口验收及backend停止后的502故障路径已验证 |
 | TASK-020 | CI测试门禁分层 | P1 | L | 006、010-015、017、019 | 部分完成 | CI已加入85%覆盖率、pip check、空白检查、镜像构建和pip-audit job；E2E/实跑Actions结果待补 |
-| TASK-021 | 文档/日志/恢复手册 | P2 | M | 009、011、017-020 | 部分完成 | README、部署清单、恢复手册和 fresh clone walkthrough 已同步版本/Token/metadata/plans路径；销售数据/模型 CLI 回滚、SQLite 草案恢复和 Python 3.11 干净环境核心链路已演练，Docker 级恢复仍待外部环境 |
+| TASK-021 | 文档/日志/恢复手册 | P2 | M | 009、011、017-020 | 部分完成 | README、部署清单、恢复手册、fresh clone、Docker/性能和依赖审计证据已同步版本/Token/metadata/plans路径；销售数据/模型 CLI 回滚、SQLite 草案恢复、Python 3.11 干净环境和 Docker 停服恢复均已演练，远端CI结果与PyTorch供应源证据仍待补 |
 | TASK-022 | 小范围清理 | P3 | M | 017、020、021 | 未开始 | 删除有六类证据，完整回归通过 |
-| TASK-023 | Release验收 | P1 | M | 必须任务；022可延后 | 部分完成 | `docs/releases/v1-acceptance.md` 已记录 commit、测试、fresh clone、恢复证据及全部未闭环项的 owner/理由/目标发布节点；本地浏览器关键故障/XSS/趋势图证据已补齐，决策仍保持 NOT READY，Docker/依赖审计/200%缩放/固定硬件证据仍待补齐 |
+| TASK-023 | Release验收 | P1 | M | 必须任务；022可延后 | 部分完成 | `docs/releases/v1-acceptance.md` 已记录 commit、测试、fresh clone、恢复、Docker、浏览器和受限性能证据；决策仍保持 NOT READY，仅PyTorch CPU wheel审计、真实OS/browser 200%缩放和远端CI结果仍待补齐 |

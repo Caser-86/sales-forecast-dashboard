@@ -117,4 +117,4 @@ CLI walkthrough: model=model-ca38ff63a4d80b3d
 CLI walkthrough: restore_plan_count=1, restored_summary=before-restore
 ```
 
-其中包含：损坏 manifest 不切换 active、有效旧版本可重新激活、SQLite 备份完整性校验、数据库原子替换、恢复后草案可读取。Docker 容器级停止/启动演练未在本机完成，因为 Docker Desktop daemon 当前不可用。
+其中包含：损坏 manifest 不切换 active、有效旧版本可重新激活、SQLite 备份完整性校验、数据库原子替换、恢复后草案可读取。Docker 容器级停止/启动演练已在本机 Compose 环境完成：停止 backend 时后端健康接口拒绝连接且前端代理返回 `502`，重新启动后 backend 恢复 `healthy` 且 `/health=200`；完整证据见 `docs/deployment-performance-2026-09-15.md`。

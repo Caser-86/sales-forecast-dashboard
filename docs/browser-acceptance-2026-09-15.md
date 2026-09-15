@@ -13,6 +13,7 @@ This record captures the local Playwright smoke scenarios run against the fresh 
 | Empty data | Passed | The page showed `当前筛选范围暂无可展示数据`; loading settled and the browser console had no unexpected messages |
 | Delayed scope change | Passed | The final state showed `当前范围：#2 P2 · 全部门店`, timestamp `scope-2`, and no visible error; the older response did not overwrite the newer scope |
 | Trend chart band | Passed | The real ECharts instance rendered 5 line series; `情景范围下界` and `情景范围` each contained 120 points, used `stack=scenario-range`, and the upper band data was positive |
+| Browser zoom smoke check | Partial | The Codex in-app browser accepted two `Ctrl+plus` actions; the resulting large-type screenshot kept refresh/save visible at the top and the page remained vertically scrollable. The automation surface did not expose the exact zoom percentage, so this does not close the repeatable 200% evidence requirement |
 
 ## Representative outputs
 
@@ -26,4 +27,4 @@ Delayed scope: {"scope":"当前范围：#2 P2 · 全部门店","updated":"数据
 Trend: [{"name":"情景范围下界","points":120,"stack":"scenario-range"},{"name":"情景范围","points":120,"stack":"scenario-range"}]
 ```
 
-These browser results do not replace the separate 200% zoom, Docker, fixed 4-core/8GB performance, or dependency-audit evidence requirements.
+The browser zoom smoke check is supporting evidence only; the exact 200% zoom level still needs a repeatable target-browser capture. Docker, fixed 4-core/8GB performance, and dependency-audit evidence are recorded separately.

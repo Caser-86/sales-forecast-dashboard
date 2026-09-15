@@ -7,6 +7,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libgomp1 curl \
     && rm -rf /var/lib/apt/lists/*
 
+RUN python -m pip install --no-cache-dir \
+    pip==26.2.1 \
+    setuptools==84.0.0
+
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 

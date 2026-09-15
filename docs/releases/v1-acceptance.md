@@ -4,7 +4,7 @@
 
 **Status: NOT READY FOR RELEASE**
 
-This document is the current sign-off record for the interview-ready V1 branch. It is intentionally not a release approval: the acceptance matrix still contains P1 deployment, dependency, Docker, zoom, and fixed-environment evidence gaps.
+This document is the current sign-off record for the interview-ready V1 branch. It is intentionally not a release approval: the acceptance matrix still contains dependency-source and browser-zoom evidence gaps.
 
 ## Verified baseline
 
@@ -14,15 +14,14 @@ This document is the current sign-off record for the interview-ready V1 branch. 
 - Fresh clone runtime: `/health=200`, `/ready=200`, 30-point forecast, plan save `201`, idempotent retry `200`, export `200`, restart reopen and SQLite restore verified
 - No P0 has been confirmed in the current audit
 - Local browser evidence for partial failures, XSS, delayed scope changes, timeout/retry/API failure/empty states, and trend interval rendering is recorded in [`docs/browser-acceptance-2026-09-15.md`](../browser-acceptance-2026-09-15.md)
+- Docker, image-content, outage, dependency, and constrained performance evidence is recorded in [`docs/deployment-performance-2026-09-15.md`](../deployment-performance-2026-09-15.md) and [`docs/dependency-audit-2026-09-15.md`](../dependency-audit-2026-09-15.md)
 
 ## Open exceptions
 
 | Acceptance | Owner | Rationale | Target release | Evidence needed |
 |---|---|---|---|---|
-| AC-026, AC-031, AC-041, AC-042 | Release operator | Docker daemon unavailable on the verification host; image contents, container probes, and Compose fault injection are not proven | Before first V1 tag | Build and run Compose on a host with Docker Desktop/Engine, then record image inspection and non-zero fault runs |
-| AC-032 | Security reviewer | `pip-audit 2.7.3` cannot resolve the CPU-index package `torch==2.5.1+cpu` from PyPI; applicable dependency evidence is incomplete | Before first V1 tag | Run a supported audit workflow for the CPU wheel, record findings, and resolve or explicitly accept every applicable high-severity issue |
+| AC-032 | Security reviewer | `pip-audit 2.7.3` can audit the rebuilt image's PyPI dependencies, but cannot resolve the CPU-index package `torch==2.5.1+cpu` from PyPI | Before first V1 tag | Run a supported audit workflow for the CPU wheel, record findings, and resolve or explicitly accept every applicable high-severity issue |
 | AC-038 | Frontend QA | Desktop/mobile screenshots and a CSS-zoom proxy pass, but the required 200% OS/browser zoom run is not proven | Before first V1 tag | Execute the 200% zoom run on the target browser matrix and attach repeatable screenshots/output |
-| AC-039 | Performance owner | Current host is 8 cores/16 threads/23.3 GiB, not the required 4-core/8GB reference environment | Before first V1 tag | Repeat warm/cold and 5-minute load budgets on the specified reference environment |
 
 ## Release gate
 
