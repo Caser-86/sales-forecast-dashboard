@@ -58,7 +58,7 @@ Invoke-RestMethod "$base/api/inventory?product_id=1&store_id=1" | ConvertTo-Json
 检查这些结果：
 
 - `/health` 的 `status` 为 `healthy`。
-- `/api/model-info` 的 `status` 为 `ready`，且包含集成模型与 7 日基线指标。
+- `/api/model-info` 的 `status` 为 `ready`，且包含发布策略、候选模型、30 天回测与 7 日基线指标。
 - `/api/data-quality` 的 `status` 为 `healthy`，当前生成数据应为 18,100 行。
 - 筛选后的 Dashboard 只返回商品 1，库存接口只返回商品 1、门店 1。
 
@@ -77,7 +77,7 @@ bash scripts/verify_deployment.sh http://localhost:8000
 3. 选择一个商品和门店，点击“刷新数据”。
 4. 确认 KPI、Top 商品、品类占比和库存热力图同步缩小到筛选范围。
 5. 打开 `/api/metadata`，说明数据、模型版本和库存新鲜度。
-6. 打开 `/api/model-info` 与 `/api/data-quality`，说明时间切分、集成权重、基线和数据质量检查。
+6. 打开 `/api/model-info` 与 `/api/data-quality`，说明 60/20/20 时间切分、验证集选择策略、最终 test 回测、基线和数据质量检查。
 7. 如果面试官追问失败场景，说明页面会显示错误提示或空结果状态，而不是静默展示旧数据。
 
 ## 5. 出错时的最小回退

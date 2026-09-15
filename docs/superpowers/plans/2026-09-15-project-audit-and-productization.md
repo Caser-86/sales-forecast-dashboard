@@ -126,7 +126,7 @@ RAG、Agent、Tool 调用、向量库均不存在，也不应作为本项目“�
 |---|---|---|
 | 生成销售数据、构造lag/rolling等特征 | 真正实现 | 合成数据，不是真实数据源 |
 | 按日期切分、仅训练集拟合scaler | 真正实现 | 多步上线评估仍不匹配 |
-| LSTM、LightGBM、固定权重集成 | 真正实现 | 模型优劣需要公平回测 |
+| LSTM、LightGBM、可选集成 | 真正实现 | 已完成同口径验证集选择与独立 test 回测；真实业务数据仍需重新评估 |
 | 商品目录、历史销量、单组合预测 | 基本完成 | 无效预测ID与稀疏组合错误需修正 |
 | 商品/门店筛选与大屏聚合 | 基本完成 | 请求竞态、失败覆盖率和统计窗口问题 |
 | Top预测按商品汇总门店 | 真正实现 | 展示字段仍错，历史窗口不同 |
@@ -727,7 +727,7 @@ README、部署清单、演示稿、历史设计和计划齐全，且主动说�
 
 成品版本继续补齐受控导入、版本发布、补货草案、保存导出和恢复。允许基线胜出，允许不用LSTM，允许不提供统计区间，但不能用Demo规则假装业务完成。
 
-**本轮结论：已完成第一阶段审查与规划；未修复上表问题，未验收生产可用性。** 本报告是后续执行基线，下一阶段从TASK-001开始，不直接整体重构。
+**当前执行结论：审查规划已完成，TASK-011 已按计划落地并完成真实训练验证；生产验收仍未完成。** 本报告继续作为风险基线，后续按未关闭的 P1/P2 任务推进，不直接整体重构。
 
 # 项目执行总表
 
@@ -742,8 +742,8 @@ README、部署清单、演示稿、历史设计和计划齐全，且主动说�
 | TASK-007 | ABC总体/边界 | P2 | M | 001、002 | 部分完成 | ABC单项/阈值/并列/全量总体稳定与需求优先级文案已完成；库存风险公式待TASK-016 |
 | TASK-008 | 数据契约/导入 | P1 | L | 001、006 | 部分完成 | 销售CSV校验、不可变版本、原子active指针和CLI已实现；库存快照与模型版本兼容待TASK-009/016 |
 | TASK-009 | 模型包/缓存版本 | P1 | L | 005、008 | 部分完成 | 模型包manifest/校验、active原子切换、失败发布保留旧版本、JSON scaler/feature schema和预测缓存data/model版本键已实现；中断/重启证据与完整模型元数据待补 |
-| TASK-010 | 未来特征一致性 | P1 | L | 008、009 | 部分完成 | 共享future_features已接入LSTM/LightGBM，递推只使用历史/预测值，类别编码器和feature schema随模型包发布；真实重训已生成并加载同一schema，线上浏览器/部署证据待补 |
-| TASK-011 | 30天同口径回测 | P1 | L | 010 | 部分完成 | leakage-safe rolling_backtest、7日基线、真实LSTM/LightGBM as-of适配、同key/同horizon、per-horizon/segment报告已实现并通过实际训练；模型选择策略仍待补 |
+| TASK-010 | 未来特征一致性 | P1 | L | 008、009 | 部分完成 | 共享future_features已接入LSTM/LightGBM，递推只使用历史/预测值，类别编码器和feature schema随模型包发布；真实重训和预测器smoke已验证，线上浏览器/部署证据待补 |
+| TASK-011 | 30天同口径回测 | P1 | L | 010 | 已完成 | validation 只用于选择 LSTM/LightGBM/seasonal-naive/候选集成权重，train+validation 重训后仅在 test 评估；报告记录同key、同horizon、per-horizon/segment指标，发布包按选择策略运行 |
 | TASK-012 | 区间校准/绘图 | P1 | M | 002、011 | 已完成（情景范围路径） | 未做统计校准，不再称为置信区间；API/前端明确scenario范围，图表使用下界+带宽且空历史不抛异常；真实浏览器截图待TASK-015 |
 | TASK-013 | 模型/依赖/内容安全 | P1 | L | 004、009 | 部分完成 | 模型包路径/checksum校验、Torch weights_only加载、JSON scaler/feature schema、tooltip HTML escape和CI pip-audit门禁已实现；旧版flat模型仍保留joblib兼容读取、ECharts本地资源和远程审计结果待补 |
 | TASK-014 | 请求一致性/恢复 | P2 | L | 002、003、005、006 | 部分完成 | API timeout/AbortSignal、dashboard/trend/heatmap请求序号与busy收尾已实现；延迟请求、断网恢复和CDN初始化浏览器证据待补 |

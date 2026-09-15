@@ -63,9 +63,43 @@ def test_feature_schema_rejects_mismatched_feature_columns(tmp_path):
     from app.core.exceptions import ModelArtifactError
 
     (tmp_path / "feature_schema.json").write_text(
-        json.dumps({"feature_cols": ["future_sales"], "lstm_feature_cols": [], "target_col": "sales"}),
+        json.dumps({
+            "feature_cols": ["future_sales"],
+            "lstm_feature_cols": [],
+            "target_col": "sales",
+            "horizon_days": 30,
+        }),
         encoding="utf-8",
     )
 
     with pytest.raises(ModelArtifactError, match="特征 schema"):
         predictor._validate_feature_schema(tmp_path)
+
+
+def test_model_selection_rejects_invalid_strategy(tmp_path):
+    import predictor
+    from app.core.exceptions import ModelArtifactError
+
+    (tmp_path / "model_selection.json").write_text(
+        json.dumps({"strategy": "untrusted_model", "weights": {}}),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ModelArtifactError, match="模型选择配置"):
+        predictor._load_model_selection(tmp_path)
+
+
+def test_model_selection_rejects_inconsistent_weights(tmp_path):
+    import predictor
+    from app.core.exceptions import ModelArtifactError
+
+    (tmp_path / "model_selection.json").write_text(
+        json.dumps({
+            "strategy": "lightgbm",
+            "weights": {"lstm": 1.0, "lightgbm": 0.0},
+        }),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ModelArtifactError, match="模型选择配置"):
+        predictor._load_model_selection(tmp_path)

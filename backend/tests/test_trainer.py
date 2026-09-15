@@ -22,3 +22,20 @@ def test_seasonal_naive_uses_same_store_product_from_previous_week():
     assert result["samples"] == 1
     assert result["mape"] == 16.6667
     assert result["rmse"] == 20.0
+
+
+def test_time_split_reserves_separate_validation_and_test_windows():
+    from ml.trainer import _time_split
+
+    rows = []
+    for day in pd.date_range("2025-01-01", periods=150, freq="D"):
+        rows.append({"date": day, "store_id": 1, "product_id": 1, "sales": 10.0})
+    frame = pd.DataFrame(rows)
+
+    train, validation, test = _time_split(frame)
+
+    assert train["date"].nunique() == 90
+    assert validation["date"].nunique() == 30
+    assert test["date"].nunique() == 30
+    assert train["date"].max() < validation["date"].min()
+    assert validation["date"].max() < test["date"].min()

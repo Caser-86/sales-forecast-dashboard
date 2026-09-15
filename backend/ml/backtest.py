@@ -1,7 +1,7 @@
 """Leakage-safe rolling backtest primitives for fixed forecast horizons."""
 from __future__ import annotations
 
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from typing import Any
 
 import numpy as np
@@ -41,6 +41,7 @@ def _basic_metric_summary(records: list[dict[str, Any]]) -> dict[str, Any]:
             "rmse": 0.0,
             "wape": 0.0,
             "mape": None,
+            "per_horizon": {},
         }
 
     actual = np.asarray([row["actual"] for row in records], dtype=float)
@@ -91,6 +92,108 @@ def _metric_summary(records: list[dict[str, Any]]) -> dict[str, Any]:
             segment: _basic_metric_summary(segment_records)
             for segment, segment_records in sorted(by_segment.items())
         },
+    }
+
+
+def _prediction_records(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Keep actuals with predictions so compatible result sets can be combined."""
+    return [
+        {key: row[key] for key in ("key", "origin", "step", "actual", "predicted")}
+        for row in records
+    ]
+
+
+def combine_backtest_results(
+    left: Mapping[str, Any],
+    right: Mapping[str, Any],
+    *,
+    left_weight: float,
+    right_weight: float,
+) -> dict[str, Any]:
+    """Combine two aligned rolling results without changing their evaluation scope."""
+    if left_weight < 0 or right_weight < 0 or abs(left_weight + right_weight - 1.0) > 1e-6:
+        raise ValueError("回测组合权重必须非负且总和为 1")
+    for field in ("origins", "horizon", "evaluated_keys"):
+        if left.get(field) != right.get(field):
+            raise ValueError(f"回测结果的 {field} 不一致，不能组合")
+
+    left_rows = {
+        (row["key"], int(row["step"])): row
+        for row in left.get("predictions", [])
+    }
+    right_rows = {
+        (row["key"], int(row["step"])): row
+        for row in right.get("predictions", [])
+    }
+    if set(left_rows) != set(right_rows):
+        raise ValueError("回测预测 key 不一致，不能组合")
+
+    records: list[dict[str, Any]] = []
+    for key in sorted(left_rows):
+        left_row = left_rows[key]
+        right_row = right_rows[key]
+        if left_row["actual"] != right_row["actual"]:
+            raise ValueError("回测真实值不一致，不能组合")
+        records.append({
+            "key": left_row["key"],
+            "origin": left_row["origin"],
+            "step": int(left_row["step"]),
+            "actual": float(left_row["actual"]),
+            "predicted": left_weight * float(left_row["predicted"])
+            + right_weight * float(right_row["predicted"]),
+        })
+
+    return {
+        "origins": list(left["origins"]),
+        "horizon": int(left["horizon"]),
+        "evaluated_keys": list(left["evaluated_keys"]),
+        "predictions": _prediction_records(records),
+        "model": _metric_summary(records),
+    }
+
+
+def select_forecast_strategy(
+    candidates: Mapping[str, Mapping[str, Any]],
+    *,
+    metric: str = "wape",
+) -> dict[str, Any]:
+    """Choose the lowest-error candidate using validation metrics only."""
+    ranked: list[tuple[float, float, str, Mapping[str, Any]]] = []
+    for candidate_name, spec in candidates.items():
+        metrics = spec.get("metrics", spec)
+        score = metrics.get(metric)
+        samples = metrics.get("samples", 0)
+        rmse = metrics.get("rmse")
+        if not isinstance(score, (int, float)) or not np.isfinite(score):
+            continue
+        if not isinstance(rmse, (int, float)) or not np.isfinite(rmse):
+            continue
+        if not isinstance(samples, (int, float)) or samples <= 0:
+            continue
+        ranked.append((float(score), float(rmse), str(candidate_name), spec))
+    if not ranked:
+        raise ValueError("没有可用于模型选择的有效回测候选")
+
+    ranked.sort(key=lambda item: (item[0], item[1], item[2]))
+    score, _rmse, candidate_name, selected_spec = ranked[0]
+    return {
+        "candidate": candidate_name,
+        "strategy": str(selected_spec.get("strategy", candidate_name)),
+        "weights": {
+            str(key): float(value)
+            for key, value in selected_spec.get("weights", {}).items()
+        },
+        "metric": metric,
+        "score": score,
+        "ranking": [
+            {
+                "candidate": name,
+                "score": candidate_score,
+                "rmse": candidate_rmse,
+                "samples": int(spec.get("metrics", spec).get("samples", 0)),
+            }
+            for candidate_score, candidate_rmse, name, spec in ranked
+        ],
     }
 
 
@@ -231,17 +334,11 @@ def rolling_backtest(
                 model_records.append({**base, "predicted": prediction})
                 baseline_records.append({**base, "predicted": baseline})
 
-    def predictions_only(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
-        return [
-            {key: row[key] for key in ("key", "origin", "step", "predicted")}
-            for row in records
-        ]
-
     return {
         "origins": [origin.date().isoformat() for origin in normalized_origins],
         "horizon": horizon,
         "evaluated_keys": sorted(set(evaluated_keys)),
-        "predictions": predictions_only(model_records),
+        "predictions": _prediction_records(model_records),
         "model": _metric_summary(model_records),
         "baseline": _metric_summary(baseline_records),
     }

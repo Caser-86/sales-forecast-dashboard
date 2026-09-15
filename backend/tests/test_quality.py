@@ -13,6 +13,8 @@ class TestQualityEndpoints:
         assert "ensemble" in body["metrics"]
         assert "split" in body
         assert "backtest" in body
+        assert body["selected_model"] in {"lstm", "lightgbm", "ensemble", "seasonal_naive_7d"}
+        assert "model_selection" in body
         if body["backtest"]:
             backtest = body["backtest"]
             assert backtest["protocol"]["horizon_days"] == 30

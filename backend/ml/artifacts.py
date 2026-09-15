@@ -22,7 +22,9 @@ REQUIRED_MODEL_FILES = (
     "lstm_scaler_y.json",
     "category_encoder.json",
     "feature_schema.json",
+    "model_selection.json",
 )
+LEGACY_MODEL_FILES = tuple(name for name in REQUIRED_MODEL_FILES if name != "model_selection.json")
 _MODEL_ID_PATTERN = re.compile(r"^model-[0-9a-f]{16}$")
 
 
@@ -80,9 +82,9 @@ def _validate_package(model_dir: Path) -> dict[str, Any]:
         raise ModelArtifactError("模型 manifest 无效") from exc
     files = manifest.get("files")
     checksums = manifest.get("checksums")
-    if files != list(REQUIRED_MODEL_FILES) or not isinstance(checksums, dict):
+    if files not in (list(REQUIRED_MODEL_FILES), list(LEGACY_MODEL_FILES)) or not isinstance(checksums, dict):
         raise ModelArtifactError("模型 manifest 文件清单无效")
-    for filename in REQUIRED_MODEL_FILES:
+    for filename in files:
         path = model_dir / filename
         if not path.is_file() or path.stat().st_size <= 0:
             raise ModelArtifactError(f"模型版本缺少产物: {filename}")

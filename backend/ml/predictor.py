@@ -1,9 +1,9 @@
 """预测服务
 
-加载训练好的模型，对未来 30 天进行递推预测。
+加载训练好的模型，按模型包中的发布策略对未来 horizon 进行递推预测。
 - LSTM：使用 14 天序列递推
 - LightGBM：递归构建未来特征
-- 集成：0.4 * LSTM + 0.6 * LightGBM
+- seasonal-naive 或 ensemble：由验证集选择结果决定
 """
 from __future__ import annotations
 
@@ -17,6 +17,7 @@ import lightgbm_model as lgbm_wrapper
 import numpy as np
 import pandas as pd
 import torch
+from app.core.config import settings
 from app.core.exceptions import ModelArtifactError
 from app.services.dataset_service import get_active_dataset_id, get_active_sales_path
 from artifacts import get_active_model_dir, get_active_model_id, get_active_model_manifest
@@ -36,9 +37,7 @@ MODELS_DIR = os.path.join(BACKEND_DIR, "ml", "saved_models")
 FEATURES_PATH = os.path.join(BACKEND_DIR, "data", "processed", "features.csv")
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-FORECAST_DAYS = 30
-LSTM_WEIGHT = 0.4
-LGBM_WEIGHT = 0.6
+FORECAST_DAYS = settings.FORECAST_DAYS
 SCENARIO_RANGE_RATIO = 0.15
 
 # Backward-compatible alias for callers that imported the old constant.
@@ -73,8 +72,52 @@ def _validate_feature_schema(model_dir) -> None:
             raise ValueError("lstm_feature_cols 不一致")
         if schema.get("target_col") != "sales":
             raise ValueError("target_col 不一致")
+        if schema.get("horizon_days") != settings.FORECAST_DAYS:
+            raise ValueError("horizon_days 不一致")
     except (OSError, json.JSONDecodeError, TypeError, ValueError) as exc:
         raise ModelArtifactError("模型特征 schema 无效") from exc
+
+
+def _load_model_selection(model_dir) -> dict:
+    """Load the strategy selected on validation, with legacy ensemble fallback."""
+    path = model_dir / "model_selection.json"
+    if not path.is_file():
+        weights = settings.ENSEMBLE_WEIGHTS
+        return {
+            "strategy": "ensemble",
+            "candidate": "legacy_fixed_weights",
+            "weights": {"lstm": float(weights[0]), "lightgbm": float(weights[1])},
+        }
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        strategy = payload["strategy"]
+        if strategy not in {"lstm", "lightgbm", "ensemble", "seasonal_naive_7d"}:
+            raise ValueError("strategy 无效")
+        weights = payload.get("weights", {})
+        if not isinstance(weights, dict):
+            raise ValueError("weights 无效")
+        normalized = {
+            "lstm": float(weights.get("lstm", 0.0)),
+            "lightgbm": float(weights.get("lightgbm", 0.0)),
+        }
+        if any(not np.isfinite(value) or value < 0 for value in normalized.values()):
+            raise ValueError("weights 不能为负")
+        if strategy == "ensemble" and abs(sum(normalized.values()) - 1.0) > 1e-6:
+            raise ValueError("ensemble weights 总和必须为 1")
+        expected_weights = {
+            "lstm": {"lstm": 1.0, "lightgbm": 0.0},
+            "lightgbm": {"lstm": 0.0, "lightgbm": 1.0},
+            "seasonal_naive_7d": {"lstm": 0.0, "lightgbm": 0.0},
+        }.get(strategy)
+        if expected_weights and normalized != expected_weights:
+            raise ValueError("strategy 与 weights 不一致")
+        return {
+            "strategy": strategy,
+            "candidate": str(payload.get("candidate", strategy)),
+            "weights": normalized,
+        }
+    except (OSError, json.JSONDecodeError, KeyError, TypeError, ValueError) as exc:
+        raise ModelArtifactError("模型选择配置无效") from exc
 
 
 class ForecastPredictor:
@@ -94,6 +137,10 @@ class ForecastPredictor:
             )
         self.category_encoder = _load_category_encoder(model_dir)
         _validate_feature_schema(model_dir)
+        self.model_selection = _load_model_selection(model_dir)
+        self.forecast_strategy = self.model_selection["strategy"]
+        self.lstm_weight = self.model_selection["weights"]["lstm"]
+        self.lgbm_weight = self.model_selection["weights"]["lightgbm"]
         self.lstm: SalesLSTM = load_lstm(str(model_dir / "lstm_model.pth"), DEVICE)
         self.lgbm, self.feature_cols = lgbm_wrapper.load_model(str(model_dir / "lightgbm_model.txt"))
         from scaler_io import load_scaler
@@ -232,19 +279,33 @@ class ForecastPredictor:
             sales_series.append(pred)
         return preds
 
+    def _seasonal_naive_forecast(self, recent: pd.DataFrame) -> List[float]:
+        """Repeat the last observed week when validation selects the baseline."""
+        cycle = recent["sales"].astype(float).tail(7).tolist()
+        if not cycle:
+            raise ValueError("历史数据为空，无法执行季节性基线")
+        return [float(cycle[index % len(cycle)]) for index in range(FORECAST_DAYS)]
+
     # ---------- 对外接口 ----------
 
     def forecast(self, product_id: int, store_id: int) -> Dict:
         recent = self._recent_sequence(product_id, store_id)
         last_date = recent["date"].iloc[-1].date()
 
-        lstm_preds = self._lstm_forecast(recent)
-        lgbm_preds = self._lgbm_forecast(product_id, store_id, recent)
-        # 集成
-        ensemble = [
-            LSTM_WEIGHT * lv + LGBM_WEIGHT * gv
-            for lv, gv in zip(lstm_preds, lgbm_preds, strict=True)
-        ]
+        if self.forecast_strategy == "seasonal_naive_7d":
+            ensemble = self._seasonal_naive_forecast(recent)
+        else:
+            lstm_preds = self._lstm_forecast(recent) if self.lstm_weight else []
+            lgbm_preds = self._lgbm_forecast(product_id, store_id, recent) if self.lgbm_weight else []
+            if self.forecast_strategy == "lstm":
+                ensemble = lstm_preds
+            elif self.forecast_strategy == "lightgbm":
+                ensemble = lgbm_preds
+            else:
+                ensemble = [
+                    self.lstm_weight * lv + self.lgbm_weight * gv
+                    for lv, gv in zip(lstm_preds, lgbm_preds, strict=True)
+                ]
 
         # 情景范围：基于集成值 ±15%，不是经回测校准的统计预测区间。
         forecast_list = []

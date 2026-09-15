@@ -67,6 +67,7 @@ def get_model_info() -> Dict[str, Any]:
         "lightgbm": float(settings.ENSEMBLE_WEIGHTS[1]),
     }
     weights = metadata.get("ensemble_weights", default_weights)
+    model_selection = metadata.get("model_selection", {})
     return {
         "status": "ready" if "ensemble" in metrics else "unavailable",
         "trained_at_utc": metadata.get("trained_at_utc"),
@@ -75,6 +76,8 @@ def get_model_info() -> Dict[str, Any]:
         "horizon_days": int(metadata.get("horizon_days", settings.FORECAST_DAYS)),
         "feature_count": metadata.get("feature_count"),
         "ensemble_weights": {str(k): float(v) for k, v in weights.items()},
+        "selected_model": model_selection.get("strategy", "ensemble"),
+        "model_selection": model_selection,
         "split": split,
         "metrics": metrics,
         "backtest": metadata.get("rolling_backtest", {}),

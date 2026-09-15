@@ -23,8 +23,8 @@
 
 ## 当前可演示能力
 
-- 预测模型：LSTM + LightGBM 集成，默认权重为 `0.4 / 0.6`。
-- 预测评估：MAPE、RMSE，以及“前一周同日”的 7 日季节性朴素基线。
+- 预测模型：LSTM、LightGBM 和 7 日季节性朴素基线，按时间验证集 WAPE 选择发布策略；允许基线或单模型胜出。
+- 预测评估：MAPE、RMSE、WAPE，以及同 origin、同 horizon、同商品门店集合的 30 天滚动回测。
 - 数据质量：行数、时间范围、商品/门店数量、缺失值、重复键、日期断档、负销量。
 - 大屏交互：商品范围、门店范围、趋势图下钻、刷新按钮、加载/错误/空结果状态。
 - 经营视图：KPI、品类销售占比、Top 商品、ABC 库存风险热力图。
@@ -36,7 +36,7 @@
 ```mermaid
 flowchart LR
     A[生成或导入销售 CSV] --> B[特征工程]
-    B --> C[时间切分 70/15/15]
+    B --> C[时间切分 60/20/20]
     C --> D[LSTM]
     C --> E[LightGBM]
     D --> F[集成评估与报告]
@@ -130,7 +130,7 @@ python scripts/import_sales.py path/to/sales.csv
 python scripts/import_sales.py path/to/sales.csv --no-activate
 ```
 
-导入销售数据后需要重新生成特征并训练与该数据集匹配的模型。当前模型包版本绑定和原子回滚将在后续成品化任务中补齐；在此之前不要把新导入数据直接用于生产预测。
+导入销售数据后需要重新生成特征并训练与该数据集匹配的模型。训练会生成带 data version、feature schema、selection metadata 和 checksum 的模型包，并原子激活新版本；在训练完成前不要把新导入数据用于预测。
 
 前端如果不在 `3000` 或 `5500` 端口运行，可以在加载 `js/api.js` 前设置：
 
@@ -144,7 +144,7 @@ python scripts/import_sales.py path/to/sales.csv --no-activate
 2. 选择一个商品和门店，展示趋势图中的历史、预测和情景范围（不是统计置信区间）。
 3. 修改顶部商品/门店范围，说明 KPI、Top 商品、品类和库存热力图同步变化。
 4. 点击“刷新数据”，展示按钮忙状态、更新时间和错误提示设计。
-5. 打开 `/api/model-info`，解释时间切分、特征数、集成权重和基线。
+5. 打开 `/api/model-info`，解释时间切分、发布策略、特征数、选择依据和基线。
 6. 打开 `/api/data-quality`，解释数据完整性检查和生产环境接入点。
 7. 最后主动说明当前边界和下一步，而不是回避 Demo 属性。
 
@@ -152,16 +152,14 @@ python scripts/import_sales.py path/to/sales.csv --no-activate
 
 ## 模型评估
 
-本次在仓库生成数据上重新训练得到以下结果；后续重新训练后应以 `backend/data/processed/evaluation_report.json` 和 `/api/model-info` 为准：
+训练流程不会把某个模型或固定集成写死为发布结果：
 
-| 模型 | MAPE | RMSE |
-|---|---:|---:|
-| LSTM | 23.55% | 33.40 |
-| LightGBM | 8.60% | 21.94 |
-| 集成模型（0.4/0.6） | **11.95%** | **16.84** |
-| 前一周同日基线 | 35.53% | 79.32 |
+1. 先用 train 数据训练候选模型。
+2. 在独立 validation 时间窗口上比较 LSTM、LightGBM、7 日基线和候选集成权重。
+3. 按 WAPE 选择策略，再用 train + validation 重训。
+4. 只在未参与选择的 test origin 上生成最终 30 天滚动报告。
 
-这些指标来自生成数据，只能证明当前训练/评估流程可运行，不能直接外推为真实业务效果。真实项目还需要按商品、门店、节假日和促销场景分层评估，并监控预测漂移。
+运行后以 `backend/data/processed/evaluation_report.json` 和 `/api/model-info` 为准，重点查看 `metadata.model_selection`、`metadata.rolling_backtest.selection` 和最终 `selected` 指标。报告中的指标来自生成数据，只能证明当前训练/评估流程可运行，不能外推为真实业务效果。
 
 ## API 摘要
 
@@ -175,7 +173,7 @@ python scripts/import_sales.py path/to/sales.csv --no-activate
 | GET | `/api/dashboard?product_id=1&store_id=1` | 指定范围 Dashboard 聚合 |
 | GET | `/api/inventory` | 默认全量库存风险热力图 |
 | GET | `/api/inventory?product_id=1&store_id=1` | 指定范围库存风险 |
-| GET | `/api/model-info` | 模型状态、切分、指标和集成权重 |
+| GET | `/api/model-info` | 模型状态、切分、发布策略、指标和回测 |
 | GET | `/api/data-quality` | 输入销售数据完整性检查 |
 | GET | `/api/stores` | 轻量门店目录，不触发预测 |
 | GET | `/api/metadata` | 数据、模型、库存版本与新鲜度 |
@@ -240,7 +238,7 @@ sales-forecast-dashboard/
 当前未实现或未声称实现：
 
 - 真实 ERP/WMS 数据接入、增量同步和数据库存储。
-- 定时训练、模型注册、灰度发布和回滚。
+- 定时训练、模型注册、灰度发布和自动回滚（当前提供模型包校验、原子激活和手动回滚基础）。
 - 预测漂移、数据漂移和分层业务告警。
 - 多用户登录、权限模型和生产密钥托管；V1 使用单租户 API Token。
 - 多副本部署、队列化推理和完整可观测性平台。

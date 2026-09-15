@@ -1,6 +1,6 @@
 """模型训练脚本
 
-训练 LSTM + LightGBM 集成模型并保存。
+训练候选模型、按验证集选择策略，并保存最终模型包。
 """
 from __future__ import annotations
 
@@ -29,6 +29,12 @@ def main():
         if not isinstance(m, dict) or "mape" not in m or "rmse" not in m:
             continue
         print(f"  {name:18s} → MAPE={m['mape']:.2f}%, RMSE={m['rmse']:.2f}")
+    selection = report.get("metadata", {}).get("model_selection", {})
+    if selection:
+        print(
+            f"  发布策略: {selection.get('strategy')} "
+            f"(验证集 {selection.get('metric')}={selection.get('validation_score'):.4f})"
+        )
     print("=" * 60)
     print("下一步: uvicorn app.main:app --reload  (在 backend/ 目录下)")
 

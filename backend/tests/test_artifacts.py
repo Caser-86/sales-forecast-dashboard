@@ -16,6 +16,7 @@ REQUIRED_FILES = (
     "lstm_scaler_y.json",
     "category_encoder.json",
     "feature_schema.json",
+    "model_selection.json",
 )
 
 
