@@ -201,6 +201,9 @@ Get-ChildItem frontend/js -Recurse -Filter *.js | ForEach-Object { node --check 
 
 # Docker 配置检查
 docker compose config --quiet
+
+# 已启动服务后的容量基线（记录机器、并发、p50/p95、错误率）
+python scripts/benchmark_api.py --requests 100 --concurrency 10
 ```
 
 新增能力的测试重点：模型报告兼容旧格式、基线计算使用前一周数据、筛选结果的范围一致性、前端关键控件契约和 API 错误可见性。
