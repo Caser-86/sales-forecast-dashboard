@@ -1,6 +1,9 @@
 """安全与中间件测试。"""
 from __future__ import annotations
 
+import pytest
+from app.core.config import settings
+
 
 class TestCors:
     def test_cors_allowed_origin(self, client):
@@ -56,3 +59,33 @@ class TestDocsAccess:
         """开发环境 /docs 可访问。"""
         r = client.get("/docs")
         assert r.status_code == 200
+
+
+class TestApiProtection:
+    def test_configured_token_protects_business_routes(self, client, monkeypatch):
+        """配置 Token 后，业务路由必须拒绝缺失凭据并接受正确凭据。"""
+        monkeypatch.setattr(settings, "API_TOKEN", "task-003-token")
+
+        assert client.get("/api/products").status_code == 401
+        assert client.get(
+            "/api/products",
+            headers={settings.API_TOKEN_HEADER: "task-003-token"},
+        ).status_code == 200
+
+    def test_configured_rate_limit_returns_429(self, client, monkeypatch):
+        """超过配置的请求窗口后，业务路由返回 429。"""
+        monkeypatch.setattr(settings, "API_TOKEN", "")
+        monkeypatch.setattr(settings, "RATE_LIMIT_ENABLED", True)
+        monkeypatch.setattr(settings, "RATE_LIMIT_REQUESTS", 0)
+
+        assert client.get("/api/products").status_code == 429
+
+    def test_production_requires_api_token(self, monkeypatch):
+        """生产环境未配置 API Token 时拒绝启动。"""
+        from app import main
+
+        monkeypatch.setattr(settings, "ENV", "production")
+        monkeypatch.setattr(settings, "API_TOKEN", "")
+        assert hasattr(main, "validate_runtime_security")
+        with pytest.raises(RuntimeError, match="API_TOKEN"):
+            main.validate_runtime_security()
