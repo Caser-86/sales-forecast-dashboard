@@ -147,10 +147,14 @@ def publish_model_package(
                 json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8"
             )
             _validate_package(temporary)
+            os.chmod(temporary, 0o755)
             os.replace(temporary, target_dir)
         except Exception:
             shutil.rmtree(temporary, ignore_errors=True)
             raise
+
+    # Published packages must be traversable by the non-root serving user.
+    os.chmod(target_dir, 0o755)
 
     pointer_path = Path(active_file) if active_file is not None else _default_active_file()
     if activate:

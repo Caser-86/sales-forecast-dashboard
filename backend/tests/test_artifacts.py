@@ -47,6 +47,7 @@ def test_publish_model_package_writes_manifest_and_active_pointer(tmp_path):
 
     assert get_active_model_id(active_file=active) == result["model_id"]
     assert get_active_model_dir(active_file=active, versions_dir=versions) == Path(result["model_dir"])
+    assert stat.S_IMODE(Path(result["model_dir"]).stat().st_mode) & 0o755 == 0o755
     manifest = json.loads((Path(result["model_dir"]) / "manifest.json").read_text(encoding="utf-8"))
     assert set(manifest["files"]) == set(REQUIRED_FILES)
     assert manifest["data_version"] == "sales-test"
