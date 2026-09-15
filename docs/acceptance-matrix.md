@@ -8,7 +8,7 @@ This matrix is the execution checklist for `docs/product-v1.md`. A row is accept
 | AC-002 | Scope | Automatic ordering, ERP/WMS sync, Agent/RAG, microservices, and multi-tenant roles are explicitly out of scope | Product contract review | Passed: contract section 6 |
 | AC-003 | Data | Valid sales CSV passes schema, finite-value, positive-ID, and unique-key validation | `tests/test_dataset_import.py` | Passed: validator and valid import tests |
 | AC-004 | Data | Invalid sales input is rejected without changing the active dataset | Import integration test with active-version sentinel | Passed: previous pointer remains unchanged |
-| AC-005 | Data | Valid inventory snapshot exposes stock, inbound, reserved, lead-time, policy, and freshness fields | `tests/test_inventory_import.py` | Not started |
+| AC-005 | Data | Valid inventory snapshot exposes stock, inbound, reserved, lead-time, policy, and freshness fields | `tests/test_inventory_import.py` | Partial: snapshot contract, immutable import, active pointer, and freshness date are validated; dedicated metadata API remains |
 | AC-006 | Data | Sparse product/store combinations are represented as absent or unavailable, never fabricated by a cross product | Dataset and forecast service test | Passed: import manifest preserves source row count |
 | AC-007 | Metrics | Quantity is labeled as quantity; monetary value is only shown after quantity-times-price calculation with currency | API schema and frontend contract test | Passed: quantity labels and `unit: "units"` |
 | AC-008 | Metrics | Historical 30-day and forecast 30-day windows expose explicit start/end dates and as-of date | API response test | Passed: KPI window contract and regression test |
@@ -22,9 +22,9 @@ This matrix is the execution checklist for `docs/product-v1.md`. A row is accept
 | AC-016 | Forecast | Model complexity does not override a stronger baseline | Model selection test and report review | Not started |
 | AC-017 | Intervals | Statistical intervals include target coverage, empirical coverage, calibration window, and sample size | Prediction interval report test | Not started |
 | AC-018 | Intervals | If interval calibration is insufficient, UI uses scenario-range wording or hides the interval | Frontend copy test and manual screenshot | Passed: API `range_type=scenario`, UI label, and non-statistical copy are covered |
-| AC-019 | Replenishment | Suggested quantity follows net available, lead time, review period, safety stock, pack size, and MOQ | `tests/test_replenishment.py` hand-calculated fixtures | Not started |
-| AC-020 | Replenishment | Missing or stale inventory inputs block a suggestion and identify the missing input | Domain/API test | Not started |
-| AC-021 | Replenishment | Lead-time plus review window beyond forecast horizon is rejected | Boundary test | Not started |
+| AC-019 | Replenishment | Suggested quantity follows net available, lead time, review period, safety stock, pack size, and MOQ | `tests/test_replenishment.py` hand-calculated fixtures | Partial: domain formula and active-snapshot inventory integration pass; user-facing explanation fields remain |
+| AC-020 | Replenishment | Missing or stale inventory inputs block a suggestion and identify the missing input | Domain/API test | Partial: import validation rejects missing/invalid fields and domain rejects missing inputs; stale-age enforcement/API error surface remains |
+| AC-021 | Replenishment | Lead-time plus review window beyond forecast horizon is rejected | Boundary test | Passed: domain rule rejects a window beyond the forecast horizon |
 | AC-022 | Plans | A replenishment draft can be saved, reopened after restart, and exported with immutable version metadata | `tests/test_plans.py` and restore run | Not started |
 | AC-023 | Plans | Repeating an idempotency key does not create duplicate drafts | API integration test | Not started |
 | AC-024 | Failure semantics | Negative input is `422`, unknown resource is `404`, unavailable dependency is `503`, and all failed forecasts are not represented as zero | API error tests | Passed: forecast/dashboard regression tests |

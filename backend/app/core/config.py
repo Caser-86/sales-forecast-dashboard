@@ -57,6 +57,8 @@ class Settings(BaseSettings):
     ACTIVE_MODEL_FILE: str = str(BACKEND_DIR / "ml" / "saved_models" / "active_model.json")
     DATASET_VERSIONS_DIR: str = str(BACKEND_DIR / "data" / "raw" / "versions")
     ACTIVE_DATASET_FILE: str = str(BACKEND_DIR / "data" / "raw" / "active_dataset.json")
+    INVENTORY_VERSIONS_DIR: str = str(BACKEND_DIR / "data" / "inventory" / "versions")
+    ACTIVE_INVENTORY_FILE: str = str(BACKEND_DIR / "data" / "inventory" / "active_inventory.json")
 
     # ---------- 数据库（保留扩展点，当前未启用）----------
     DATABASE_URL: str = f"sqlite:///{(BACKEND_DIR / 'dashboard.db').as_posix()}"
@@ -110,6 +112,7 @@ class Settings(BaseSettings):
         Path(self.MODELS_DIR).mkdir(parents=True, exist_ok=True)
         Path(self.MODEL_VERSIONS_DIR).mkdir(parents=True, exist_ok=True)
         Path(self.DATASET_VERSIONS_DIR).mkdir(parents=True, exist_ok=True)
+        Path(self.INVENTORY_VERSIONS_DIR).mkdir(parents=True, exist_ok=True)
 
     # ---------- 兼容旧代码的路径常量 ----------
     @property
@@ -149,6 +152,8 @@ DATA_RAW_DIR = Path(settings.DATA_RAW_DIR)
 DATA_PROCESSED_DIR = Path(settings.DATA_PROCESSED_DIR)
 DATASET_VERSIONS_DIR = Path(settings.DATASET_VERSIONS_DIR)
 ACTIVE_DATASET_FILE = Path(settings.ACTIVE_DATASET_FILE)
+INVENTORY_VERSIONS_DIR = Path(settings.INVENTORY_VERSIONS_DIR)
+ACTIVE_INVENTORY_FILE = Path(settings.ACTIVE_INVENTORY_FILE)
 SALES_CSV = settings.SALES_CSV
 FEATURES_CSV = settings.FEATURES_CSV
 REPORT_JSON = settings.REPORT_JSON

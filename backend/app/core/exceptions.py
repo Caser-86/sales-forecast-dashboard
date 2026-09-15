@@ -64,6 +64,11 @@ class DatasetValidationError(ValidationError):
     code = "DATASET_INVALID"
 
 
+class InventoryValidationError(ValidationError):
+    """库存快照不符合补货计算输入契约。"""
+    code = "INVENTORY_INVALID"
+
+
 class ConflictError(AppError):
     code = "CONFLICT"
     http_status = 409
