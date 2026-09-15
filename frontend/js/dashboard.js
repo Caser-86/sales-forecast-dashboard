@@ -51,9 +51,9 @@ function populateSelect(selectId, items, valueKey, labelBuilder, allLabel = null
 }
 
 async function loadSelectors() {
-    const [products, inv] = await Promise.all([
+    const [products, stores] = await Promise.all([
         api.getProducts(),
-        api.getInventory()
+        api.getStores()
     ]);
     productsCache = products.products || [];
     populateSelect("productSelect", productsCache, "product_id", p => p.product_name);
@@ -65,12 +65,7 @@ async function loadSelectors() {
         "全部商品"
     );
 
-    const storeMap = {};
-    (inv.cells || []).forEach(c => { storeMap[c.store_id] = c.store_name; });
-    storesCache = Object.keys(storeMap).map(id => ({
-        store_id: Number(id),
-        store_name: storeMap[id]
-    })).sort((a, b) => a.store_id - b.store_id);
+    storesCache = stores || [];
     populateSelect("storeSelect", storesCache, "store_id", s => s.store_name);
     populateSelect(
         "scopeStoreSelect",
@@ -186,17 +181,21 @@ async function loadSystemStatus() {
     status.className = "system-status pending";
     status.textContent = "状态检查中";
     try {
-        const [model, quality] = await Promise.all([
+        const [model, quality, metadata] = await Promise.all([
             api.getModelInfo(),
-            api.getDataQuality()
+            api.getDataQuality(),
+            api.getMetadata()
         ]);
-        const healthy = model.status === "ready" && quality.status === "healthy";
+        const healthy = model.status === "ready" && quality.status === "healthy" &&
+            metadata.inventory_status === "fresh";
         status.className = `system-status ${healthy ? "healthy" : "warning"}`;
         status.textContent = healthy ? "模型与数据正常" : "需要关注";
         const headerStatus = document.getElementById("headerStatus");
         headerStatus.textContent = healthy ? "服务就绪" : "需要关注";
         headerStatus.className = `status-text ${healthy ? "healthy" : "warning"}`;
         status.title = `模型：${model.status}；数据：${quality.status}`;
+        document.getElementById("versionSummary").textContent =
+            `数据 ${metadata.data_version} · 模型 ${metadata.model_version} · 库存 ${metadata.inventory_status}`;
         const ensembleMape = model.metrics?.ensemble?.mape;
         const baselineMape = model.metrics?.seasonal_naive_7d?.mape;
         const summary = document.getElementById("modelSummary");

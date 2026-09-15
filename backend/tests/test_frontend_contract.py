@@ -14,8 +14,11 @@ def test_dashboard_has_scope_controls_and_refresh_action():
     assert 'id="scopeStoreSelect"' in html
     assert 'id="refreshDashboard"' in html
     assert 'id="modelSummary"' in html
+    assert 'id="versionSummary"' in html
     assert "loadSystemStatus" in script
     assert "showEmptyState" in script
+    assert "api.getStores()" in script
+    assert "api.getInventory()" not in script.split("async function loadSelectors()", 1)[1].split("async function currentScope", 1)[0]
 
 
 def test_frontend_api_exposes_quality_endpoints():
@@ -23,6 +26,8 @@ def test_frontend_api_exposes_quality_endpoints():
 
     assert "getModelInfo" in api
     assert "getDataQuality" in api
+    assert "getStores" in api
+    assert "getMetadata" in api
     assert "product_id" in api
     assert "store_id" in api
 

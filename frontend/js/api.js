@@ -87,6 +87,7 @@ const api = {
     },
 
     getProducts(options) { return this.get("/products", options); },
+    getStores(options) { return this.get("/stores", options); },
     getSales(productId, storeId, days = 90, options) {
         return this.get(`/sales?product_id=${productId}&store_id=${storeId}&days=${days}`, options);
     },
@@ -108,4 +109,5 @@ const api = {
     getKpi(options) { return this.get("/kpi", options); },
     getModelInfo(options) { return this.get("/model-info", options); },
     getDataQuality(options) { return this.get("/data-quality", options); },
+    getMetadata(options) { return this.get("/metadata", options); },
 };

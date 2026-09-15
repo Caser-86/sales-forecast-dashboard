@@ -16,7 +16,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import dashboard, forecast, plans, products, quality, sales
+from app.api import dashboard, forecast, plans, products, quality, sales, stores
 from app.core.config import settings
 from app.core.health import router as health_router
 from app.core.logging import setup_logging
@@ -80,6 +80,12 @@ app.include_router(
     dependencies=[TokenDependency],
 )
 app.include_router(
+    stores.router,
+    prefix=settings.API_PREFIX,
+    tags=["门店"],
+    dependencies=[TokenDependency],
+)
+app.include_router(
     sales.router,
     prefix=settings.API_PREFIX,
     tags=["历史销量"],
@@ -131,6 +137,8 @@ def api_root():
             "/api/kpi",
             "/api/model-info",
             "/api/data-quality",
+            "/api/stores",
+            "/api/metadata",
             "/api/plans",
         ]
     }

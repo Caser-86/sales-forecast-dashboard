@@ -105,6 +105,15 @@ select:focus-visible,
     white-space: nowrap;
 }
 
+.version-summary {
+    color: var(--text-dim);
+    font-size: 11px;
+    max-width: 360px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 .system-status {
     border-radius: 999px;
     padding: 4px 9px;
@@ -427,6 +436,7 @@ select:focus-visible,
 
     .scope-label,
     .model-summary,
+    .version-summary,
     .system-status,
     .last-updated {
         grid-column: 1 / -1;

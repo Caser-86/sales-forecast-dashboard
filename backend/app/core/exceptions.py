@@ -89,6 +89,11 @@ class ServiceUnavailableError(AppError):
     http_status = 503
 
 
+class InventoryUnavailableError(ServiceUnavailableError):
+    """库存快照缺失或已超过允许的新鲜度。"""
+    code = "INVENTORY_UNAVAILABLE"
+
+
 class DataNotInitializedError(ServiceUnavailableError):
     """数据或模型未初始化。"""
     code = "DATA_NOT_INITIALIZED"

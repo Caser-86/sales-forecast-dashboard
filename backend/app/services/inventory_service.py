@@ -8,9 +8,10 @@ from typing import Any, Dict, List
 
 from common.replenishment import calculate_replenishment
 
-from app.core.exceptions import ForecastUnavailableError, NotFoundError
+from app.core.config import settings
+from app.core.exceptions import ForecastUnavailableError, InventoryUnavailableError, NotFoundError
 from app.services import data_service, forecast_service
-from app.services.inventory_dataset_service import load_active_inventory_snapshot
+from app.services.inventory_dataset_service import get_active_inventory_id, load_active_inventory_snapshot
 
 
 def _risk_level(predicted: int, suggested: int, abc: str) -> str:
@@ -32,6 +33,16 @@ def _snapshot_by_key():
         (int(row.product_id), int(row.store_id)): row
         for row in snapshot.itertuples()
     }
+
+
+def _validate_snapshot_freshness(snapshot) -> None:
+    reference = data_service.load_sales()["date"].max().date()
+    inventory_date = snapshot["as_of_date"].max().date()
+    age_days = (reference - inventory_date).days
+    if age_days < 0 or age_days > settings.INVENTORY_MAX_AGE_DAYS:
+        raise InventoryUnavailableError(
+            f"库存快照已过期（{age_days} 天），请导入不超过 {settings.INVENTORY_MAX_AGE_DAYS} 天的新快照"
+        )
 
 
 def get_inventory(
@@ -57,7 +68,14 @@ def get_inventory(
 
     cells: List[Dict[str, Any]] = []
     risk_summary = {"high": 0, "medium": 0, "low": 0}
-    inventory_by_key = _snapshot_by_key()
+    snapshot = load_active_inventory_snapshot()
+    if snapshot is not None:
+        _validate_snapshot_freshness(snapshot)
+    inventory_by_key = (
+        {(int(row.product_id), int(row.store_id)): row for row in snapshot.itertuples()}
+        if snapshot is not None else None
+    )
+    inventory_version = get_active_inventory_id() if snapshot is not None else None
 
     for f in all_forecasts:
         if "error" in f:
@@ -94,6 +112,20 @@ def get_inventory(
             "suggested_purchase": suggested,
             "abc_class": abc,
             "risk_level": risk,
+            "inventory_version": inventory_version,
+            "inventory_as_of_date": str(inventory.as_of_date.date()) if inventory_by_key is not None else None,
+            "window_demand": policy.get("window_demand") if inventory_by_key is not None else None,
+            "net_available": policy.get("net_available") if inventory_by_key is not None else None,
+            "target_stock": policy.get("target_stock") if inventory_by_key is not None else None,
+            "raw_replenishment": policy.get("raw_replenishment") if inventory_by_key is not None else None,
+            "on_hand": float(inventory.on_hand) if inventory_by_key is not None else None,
+            "confirmed_inbound": float(inventory.confirmed_inbound) if inventory_by_key is not None else None,
+            "reserved": float(inventory.reserved) if inventory_by_key is not None else None,
+            "lead_time_days": int(inventory.lead_time_days) if inventory_by_key is not None else None,
+            "review_period_days": int(inventory.review_period_days) if inventory_by_key is not None else None,
+            "safety_stock": float(inventory.safety_stock) if inventory_by_key is not None else None,
+            "pack_size": int(inventory.pack_size) if inventory_by_key is not None else None,
+            "minimum_order_quantity": int(inventory.minimum_order_quantity) if inventory_by_key is not None else None,
         })
 
     return {

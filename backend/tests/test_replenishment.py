@@ -93,6 +93,11 @@ def test_inventory_service_uses_active_snapshot_policy(monkeypatch):
         lambda: [{"store_id": 1, "store_name": "S1"}],
     )
     monkeypatch.setattr(
+        inventory_service.data_service,
+        "load_sales",
+        lambda: pd.DataFrame({"date": [pd.Timestamp("2025-06-30")]}),
+    )
+    monkeypatch.setattr(
         inventory_service.forecast_service,
         "get_forecast_all",
         lambda _products, _stores: [{
@@ -129,3 +134,37 @@ def test_inventory_service_uses_active_snapshot_policy(monkeypatch):
 
     assert result["cells"][0]["suggested_purchase"] == 72
     assert result["cells"][0]["risk_level"] == "high"
+
+
+def test_inventory_service_rejects_stale_snapshot(monkeypatch):
+    from app.core.exceptions import InventoryUnavailableError
+    from app.services import inventory_service
+
+    monkeypatch.setattr(
+        inventory_service.data_service,
+        "get_products",
+        lambda: [{"product_id": 1, "product_name": "P1", "category": "食品"}],
+    )
+    monkeypatch.setattr(
+        inventory_service.data_service,
+        "get_stores",
+        lambda: [{"store_id": 1, "store_name": "S1"}],
+    )
+    monkeypatch.setattr(
+        inventory_service.data_service,
+        "load_sales",
+        lambda: pd.DataFrame({"date": [pd.Timestamp("2026-09-15")]}),
+    )
+    monkeypatch.setattr(
+        inventory_service.forecast_service,
+        "get_forecast_all",
+        lambda _products, _stores: [],
+    )
+    monkeypatch.setattr(
+        inventory_service,
+        "load_active_inventory_snapshot",
+        lambda: pd.DataFrame({"as_of_date": [pd.Timestamp("2026-09-01")]}),
+    )
+
+    with pytest.raises(InventoryUnavailableError):
+        inventory_service.get_inventory()

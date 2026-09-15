@@ -18,6 +18,11 @@ class ProductList(BaseModel):
     products: List[Product]
 
 
+class Store(BaseModel):
+    store_id: int
+    store_name: str
+
+
 class SalesPoint(BaseModel):
     date: str
     sales: int
@@ -114,6 +119,20 @@ class InventoryCell(BaseModel):
     suggested_purchase: int
     abc_class: str
     risk_level: str  # high / medium / low
+    inventory_version: Optional[str] = None
+    inventory_as_of_date: Optional[str] = None
+    window_demand: Optional[float] = None
+    net_available: Optional[float] = None
+    target_stock: Optional[float] = None
+    raw_replenishment: Optional[float] = None
+    on_hand: Optional[float] = None
+    confirmed_inbound: Optional[float] = None
+    reserved: Optional[float] = None
+    lead_time_days: Optional[int] = None
+    review_period_days: Optional[int] = None
+    safety_stock: Optional[float] = None
+    pack_size: Optional[int] = None
+    minimum_order_quantity: Optional[int] = None
 
 
 class InventoryResult(BaseModel):
@@ -162,6 +181,19 @@ class DataQualityResult(BaseModel):
     date_gap_count: int
     negative_sales_count: int
     issues: List[str] = Field(default_factory=list)
+
+
+class MetadataResult(BaseModel):
+    data_version: str
+    model_version: str
+    inventory_version: str
+    as_of_date: Optional[str] = None
+    inventory_as_of_date: Optional[str] = None
+    inventory_age_days: Optional[int] = None
+    inventory_max_age_days: int
+    inventory_status: str
+    data_status: str
+    model_status: str
 
 
 class PlanCoverage(BaseModel):
