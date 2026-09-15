@@ -5,15 +5,14 @@ let dashboardRequestId = 0;
 let dashboardController = null;
 
 async function init() {
-    SalesLineChart.init();
-    InventoryHeatmap.init();
-    CategoryPieChart.init();
-    TopProductsChart.init();
-
     updateClock();
     setInterval(updateClock, 1000);
 
     try {
+        SalesLineChart.init();
+        InventoryHeatmap.init();
+        CategoryPieChart.init();
+        TopProductsChart.init();
         await loadSelectors();
         await Promise.all([loadSystemStatus(), loadDashboard()]);
     } catch (e) {
@@ -194,6 +193,9 @@ async function loadSystemStatus() {
         const healthy = model.status === "ready" && quality.status === "healthy";
         status.className = `system-status ${healthy ? "healthy" : "warning"}`;
         status.textContent = healthy ? "模型与数据正常" : "需要关注";
+        const headerStatus = document.getElementById("headerStatus");
+        headerStatus.textContent = healthy ? "服务就绪" : "需要关注";
+        headerStatus.className = `status-text ${healthy ? "healthy" : "warning"}`;
         status.title = `模型：${model.status}；数据：${quality.status}`;
         const ensembleMape = model.metrics?.ensemble?.mape;
         const baselineMape = model.metrics?.seasonal_naive_7d?.mape;
@@ -204,6 +206,9 @@ async function loadSystemStatus() {
     } catch (e) {
         status.className = "system-status error";
         status.textContent = "状态检查失败";
+        const headerStatus = document.getElementById("headerStatus");
+        headerStatus.textContent = "状态未知";
+        headerStatus.className = "status-text error";
         status.title = e.message;
         console.error("系统状态检查失败:", e);
     }

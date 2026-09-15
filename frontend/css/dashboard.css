@@ -27,6 +27,13 @@ html, body {
     overflow: hidden;
 }
 
+button:focus-visible,
+select:focus-visible,
+[tabindex="0"]:focus-visible {
+    outline: 3px solid var(--accent-yellow);
+    outline-offset: 3px;
+}
+
 .dashboard {
     width: 100vw;
     height: 100vh;
@@ -169,6 +176,9 @@ html, body {
     color: var(--accent-green);
 }
 
+.status-text.warning { color: var(--accent-yellow); }
+.status-text.error { color: var(--accent-red); }
+
 @keyframes pulse {
     0%, 100% { opacity: 1; }
     50% { opacity: 0.4; }
@@ -293,7 +303,7 @@ html, body {
 .chart {
     flex: 1;
     width: 100%;
-    min-height: 0;
+    min-height: 220px;
 }
 
 /* 加载遮罩 */
@@ -360,4 +370,118 @@ html, body {
 @media screen and (max-width: 1100px) {
     .dashboard-toolbar { flex-wrap: wrap; }
     .scope-label { margin-left: 0; }
+}
+
+@media screen and (max-width: 700px) {
+    html, body {
+        height: auto;
+        min-height: 100%;
+        overflow-x: hidden;
+        overflow-y: auto;
+    }
+
+    .dashboard {
+        width: 100%;
+        height: auto;
+        min-height: 100vh;
+        padding: 10px;
+        gap: 10px;
+    }
+
+    .header {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 8px;
+        padding: 8px 10px;
+    }
+
+    .header-title {
+        font-size: 18px;
+        letter-spacing: 2px;
+    }
+
+    .header-info {
+        flex-wrap: wrap;
+        gap: 8px 12px;
+        font-size: 12px;
+    }
+
+    .dashboard-toolbar {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        align-items: stretch;
+        gap: 8px;
+    }
+
+    .toolbar-group {
+        min-width: 0;
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .toolbar-group .select,
+    .refresh-button {
+        min-height: 38px;
+        width: 100%;
+    }
+
+    .scope-label,
+    .model-summary,
+    .system-status,
+    .last-updated {
+        grid-column: 1 / -1;
+        white-space: normal;
+    }
+
+    .kpi-row {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+    }
+
+    .kpi-card {
+        padding: 12px;
+    }
+
+    .kpi-value {
+        font-size: 22px;
+    }
+
+    .chart-row,
+    .two-col {
+        display: flex;
+        flex-direction: column;
+        flex: none;
+        min-height: 0;
+    }
+
+    .panel {
+        min-height: 300px;
+        padding: 10px;
+    }
+
+    .panel-header {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .panel-controls {
+        width: 100%;
+    }
+
+    .panel-controls .select {
+        flex: 1;
+        min-height: 36px;
+    }
+
+    .chart {
+        min-height: 250px;
+    }
+
+    .empty-state,
+    .error-banner {
+        width: calc(100% - 20px);
+        max-width: none;
+        top: 72px;
+    }
 }

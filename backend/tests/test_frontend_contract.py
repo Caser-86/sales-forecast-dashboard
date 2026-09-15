@@ -93,3 +93,16 @@ def test_frontend_requests_have_timeout_cancellation_and_stale_guards():
     assert "dashboardRequestId" in dashboard
     assert "requestId !== this.requestId" in trend
     assert "requestId !== this.requestId" in inventory
+
+
+def test_frontend_has_mobile_scroll_focus_and_chart_accessibility_contract():
+    html = (PROJECT_ROOT / "frontend" / "index.html").read_text(encoding="utf-8")
+    css = (PROJECT_ROOT / "frontend" / "css" / "dashboard.css").read_text(encoding="utf-8")
+    dashboard = (PROJECT_ROOT / "frontend" / "js" / "dashboard.js").read_text(encoding="utf-8")
+
+    assert 'id="headerStatus"' in html
+    assert 'role="img"' in html
+    assert "@media screen and (max-width: 700px)" in css
+    assert "overflow-y: auto" in css
+    assert ":focus-visible" in css
+    assert "SalesLineChart.init();" in dashboard

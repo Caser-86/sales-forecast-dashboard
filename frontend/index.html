@@ -17,7 +17,7 @@
                 <span id="currentDate"></span>
                 <span id="currentTime"></span>
                 <span class="status-dot"></span>
-                <span class="status-text">服务在线</span>
+                <span id="headerStatus" class="status-text">状态检查中</span>
             </div>
         </header>
 
@@ -76,7 +76,7 @@
                         <select id="storeSelect" class="select"></select>
                     </div>
                 </div>
-                <div id="salesLine" class="chart"></div>
+                <div id="salesLine" class="chart" role="img" tabindex="0" aria-label="商品门店历史销量与未来预测趋势图"></div>
             </div>
         </section>
 
@@ -86,13 +86,13 @@
                 <div class="panel-header">
                     <span class="panel-title">需求优先级热力图（ABC）</span>
                 </div>
-                <div id="inventoryHeatmap" class="chart"></div>
+                <div id="inventoryHeatmap" class="chart" role="img" tabindex="0" aria-label="商品与门店需求优先级热力图"></div>
             </div>
             <div class="panel">
                 <div class="panel-header">
                     <span class="panel-title">品类销量占比</span>
                 </div>
-                <div id="categoryPie" class="chart"></div>
+                <div id="categoryPie" class="chart" role="img" tabindex="0" aria-label="品类销量占比图"></div>
             </div>
         </section>
 
@@ -102,7 +102,7 @@
                 <div class="panel-header">
                     <span class="panel-title">Top 10 商品销量排行 + 采购建议</span>
                 </div>
-                <div id="topProducts" class="chart"></div>
+                <div id="topProducts" class="chart" role="img" tabindex="0" aria-label="Top 商品销量与采购建议图"></div>
             </div>
         </section>
     </div>
