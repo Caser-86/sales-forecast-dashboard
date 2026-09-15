@@ -8,12 +8,13 @@ This document is the current sign-off record for the interview-ready V1 branch. 
 
 ## Verified baseline
 
-- Current sign-off commit: `dfe8fa250652f43fc4ed1dde8a04d7a3160a756b`
+- Verified code/image commit: `a6344bfd668e86875a1bfeb659155bd1bed71264`
 - Fresh-clone walkthrough evidence commit: `00f2de80c8adcc38d0fd6592171a420259cb93ea`
 - Local full suite: `160 passed`, coverage `90.66%`
 - Fresh Python 3.11 clone: `160 passed`, coverage `90.54%`, `pip check` clean
 - Fresh clone runtime: `/health=200`, `/ready=200`, 30-point forecast, plan save `201`, idempotent retry `200`, export `200`, restart reopen and SQLite restore verified
 - No P0 has been confirmed in the current audit
+- Remote GitHub Actions CI: [run 24](https://github.com/Caser-86/sales-forecast-dashboard/actions/runs/34978783173) completed successfully for the current sign-off commit; Quality Gates and Dependency Audit both passed
 - Local browser evidence for partial failures, XSS, delayed scope changes, timeout/retry/API failure/empty states, and trend interval rendering is recorded in [`docs/browser-acceptance-2026-09-15.md`](../browser-acceptance-2026-09-15.md)
 - Docker, image-content, outage, dependency, and constrained performance evidence is recorded in [`docs/deployment-performance-2026-09-15.md`](../deployment-performance-2026-09-15.md) and [`docs/dependency-audit-2026-09-15.md`](../dependency-audit-2026-09-15.md)
 
