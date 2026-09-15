@@ -69,3 +69,13 @@ def test_trend_chart_labels_scenario_range_and_draws_band_width():
     assert "confBand" in chart
     assert "{ data: confBand }" in chart
     assert "Math.max(histDates.length - 1, 0)" in chart
+
+
+def test_chart_tooltips_escape_api_text_before_html_rendering():
+    html = (PROJECT_ROOT / "frontend" / "index.html").read_text(encoding="utf-8")
+    top = (PROJECT_ROOT / "frontend" / "js" / "charts" / "top-products.js").read_text(encoding="utf-8")
+    inventory = (PROJECT_ROOT / "frontend" / "js" / "charts" / "inventory-heatmap.js").read_text(encoding="utf-8")
+
+    assert "safe-text.js" in html
+    assert "escapeHtml(d.product_name)" in top
+    assert "escapeHtml(d.product_name)" in inventory

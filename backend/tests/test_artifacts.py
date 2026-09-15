@@ -58,3 +58,15 @@ def test_publish_model_package_rejects_missing_artifact_without_changing_active(
         publish_model_package(source_dir=source, versions_dir=versions, active_file=active)
 
     assert get_active_model_id(active_file=active) == first["model_id"]
+
+
+def test_active_model_rejects_tampered_package(tmp_path):
+    source = tmp_path / "source"
+    versions = tmp_path / "versions"
+    active = tmp_path / "active.json"
+    _write_complete_source(source)
+    result = publish_model_package(source_dir=source, versions_dir=versions, active_file=active)
+    (Path(result["model_dir"]) / "lstm_model.pth").write_bytes(b"tampered")
+
+    with pytest.raises(ModelArtifactError, match="校验失败"):
+        get_active_model_dir(active_file=active, versions_dir=versions)

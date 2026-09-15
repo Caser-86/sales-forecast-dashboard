@@ -14,7 +14,7 @@ const InventoryHeatmap = {
                 textStyle: { color: "#e0e0ff" },
                 formatter: function (p) {
                     const d = p.data;
-                    return `${d.product_name}<br/>${d.store_name}<br/>预测销量: ${d.predicted}<br/>建议采购: ${d.suggested}<br/>分级: ${d.abc}`;
+                    return `${escapeHtml(d.product_name)}<br/>${escapeHtml(d.store_name)}<br/>预测销量: ${d.predicted}<br/>建议采购: ${d.suggested}<br/>分级: ${escapeHtml(d.abc)}`;
                 }
             },
             xAxis: {

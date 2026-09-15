@@ -11,7 +11,9 @@ const CategoryPieChart = {
                 backgroundColor: "rgba(26, 27, 58, 0.95)",
                 borderColor: "#4a4dc4",
                 textStyle: { color: "#e0e0ff" },
-                formatter: "{b}: {c} ({d}%)"
+                formatter: function (params) {
+                    return `${escapeHtml(params.name)}: ${params.value} (${params.percent}%)`;
+                }
             },
             legend: {
                 bottom: 5,
