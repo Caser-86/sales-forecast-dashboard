@@ -152,6 +152,8 @@ python scripts/import_sales.py path/to/sales.csv --no-activate
 7. 最后主动说明当前边界和下一步，而不是回避 Demo 属性。
 
 正式面试前可直接照着 [`docs/deployment-checklist.md`](docs/deployment-checklist.md) 做一次启动、接口和浏览器验收；完整讲稿见 [`docs/interview-demo.md`](docs/interview-demo.md)。
+非作者 fresh clone 的完整执行记录见 [`docs/fresh-clone-walkthrough-2026-09-15.md`](docs/fresh-clone-walkthrough-2026-09-15.md)。
+浏览器故障、安全和图表验收证据见 [`docs/browser-acceptance-2026-09-15.md`](docs/browser-acceptance-2026-09-15.md)。
 
 ## 模型评估
 
