@@ -16,7 +16,7 @@ This matrix is the execution checklist for `docs/product-v1.md`. A row is accept
 | AC-010 | ABC | ABC population is fixed before scope filtering, with deterministic ties and threshold-boundary tests | `tests/test_abc.py`, dashboard fixture | Passed: single-item, dominant-item, tie, zero, and scoped-population tests |
 | AC-011 | ABC | ABC is presented as demand priority and is not used alone as stockout risk | Schema/UI copy test | Partial: UI copy and domain wording pass; inventory risk formula remains TASK-016 |
 | AC-012 | Forecast | A product/store pair with insufficient history returns unavailable, not zero demand | Forecast API test | Not started |
-| AC-013 | Forecast | Forecast recursion updates all required future features from origin-known or previously predicted values | `tests/test_future_features.py` | Not started |
+| AC-013 | Forecast | Forecast recursion updates all required future features from origin-known or previously predicted values | `tests/test_future_features.py` | Partial: shared helper covers calendar/lag/rolling recursion and predictor uses it; feature schema and retraining evidence remain |
 | AC-014 | Forecast | Backtest uses identical origins, horizons, scopes, and eligible sample keys for models and baselines | `tests/test_backtest.py` | Not started |
 | AC-015 | Forecast | Report includes horizon, origin count, sample count, per-horizon metrics, and segment metrics | Model report contract test | Not started |
 | AC-016 | Forecast | Model complexity does not override a stronger baseline | Model selection test and report review | Not started |

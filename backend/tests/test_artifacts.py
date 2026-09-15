@@ -14,6 +14,7 @@ REQUIRED_FILES = (
     "lightgbm_model.txt.meta.json",
     "lstm_scaler_x.joblib",
     "lstm_scaler_y.joblib",
+    "category_encoder.json",
 )
 
 

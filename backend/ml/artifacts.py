@@ -20,6 +20,7 @@ REQUIRED_MODEL_FILES = (
     "lightgbm_model.txt.meta.json",
     "lstm_scaler_x.joblib",
     "lstm_scaler_y.joblib",
+    "category_encoder.json",
 )
 _MODEL_ID_PATTERN = re.compile(r"^model-[0-9a-f]{16}$")
 

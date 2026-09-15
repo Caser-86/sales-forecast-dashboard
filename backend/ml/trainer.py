@@ -28,6 +28,7 @@ from feature_engineering import (
     TARGET_COL,
     load_features,
 )
+from future_features import CALENDAR_VERSION
 from lstm_model import SEQ_LEN, SalesLSTM, build_sequences
 from lstm_model import save_model as save_lstm
 from sklearn.preprocessing import StandardScaler
@@ -331,6 +332,18 @@ def train_all() -> dict:
     with open(REPORT_PATH, "w", encoding="utf-8") as f:
         json.dump(report, f, ensure_ascii=False, indent=2)
     print(f"[4/4] 评估报告已保存 → {REPORT_PATH}")
+    category_encoder_path = Path(MODELS_DIR) / "category_encoder.json"
+    category_encoder_path.write_text(
+        json.dumps(
+            {
+                "classes": sorted(df["category"].astype(str).unique().tolist()),
+                "calendar_version": CALENDAR_VERSION,
+            },
+            ensure_ascii=False,
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
     data_version = _active_dataset_version()
     package = publish_model_package(
         Path(MODELS_DIR),
