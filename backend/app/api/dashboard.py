@@ -7,6 +7,7 @@ from typing import Annotated, Any, Dict
 from common.abc import classify_abc
 from fastapi import APIRouter, Query
 
+from app.core.config import settings
 from app.core.exceptions import NotFoundError
 from app.schemas import DashboardData, InventoryResult, KpiResult
 from app.services import data_service, forecast_service, inventory_service
@@ -48,6 +49,7 @@ def _compute_kpi(
     report = data_service.load_report()
     mape = report.get("ensemble", {}).get("mape", 100)
     accuracy = round(max(0.0, 100.0 - mape), 2)
+    window = data_service.get_metric_window(30, settings.FORECAST_DAYS)
 
     # ABC 分布按商品汇总最近 30 天需求量，不从门店等级取最高值近似。
     if product_id is None and store_id is None:
@@ -67,6 +69,8 @@ def _compute_kpi(
         "total_predicted": int(total_predicted),
         "growth_rate": growth_rate,
         "accuracy": accuracy,
+        "mape": round(float(mape), 2),
+        "window": window,
         "sku_count": len(products),
         "alert_count": alert_count,
         "abc_distribution": abc_dist,

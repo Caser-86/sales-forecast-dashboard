@@ -1,4 +1,4 @@
-/* 品类销售占比饼图（环形 + 中心总额） */
+/* 品类销量占比饼图（环形 + 中心总量） */
 const CategoryPieChart = {
     chart: null,
 
@@ -43,7 +43,7 @@ const CategoryPieChart = {
                 left: "center",
                 top: "40%",
                 style: {
-                    text: "总销售额\n0",
+                    text: "总销量\n0",
                     fill: "#00e5ff",
                     font: "bold 16px Microsoft YaHei",
                     textAlign: "center"
@@ -73,7 +73,7 @@ const CategoryPieChart = {
             series: [{ data }],
             graphic: {
                 style: {
-                    text: `总销售额\n${total.toLocaleString()}`
+                    text: `总销量\n${total.toLocaleString()}`
                 }
             }
         });

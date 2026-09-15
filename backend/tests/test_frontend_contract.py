@@ -25,3 +25,23 @@ def test_frontend_api_exposes_quality_endpoints():
     assert "getDataQuality" in api
     assert "product_id" in api
     assert "store_id" in api
+
+
+def test_dashboard_labels_quantity_metrics_without_revenue_claim():
+    html = (PROJECT_ROOT / "frontend" / "index.html").read_text(encoding="utf-8")
+    pie = (PROJECT_ROOT / "frontend" / "js" / "charts" / "category-pie.js").read_text(encoding="utf-8")
+
+    assert "总销量（30天）" in html
+    assert "总销售额（30天）" not in html
+    assert "品类销量占比" in html
+    assert "总销量" in pie
+    assert "总销售额" not in pie
+
+
+def test_top_products_chart_uses_dashboard_contract_field_names():
+    chart = (PROJECT_ROOT / "frontend" / "js" / "charts" / "top-products.js").read_text(encoding="utf-8")
+
+    assert "d.suggested_purchase" in chart
+    assert "d.abc_class" in chart
+    assert "d.suggested}`" not in chart
+    assert "d.abc}`" not in chart

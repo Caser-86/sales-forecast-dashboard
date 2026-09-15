@@ -25,7 +25,7 @@ const KpiCards = {
         this.animate("kpiTotalSales", kpi.total_sales);
         this.animate("kpiTotalPredicted", kpi.total_predicted);
         this.animate("kpiGrowth", kpi.growth_rate, "%");
-        this.animate("kpiAccuracy", kpi.accuracy, "%");
+        this.animate("kpiAccuracy", kpi.mape ?? kpi.accuracy, "%");
         this.animate("kpiAlert", kpi.alert_count);
     }
 };

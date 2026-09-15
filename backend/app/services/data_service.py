@@ -208,6 +208,30 @@ def get_total_sales_last_n(
     return int(_apply_scope(recent, product_id, store_id)["sales"].sum())
 
 
+def get_metric_window(days: int = 30, forecast_days: int | None = None) -> Dict[str, Any]:
+    """Return the date window shared by dashboard quantity metrics."""
+    if days <= 0:
+        raise ValueError("days 必须大于 0")
+    if forecast_days is None:
+        forecast_days = settings.FORECAST_DAYS
+    if forecast_days <= 0:
+        raise ValueError("forecast_days 必须大于 0")
+
+    last_date = load_sales()["date"].max().date()
+    historical_start = last_date - timedelta(days=days - 1)
+    forecast_start = last_date + timedelta(days=1)
+    forecast_end = forecast_start + timedelta(days=forecast_days - 1)
+    return {
+        "unit": "units",
+        "historical_start": historical_start.isoformat(),
+        "historical_end": last_date.isoformat(),
+        "historical_days": days,
+        "forecast_start": forecast_start.isoformat(),
+        "forecast_end": forecast_end.isoformat(),
+        "forecast_days": forecast_days,
+    }
+
+
 @lru_cache(maxsize=16)
 def get_recent_product_demand(
     days: int = 30,
@@ -228,8 +252,12 @@ def get_recent_product_demand(
 def get_category_sales(
     product_id: int | None = None,
     store_id: int | None = None,
+    days: int = 30,
 ) -> List[Dict[str, Any]]:
     df = load_sales()
+    last_date = df["date"].max()
+    start = last_date - timedelta(days=days - 1)
+    df = df[df["date"] >= start]
     df = _apply_scope(df, product_id, store_id)
     g = df.groupby("category")["sales"].sum().reset_index()
     total = int(g["sales"].sum())
@@ -248,8 +276,12 @@ def get_top_products(
     n: int = 10,
     product_id: int | None = None,
     store_id: int | None = None,
+    days: int = 30,
 ) -> List[Dict[str, Any]]:
     df = load_sales()
+    last_date = df["date"].max()
+    start = last_date - timedelta(days=days - 1)
+    df = df[df["date"] >= start]
     df = _apply_scope(df, product_id, store_id)
     g = df.groupby(["product_id", "product_name", "category"])["sales"].sum().reset_index()
     g = g.sort_values("sales", ascending=False).head(n)

@@ -15,7 +15,7 @@ const TopProductsChart = {
                 textStyle: { color: "#e0e0ff" },
                 formatter: function (params) {
                     const d = params[0].data.detail;
-                    return `${d.product_name}<br/>历史销量: ${d.sales}<br/>预测销量: ${d.predicted}<br/>建议采购: ${d.suggested}<br/>分级: ${d.abc}`;
+                    return `${d.product_name}<br/>历史销量: ${d.sales}<br/>预测销量: ${d.predicted}<br/>建议采购: ${d.suggested_purchase}<br/>分级: ${d.abc_class}`;
                 }
             },
             xAxis: {

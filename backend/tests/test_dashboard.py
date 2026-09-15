@@ -92,6 +92,10 @@ class TestDashboard:
         assert "total_predicted" in kpi
         assert "growth_rate" in kpi
         assert "accuracy" in kpi
+        assert "mape" in kpi
+        assert kpi["window"]["unit"] == "units"
+        assert kpi["window"]["historical_days"] == 30
+        assert kpi["window"]["forecast_days"] == 30
         # abc_distribution 在根级
         assert "abc_distribution" in body
 

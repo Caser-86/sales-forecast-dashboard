@@ -49,11 +49,23 @@ class ForecastResult(BaseModel):
     abc_class: str
 
 
+class MetricWindow(BaseModel):
+    unit: str
+    historical_start: str
+    historical_end: str
+    historical_days: int
+    forecast_start: str
+    forecast_end: str
+    forecast_days: int
+
+
 class Kpi(BaseModel):
     total_sales: int
     total_predicted: int
     growth_rate: float
     accuracy: float
+    mape: float
+    window: MetricWindow
     sku_count: int
     alert_count: int
 
@@ -104,6 +116,8 @@ class KpiResult(BaseModel):
     total_predicted: int
     growth_rate: float
     accuracy: float
+    mape: float
+    window: MetricWindow
     sku_count: int
     alert_count: int
     abc_distribution: Dict[str, int]
