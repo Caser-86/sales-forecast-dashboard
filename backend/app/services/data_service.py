@@ -14,6 +14,7 @@ import pandas as pd
 from app.config import REPORT_JSON, SALES_CSV, settings
 from app.core.exceptions import DataNotInitializedError, NotFoundError
 from app.core.logging import get_logger
+from app.services.dataset_service import get_active_sales_path
 
 logger = get_logger(__name__)
 
@@ -21,14 +22,15 @@ logger = get_logger(__name__)
 @lru_cache(maxsize=1)
 def load_sales() -> pd.DataFrame:
     """加载并缓存历史销量数据。"""
-    if not SALES_CSV.exists():
-        logger.error("销售数据文件不存在: %s", SALES_CSV)
+    sales_path = get_active_sales_path(fallback=SALES_CSV)
+    if not sales_path.exists():
+        logger.error("销售数据文件不存在: %s", sales_path)
         raise DataNotInitializedError(
             "销售数据未初始化",
-            detail=f"请先运行 python scripts/init_data.py 生成数据。路径: {SALES_CSV}",
+            detail=f"请先运行 python scripts/init_data.py 或 scripts/import_sales.py。路径: {sales_path}",
         )
-    logger.info("加载销售数据: %s", SALES_CSV)
-    df = pd.read_csv(SALES_CSV)
+    logger.info("加载销售数据: %s", sales_path)
+    df = pd.read_csv(sales_path)
     df["date"] = pd.to_datetime(df["date"])
     return df
 
@@ -113,7 +115,7 @@ def get_data_quality() -> Dict[str, Any]:
     return {
         "status": "error" if df.empty else ("healthy" if not issues else "warning"),
         "checked_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-        "source": SALES_CSV.name,
+        "source": get_active_sales_path(fallback=SALES_CSV).name,
         "rows": int(len(df)),
         "date_start": str(df["date"].min().date()) if len(df) else None,
         "date_end": str(df["date"].max().date()) if len(df) else None,

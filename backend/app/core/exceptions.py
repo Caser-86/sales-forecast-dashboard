@@ -59,6 +59,11 @@ class ValidationError(AppError):
     http_status = 422
 
 
+class DatasetValidationError(ValidationError):
+    """销售数据不符合输入契约。"""
+    code = "DATASET_INVALID"
+
+
 class ConflictError(AppError):
     code = "CONFLICT"
     http_status = 409

@@ -115,6 +115,22 @@ cd frontend
 python -m http.server 3000
 ```
 
+### 受控导入销售 CSV
+
+生产或外部样例数据不要直接覆盖 `backend/data/raw/sales_data.csv`。使用导入脚本先校验必需列、类型、重复键、有限数值和负销量策略，再写入不可变版本目录；默认校验成功后切换 active 数据集：
+
+```bash
+python scripts/import_sales.py path/to/sales.csv
+```
+
+只生成版本、不切换当前 active 数据集：
+
+```bash
+python scripts/import_sales.py path/to/sales.csv --no-activate
+```
+
+导入销售数据后需要重新生成特征并训练与该数据集匹配的模型。当前模型包版本绑定和原子回滚将在后续成品化任务中补齐；在此之前不要把新导入数据直接用于生产预测。
+
 前端如果不在 `3000` 或 `5500` 端口运行，可以在加载 `js/api.js` 前设置：
 
 ```html

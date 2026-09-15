@@ -6,10 +6,10 @@ This matrix is the execution checklist for `docs/product-v1.md`. A row is accept
 |---|---|---|---|---|
 | AC-001 | Scope | V1 is documented as single-tenant demand forecasting and replenishment assistance with human confirmation | `docs/product-v1.md` review | Passed: contract section 1-2 |
 | AC-002 | Scope | Automatic ordering, ERP/WMS sync, Agent/RAG, microservices, and multi-tenant roles are explicitly out of scope | Product contract review | Passed: contract section 6 |
-| AC-003 | Data | Valid sales CSV passes schema, finite-value, positive-ID, and unique-key validation | `tests/test_dataset_import.py` | Not started |
-| AC-004 | Data | Invalid sales input is rejected without changing the active dataset | Import integration test with active-version sentinel | Not started |
+| AC-003 | Data | Valid sales CSV passes schema, finite-value, positive-ID, and unique-key validation | `tests/test_dataset_import.py` | Passed: validator and valid import tests |
+| AC-004 | Data | Invalid sales input is rejected without changing the active dataset | Import integration test with active-version sentinel | Passed: previous pointer remains unchanged |
 | AC-005 | Data | Valid inventory snapshot exposes stock, inbound, reserved, lead-time, policy, and freshness fields | `tests/test_inventory_import.py` | Not started |
-| AC-006 | Data | Sparse product/store combinations are represented as absent or unavailable, never fabricated by a cross product | Dataset and forecast service test | Not started |
+| AC-006 | Data | Sparse product/store combinations are represented as absent or unavailable, never fabricated by a cross product | Dataset and forecast service test | Passed: import manifest preserves source row count |
 | AC-007 | Metrics | Quantity is labeled as quantity; monetary value is only shown after quantity-times-price calculation with currency | API schema and frontend contract test | Passed: quantity labels and `unit: "units"` |
 | AC-008 | Metrics | Historical 30-day and forecast 30-day windows expose explicit start/end dates and as-of date | API response test | Passed: KPI window contract and regression test |
 | AC-009 | Metrics | Top products, category totals, and KPI use one documented time window or clearly state different windows | Aggregation fixtures and UI review | Not started |
