@@ -747,9 +747,9 @@ README、部署清单、演示稿、历史设计和计划齐全，且主动说�
 | TASK-012 | 区间校准/绘图 | P1 | M | 002、011 | 已完成（情景范围路径） | 统计校准明确移出 V1，不再称为置信区间；API/前端明确scenario范围，图表使用下界+带宽且空历史不抛异常；真实浏览器截图待TASK-015 |
 | TASK-013 | 模型/依赖/内容安全 | P1 | L | 004、009 | 部分完成 | 模型包路径/checksum校验、Torch weights_only加载、JSON scaler/feature schema、tooltip HTML escape、随包ECharts和CI pip-audit门禁已实现；旧版flat joblib路径已禁止执行，Torch定向升级和可完成的依赖审计报告仍待补 |
 | TASK-014 | 请求一致性/恢复 | P2 | L | 002、003、005、006 | 部分完成 | API timeout/AbortSignal、dashboard/trend/heatmap请求序号与busy收尾已实现；真实浏览器 smoke 已验证初始化无 console error、CORS 和本地 ECharts，延迟乱序、断网恢复和错误重试证据待补 |
-| TASK-015 | 响应式/空态/无障碍 | P2 | M | 012、014 | 部分完成 | 1920/1366/390 三视口截图、1366 网格修复、移动端滚动、焦点样式、aria labels和键盘 Tab 路径已验证；真实 OS/browser 200%缩放和保存/导出键盘路径待补 |
+| TASK-015 | 响应式/空态/无障碍 | P2 | M | 012、014 | 部分完成 | 1920/1366/390 三视口截图、1366 网格修复、移动端滚动、焦点样式、aria labels、保存/导出键盘路径和真实浏览器 Tab 路径已验证；真实 OS/browser 200%缩放待补 |
 | TASK-016 | 库存与补货规则 | P1 | L | 007、008、011 | 部分完成 | inventory快照schema/CLI/active版本、可复现 Demo 快照生成、可手算补货公式、MOQ/包装/缺输入/超horizon边界、freshness检查、库存拆解字段和缺少商品/门店记录的明确503已实现；人工调整/审批仍不在V1 |
-| TASK-017 | 草案/导出/追溯 | P1 | L | 003、009、014、016 | 部分完成 | SQLite不可变快照、幂等键、partial拒收、重启/备份恢复、CSV安全导出、版本元数据和前端保存/导出入口已实现；人工调整编辑与浏览器E2E证据待补 |
+| TASK-017 | 草案/导出/追溯 | P1 | L | 003、009、014、016 | 已完成 | SQLite不可变快照、幂等键、partial拒收、重启/备份恢复、CSV安全导出、版本元数据已实现；真实浏览器已完成保存、重启恢复、导出和键盘路径验证；人工调整编辑不在V1 |
 | TASK-018 | 元数据API/容量 | P2 | M | 008、009、014 | 部分完成 | `/api/stores` 与 `/api/metadata` 已实现，前端选择器不再触发预测；`scripts/benchmark_api.py`已提供可复现实测格式；模型报告已改为进程内单飞缓存并通过摘要接口限制响应体；实际 10 并发短压、冷启动和 5 分钟容量运行均达标，RSS 未见持续无界增长，但固定 4 核/8GB 复测和超容量拒绝策略待补 |
 | TASK-019 | 可验证同源部署 | P1 | M | 003、004、005、013 | 部分完成 | frontend nginx已反代同源API、计划数据库已持久化、Compose配置可解析；`scripts/deploy.sh` 已改为可配置路径、`docker compose`、健康检查、前端检查和失败日志；Docker daemon下的干净构建/启动和故障非0退出待补 |
 | TASK-020 | CI测试门禁分层 | P1 | L | 006、010-015、017、019 | 部分完成 | CI已加入85%覆盖率、pip check、空白检查、镜像构建和pip-audit job；E2E/实跑Actions结果待补 |

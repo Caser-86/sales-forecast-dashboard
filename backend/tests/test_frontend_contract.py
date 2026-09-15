@@ -99,6 +99,14 @@ def test_chart_tooltips_escape_api_text_before_html_rendering():
     assert "safe-text.js" in html
     assert "escapeHtml(d.product_name)" in top
     assert "escapeHtml(d.product_name)" in inventory
+    assert "inventory-heatmap.js?v=3" in html
+
+
+def test_inventory_tooltip_explains_replenishment_inputs():
+    inventory = (PROJECT_ROOT / "frontend" / "js" / "charts" / "inventory-heatmap.js").read_text(encoding="utf-8")
+
+    for field in ("window_demand", "net_available", "target_stock", "raw_replenishment", "pack_size", "minimum_order_quantity"):
+        assert field in inventory
 
 
 def test_frontend_requests_have_timeout_cancellation_and_stale_guards():

@@ -27,6 +27,7 @@ backend/data/inventory/*
 !backend/data/processed/.gitkeep
 !backend/data/inventory/.gitkeep
 *.db
+*.db.bak
 *.sqlite3
 
 # IDE
