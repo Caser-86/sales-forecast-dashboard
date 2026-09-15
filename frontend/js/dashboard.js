@@ -151,6 +151,9 @@ async function loadDashboard() {
         const dashboard = await api.getDashboard(scope, { signal });
         if (requestId !== dashboardRequestId) return;
         lastDashboardData = dashboard;
+        lastSavedPlanId = null;
+        planRequestKey = null;
+        document.getElementById("exportPlan").classList.add("hidden");
         const coverage = dashboard.coverage || {};
         if (coverage.status === "partial") {
             showDashboardError(
@@ -243,9 +246,9 @@ function updatePlanAvailability() {
     const available = lastMetadata?.inventory_status === "fresh" &&
         lastInventoryData?.coverage?.status === "ok" && planItemsReady();
     button.disabled = !available;
-    document.getElementById("planStatus").textContent = available
-        ? "预测覆盖完整，可保存当前补货草案"
-        : "需要新鲜库存快照、完整预测覆盖和库存明细后可保存";
+    document.getElementById("planStatus").textContent = lastSavedPlanId
+        ? `已保存草案：${lastSavedPlanId}`
+        : (available ? "预测覆盖完整，可保存当前补货草案" : "需要新鲜库存快照、完整预测覆盖和库存明细后可保存");
 }
 
 function makePlanPayload() {
