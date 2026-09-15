@@ -21,7 +21,7 @@ This matrix is the execution checklist for `docs/product-v1.md`. A row is accept
 | AC-015 | Forecast | Report includes horizon, origin count, sample count, per-horizon metrics, and segment metrics | Model report contract test | Not started |
 | AC-016 | Forecast | Model complexity does not override a stronger baseline | Model selection test and report review | Not started |
 | AC-017 | Intervals | Statistical intervals include target coverage, empirical coverage, calibration window, and sample size | Prediction interval report test | Not started |
-| AC-018 | Intervals | If interval calibration is insufficient, UI uses scenario-range wording or hides the interval | Frontend copy test and manual screenshot | Not started |
+| AC-018 | Intervals | If interval calibration is insufficient, UI uses scenario-range wording or hides the interval | Frontend copy test and manual screenshot | Passed: API `range_type=scenario`, UI label, and non-statistical copy are covered |
 | AC-019 | Replenishment | Suggested quantity follows net available, lead time, review period, safety stock, pack size, and MOQ | `tests/test_replenishment.py` hand-calculated fixtures | Not started |
 | AC-020 | Replenishment | Missing or stale inventory inputs block a suggestion and identify the missing input | Domain/API test | Not started |
 | AC-021 | Replenishment | Lead-time plus review window beyond forecast horizon is rejected | Boundary test | Not started |
@@ -39,7 +39,7 @@ This matrix is the execution checklist for `docs/product-v1.md`. A row is accept
 | AC-033 | Security | Product/store text is rendered as text or safely escaped in tooltips and exports | XSS fixture test | Not started |
 | AC-034 | Frontend | Fast scope changes cannot let an older response overwrite a newer scope | Delayed-request browser test | Not started |
 | AC-035 | Frontend | Timeout, CDN failure, API failure, empty data, partial data, stale data, and retry have visible states | Browser E2E test and screenshots | Not started |
-| AC-036 | Frontend | Trend chart handles empty history and draws the intended lower/upper interval band | Chart unit/browser test | Not started |
+| AC-036 | Frontend | Trend chart handles empty history and draws the intended lower/upper interval band | Chart unit/browser test | Partial: empty-history guard and lower-plus-width band are covered by frontend contract/static checks; browser rendering evidence remains |
 | AC-037 | Accessibility | Core selection, refresh, save, and export flow is keyboard reachable and labeled | Browser keyboard test | Not started |
 | AC-038 | Responsive | 1920x1080, 1366x768, 390x844, and 200% zoom preserve access to core actions | Browser screenshots and checklist | Not started |
 | AC-039 | Performance | On a fixed 4-core/8GB reference environment, warm read API P95 <=500ms and cold full dashboard <=10s | Benchmark script output | Not started |

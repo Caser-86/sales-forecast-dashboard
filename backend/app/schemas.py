@@ -38,6 +38,7 @@ class ForecastPoint(BaseModel):
     predicted_sales: int
     confidence_low: int
     confidence_high: int
+    range_type: str = "scenario"
 
 
 class ForecastResult(BaseModel):
@@ -47,6 +48,7 @@ class ForecastResult(BaseModel):
     total_predicted: int
     suggested_purchase: int
     abc_class: str
+    range_type: str = "scenario"
 
 
 class MetricWindow(BaseModel):

@@ -26,6 +26,7 @@ class TestForecast:
         assert "predicted_sales" in f
         assert "confidence_low" in f
         assert "confidence_high" in f
+        assert f["range_type"] == "scenario"
 
     def test_forecast_confidence_range(self, client, sample_product_id, sample_store_id):
         """置信区间下界 <= 预测值 <= 上界。"""

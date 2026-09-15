@@ -60,3 +60,12 @@ def test_top_products_chart_uses_dashboard_contract_field_names():
     assert "d.abc_class" in chart
     assert "d.suggested}`" not in chart
     assert "d.abc}`" not in chart
+
+
+def test_trend_chart_labels_scenario_range_and_draws_band_width():
+    chart = (PROJECT_ROOT / "frontend" / "js" / "charts" / "sales-line.js").read_text(encoding="utf-8")
+
+    assert "情景范围" in chart
+    assert "confBand" in chart
+    assert "{ data: confBand }" in chart
+    assert "Math.max(histDates.length - 1, 0)" in chart

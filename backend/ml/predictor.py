@@ -39,6 +39,7 @@ DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 FORECAST_DAYS = 30
 LSTM_WEIGHT = 0.4
 LGBM_WEIGHT = 0.6
+SCENARIO_RANGE_RATIO = 0.15
 
 # Backward-compatible alias for callers that imported the old constant.
 HOLIDAYS_FUTURE = DEFAULT_HOLIDAYS
@@ -216,17 +217,18 @@ class ForecastPredictor:
             for lv, gv in zip(lstm_preds, lgbm_preds, strict=True)
         ]
 
-        # 置信区间：基于集成值 ±15%
+        # 情景范围：基于集成值 ±15%，不是经回测校准的统计预测区间。
         forecast_list = []
         for i, val in enumerate(ensemble):
             d = last_date + timedelta(days=i + 1)
-            low = max(0, val * 0.85)
-            high = val * 1.15
+            low = max(0, val * (1 - SCENARIO_RANGE_RATIO))
+            high = val * (1 + SCENARIO_RANGE_RATIO)
             forecast_list.append({
                 "date": d.isoformat(),
                 "predicted_sales": int(round(val)),
                 "confidence_low": int(round(low)),
                 "confidence_high": int(round(high)),
+                "range_type": "scenario",
             })
 
         total_predicted = int(round(sum(ensemble)))
@@ -243,6 +245,7 @@ class ForecastPredictor:
             "total_predicted": total_predicted,
             "suggested_purchase": suggested_purchase,
             "abc_class": abc,
+            "range_type": "scenario",
         }
 
 
