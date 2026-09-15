@@ -184,6 +184,47 @@ class TestDashboard:
         assert response.status_code == 503
         assert response.json()["error"]["code"] == "FORECAST_UNAVAILABLE"
 
+    def test_dashboard_scope_uses_global_abc_population(self, monkeypatch):
+        """筛选商品后，ABC等级仍来自固定的全量商品总体。"""
+        from app.api import dashboard
+
+        demand_calls = []
+        monkeypatch.setattr(dashboard.data_service, "get_total_sales_last_n", lambda *args: 10)
+        monkeypatch.setattr(
+            dashboard.data_service,
+            "get_recent_product_demand",
+            lambda *args: demand_calls.append(args) or {1: 95, 2: 5},
+        )
+        monkeypatch.setattr(
+            dashboard.data_service,
+            "load_report",
+            lambda: {"ensemble": {"mape": 10}},
+        )
+        monkeypatch.setattr(
+            dashboard.data_service,
+            "get_metric_window",
+            lambda *_args: {
+                "unit": "units",
+                "historical_start": "2025-01-01",
+                "historical_end": "2025-01-30",
+                "historical_days": 30,
+                "forecast_start": "2025-01-31",
+                "forecast_end": "2025-03-01",
+                "forecast_days": 30,
+            },
+        )
+
+        result = dashboard._compute_kpi(
+            all_f=[{"total_predicted": 12}],
+            products=[{"product_id": 1}],
+            stores=[{"store_id": 1}],
+            product_id=1,
+            store_id=1,
+        )
+
+        assert result["abc_distribution"] == {"A": 1, "B": 0, "C": 0}
+        assert demand_calls == [(30,)]
+
 
 class TestInventory:
     def test_inventory_returns_cells(self, client):

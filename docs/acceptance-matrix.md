@@ -13,8 +13,8 @@ This matrix is the execution checklist for `docs/product-v1.md`. A row is accept
 | AC-007 | Metrics | Quantity is labeled as quantity; monetary value is only shown after quantity-times-price calculation with currency | API schema and frontend contract test | Passed: quantity labels and `unit: "units"` |
 | AC-008 | Metrics | Historical 30-day and forecast 30-day windows expose explicit start/end dates and as-of date | API response test | Passed: KPI window contract and regression test |
 | AC-009 | Metrics | Top products, category totals, and KPI use one documented time window or clearly state different windows | Aggregation fixtures and UI review | Not started |
-| AC-010 | ABC | ABC population is fixed before scope filtering, with deterministic ties and threshold-boundary tests | `tests/test_abc.py`, dashboard fixture | Not started |
-| AC-011 | ABC | ABC is presented as demand priority and is not used alone as stockout risk | Schema/UI copy test | Not started |
+| AC-010 | ABC | ABC population is fixed before scope filtering, with deterministic ties and threshold-boundary tests | `tests/test_abc.py`, dashboard fixture | Passed: single-item, dominant-item, tie, zero, and scoped-population tests |
+| AC-011 | ABC | ABC is presented as demand priority and is not used alone as stockout risk | Schema/UI copy test | Partial: UI copy and domain wording pass; inventory risk formula remains TASK-016 |
 | AC-012 | Forecast | A product/store pair with insufficient history returns unavailable, not zero demand | Forecast API test | Not started |
 | AC-013 | Forecast | Forecast recursion updates all required future features from origin-known or previously predicted values | `tests/test_future_features.py` | Not started |
 | AC-014 | Forecast | Backtest uses identical origins, horizons, scopes, and eligible sample keys for models and baselines | `tests/test_backtest.py` | Not started |

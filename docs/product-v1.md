@@ -73,7 +73,7 @@ The product may run with generated data in demo mode, but every screen and API r
 - ABC is a demand-priority classification, not a stockout-risk classification.
 - V1 uses one documented population for a result: product-level across the selected business population, or product-store-level when explicitly requested.
 - The class population is fixed before applying a UI filter so an item's class does not silently change because the screen was filtered.
-- Default thresholds are A through 70% cumulative demand and B through 90% cumulative demand. A boundary-crossing item is assigned to the class that contains the cumulative demand after that item, with the rule covered by tests.
+- Default thresholds are A through 70% cumulative demand and B through 90% cumulative demand. The highest-demand item is always A so a one-item population remains actionable; subsequent items use cumulative demand after the current item, with threshold boundaries covered by tests.
 - An all-zero or empty population is `C` for every present item, but the UI must not interpret this as low stock risk.
 
 ### 3.5 Replenishment

@@ -35,6 +35,13 @@ def test_dashboard_surfaces_partial_forecast_coverage():
     assert "coverage.status" in script
 
 
+def test_abc_chart_is_labeled_as_demand_priority_not_stock_risk():
+    html = (PROJECT_ROOT / "frontend" / "index.html").read_text(encoding="utf-8")
+
+    assert "需求优先级热力图" in html
+    assert "库存热力图（ABC 分级）" not in html
+
+
 def test_dashboard_labels_quantity_metrics_without_revenue_claim():
     html = (PROJECT_ROOT / "frontend" / "index.html").read_text(encoding="utf-8")
     pie = (PROJECT_ROOT / "frontend" / "js" / "charts" / "category-pie.js").read_text(encoding="utf-8")

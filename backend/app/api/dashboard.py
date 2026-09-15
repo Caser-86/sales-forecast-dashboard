@@ -54,12 +54,14 @@ def _compute_kpi(
     accuracy = round(max(0.0, 100.0 - mape), 2)
     window = data_service.get_metric_window(30, settings.FORECAST_DAYS)
 
-    # ABC 分布按商品汇总最近 30 天需求量，不从门店等级取最高值近似。
-    if product_id is None and store_id is None:
-        product_demand = data_service.get_recent_product_demand(30)
-    else:
-        product_demand = data_service.get_recent_product_demand(30, product_id, store_id)
-    product_abc = classify_abc(product_demand)
+    # ABC 总体固定为全量商品，再按当前筛选范围取等级，避免筛选导致等级漂移。
+    global_product_demand = data_service.get_recent_product_demand(30)
+    global_product_abc = classify_abc(global_product_demand)
+    selected_product_ids = {p["product_id"] for p in products}
+    product_abc = {
+        product_id: global_product_abc.get(product_id, "C")
+        for product_id in selected_product_ids
+    }
     abc_dist = {"A": 0, "B": 0, "C": 0}
     for abc in product_abc.values():
         abc_dist[abc] = abc_dist.get(abc, 0) + 1
@@ -112,11 +114,13 @@ def get_dashboard(
         aggregate["predicted"] += int(f.get("total_predicted", 0))
         aggregate["suggested_purchase"] += int(f.get("suggested_purchase", 0))
 
-    if product_id is None and store_id is None:
-        demand = data_service.get_recent_product_demand(30)
-    else:
-        demand = data_service.get_recent_product_demand(30, product_id, store_id)
-    product_abc = classify_abc(demand)
+    global_product_demand = data_service.get_recent_product_demand(30)
+    global_product_abc = classify_abc(global_product_demand)
+    selected_product_ids = {p["product_id"] for p in products}
+    product_abc = {
+        selected_id: global_product_abc.get(selected_id, "C")
+        for selected_id in selected_product_ids
+    }
 
     top_products = []
     for t in top:
