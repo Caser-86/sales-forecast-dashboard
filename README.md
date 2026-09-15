@@ -204,6 +204,8 @@ docker compose config --quiet
 python scripts/benchmark_api.py --requests 100 --concurrency 10
 ```
 
+已记录的本地容量证据：10 并发持续 5 分钟访问单商品/门店 Dashboard，共 3,740 次请求，错误率 0%；后端 RSS 在 327.9-353.0MB 间波动。该结果来自 8 核/16 线程/约 23.3 GiB Windows 主机，不替代固定 4 核/8GB 参考环境复测。
+
 新增能力的测试重点：模型报告兼容旧格式、基线计算使用前一周数据、筛选结果的范围一致性、前端关键控件契约和 API 错误可见性。
 
 ## CI
