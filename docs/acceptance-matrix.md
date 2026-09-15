@@ -17,7 +17,7 @@ This matrix is the execution checklist for `docs/product-v1.md`. A row is accept
 | AC-011 | ABC | ABC is presented as demand priority and is not used alone as stockout risk | Schema/UI copy test | Partial: UI copy and domain wording pass; inventory risk formula remains TASK-016 |
 | AC-012 | Forecast | A product/store pair with insufficient history returns unavailable, not zero demand | Forecast API test | Not started |
 | AC-013 | Forecast | Forecast recursion updates all required future features from origin-known or previously predicted values | `tests/test_future_features.py` | Partial: shared helper covers calendar/lag/rolling recursion and predictor uses it; feature schema and retraining evidence remain |
-| AC-014 | Forecast | Backtest uses identical origins, horizons, scopes, and eligible sample keys for models and baselines | `tests/test_backtest.py` | Not started |
+| AC-014 | Forecast | Backtest uses identical origins, horizons, scopes, and eligible sample keys for models and baselines | `tests/test_backtest.py` | Partial: leakage-safe rolling kernel and matched model/baseline key tests pass; real model as-of adapter remains |
 | AC-015 | Forecast | Report includes horizon, origin count, sample count, per-horizon metrics, and segment metrics | Model report contract test | Not started |
 | AC-016 | Forecast | Model complexity does not override a stronger baseline | Model selection test and report review | Not started |
 | AC-017 | Intervals | Statistical intervals include target coverage, empirical coverage, calibration window, and sample size | Prediction interval report test | Not started |
