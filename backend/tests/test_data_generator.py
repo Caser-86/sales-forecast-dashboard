@@ -107,3 +107,33 @@ class TestGenerateSalesData:
         df1 = pd.read_csv(out1)
         df2 = pd.read_csv(out2)
         pd.testing.assert_frame_equal(df1, df2)
+
+
+class TestGenerateInventorySnapshot:
+    def test_inventory_snapshot_covers_each_product_store_pair(self, tmp_path):
+        sales_path = tmp_path / "sales.csv"
+        inventory_path = tmp_path / "inventory.csv"
+        gen.generate_sales_data(output_path=str(sales_path))
+
+        result_path = gen.generate_inventory_snapshot(
+            sales_path=str(sales_path),
+            output_path=str(inventory_path),
+        )
+
+        frame = pd.read_csv(result_path)
+        assert len(frame) == 100
+        assert frame[["product_id", "store_id"]].drop_duplicates().shape[0] == 100
+        assert set(gen.REQUIRED_INVENTORY_COLUMNS).issubset(frame.columns)
+        assert frame["on_hand"].ge(0).all()
+        assert frame["pack_size"].eq(12).all()
+
+    def test_inventory_snapshot_is_reproducible(self, tmp_path):
+        sales_path = tmp_path / "sales.csv"
+        out1 = tmp_path / "inventory-1.csv"
+        out2 = tmp_path / "inventory-2.csv"
+        gen.generate_sales_data(output_path=str(sales_path))
+
+        gen.generate_inventory_snapshot(str(sales_path), str(out1))
+        gen.generate_inventory_snapshot(str(sales_path), str(out2))
+
+        pd.testing.assert_frame_equal(pd.read_csv(out1), pd.read_csv(out2))

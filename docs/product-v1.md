@@ -67,6 +67,7 @@ The product may run with generated data in demo mode, but every screen and API r
 - The published model may be an ensemble, LightGBM, LSTM, or seasonal baseline. Selection is based on the same-origin backtest, not on model complexity.
 - Future features use only information known at the forecast origin plus explicitly documented assumptions. Future actual sales must never be used during recursive prediction.
 - An interval is called a statistical prediction interval only when its calibration target, empirical coverage, sample size, and calibration window are reported. Otherwise it is called an `情景范围` or omitted.
+- Statistical interval calibration is explicitly out of scope for V1; V1 uses the documented `情景范围` path until a reviewed calibration dataset and release requirement exist.
 
 ### 3.4 ABC priority
 

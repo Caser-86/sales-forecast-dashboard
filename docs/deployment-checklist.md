@@ -18,6 +18,8 @@ python scripts/train_models.py
 
 这一步是 GitHub 新克隆场景必需的，因为生成数据和模型文件被 `.gitignore` 排除，且 Compose 会把本机目录挂载进后端容器。
 
+其中 `init_data.py` 会生成并激活 100 个商品/门店组合的 Demo 库存快照；真实数据应使用 `scripts/import_inventory.py`，不要把 Demo 库存当作生产库存证据。
+
 首次需要覆盖 Compose 配置时复制环境模板；不要把生成的 `.env` 提交到 Git：
 
 ```bash

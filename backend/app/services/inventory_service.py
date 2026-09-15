@@ -14,17 +14,6 @@ from app.services import data_service, forecast_service
 from app.services.inventory_dataset_service import get_active_inventory_id, load_active_inventory_snapshot
 
 
-def _risk_level(predicted: int, suggested: int, abc: str) -> str:
-    """简单的风险等级判定。"""
-    if abc == "A" and suggested > 0:
-        # A 类商品：高周转，需重点关注
-        return "high"
-    elif abc == "B":
-        return "medium"
-    else:
-        return "low"
-
-
 def _snapshot_by_key():
     snapshot = load_active_inventory_snapshot()
     if snapshot is None:
@@ -61,6 +50,16 @@ def get_inventory(
         if not stores:
             raise NotFoundError(f"store_id={store_id} 不存在")
 
+    snapshot = load_active_inventory_snapshot()
+    if snapshot is None or snapshot.empty:
+        raise InventoryUnavailableError("缺少有效库存快照，请先导入库存数据")
+    _validate_snapshot_freshness(snapshot)
+    inventory_by_key = {
+        (int(row.product_id), int(row.store_id)): row
+        for row in snapshot.itertuples()
+    }
+    inventory_version = get_active_inventory_id()
+
     all_forecasts = forecast_service.get_forecast_all(products, stores)
     coverage = forecast_service.summarize_forecasts(all_forecasts)
     if coverage["requested"] and coverage["succeeded"] == 0:
@@ -68,43 +67,30 @@ def get_inventory(
 
     cells: List[Dict[str, Any]] = []
     risk_summary = {"high": 0, "medium": 0, "low": 0}
-    snapshot = load_active_inventory_snapshot()
-    if snapshot is not None:
-        _validate_snapshot_freshness(snapshot)
-    inventory_by_key = (
-        {(int(row.product_id), int(row.store_id)): row for row in snapshot.itertuples()}
-        if snapshot is not None else None
-    )
-    inventory_version = get_active_inventory_id() if snapshot is not None else None
 
     for f in all_forecasts:
         if "error" in f:
             continue
-        predicted = f["total_predicted"]
-        suggested = f["suggested_purchase"]
-        abc = f["abc_class"]
-        if inventory_by_key is not None:
-            inventory = inventory_by_key.get((f["product_id"], f["store_id"]))
-            if inventory is None:
-                raise InventoryUnavailableError(
-                    "库存快照缺少商品/门店记录："
-                    f"product_id={f['product_id']}, store_id={f['store_id']}"
-                )
-            policy = calculate_replenishment(
-                demand_forecast=[point["predicted_sales"] for point in f["forecast"]],
-                on_hand=inventory.on_hand,
-                confirmed_inbound=inventory.confirmed_inbound,
-                reserved=inventory.reserved,
-                lead_time_days=int(inventory.lead_time_days),
-                review_period_days=int(inventory.review_period_days),
-                safety_stock=inventory.safety_stock,
-                pack_size=int(inventory.pack_size),
-                minimum_order_quantity=int(inventory.minimum_order_quantity),
+        inventory = inventory_by_key.get((f["product_id"], f["store_id"]))
+        if inventory is None:
+            raise InventoryUnavailableError(
+                "库存快照缺少商品/门店记录："
+                f"product_id={f['product_id']}, store_id={f['store_id']}"
             )
-            suggested = int(policy["suggested_quantity"])
-            risk = str(policy["risk_level"])
-        else:
-            risk = _risk_level(predicted, suggested, abc)
+        policy = calculate_replenishment(
+            demand_forecast=[point["predicted_sales"] for point in f["forecast"]],
+            on_hand=inventory.on_hand,
+            confirmed_inbound=inventory.confirmed_inbound,
+            reserved=inventory.reserved,
+            lead_time_days=int(inventory.lead_time_days),
+            review_period_days=int(inventory.review_period_days),
+            safety_stock=inventory.safety_stock,
+            pack_size=int(inventory.pack_size),
+            minimum_order_quantity=int(inventory.minimum_order_quantity),
+        )
+        predicted = f["total_predicted"]
+        suggested = int(policy["suggested_quantity"])
+        risk = str(policy["risk_level"])
         risk_summary[risk] += 1
         cells.append({
             "product_id": f["product_id"],
@@ -113,22 +99,22 @@ def get_inventory(
             "store_name": f["store_name"],
             "predicted_sales": predicted,
             "suggested_purchase": suggested,
-            "abc_class": abc,
+            "abc_class": f["abc_class"],
             "risk_level": risk,
             "inventory_version": inventory_version,
-            "inventory_as_of_date": str(inventory.as_of_date.date()) if inventory_by_key is not None else None,
-            "window_demand": policy.get("window_demand") if inventory_by_key is not None else None,
-            "net_available": policy.get("net_available") if inventory_by_key is not None else None,
-            "target_stock": policy.get("target_stock") if inventory_by_key is not None else None,
-            "raw_replenishment": policy.get("raw_replenishment") if inventory_by_key is not None else None,
-            "on_hand": float(inventory.on_hand) if inventory_by_key is not None else None,
-            "confirmed_inbound": float(inventory.confirmed_inbound) if inventory_by_key is not None else None,
-            "reserved": float(inventory.reserved) if inventory_by_key is not None else None,
-            "lead_time_days": int(inventory.lead_time_days) if inventory_by_key is not None else None,
-            "review_period_days": int(inventory.review_period_days) if inventory_by_key is not None else None,
-            "safety_stock": float(inventory.safety_stock) if inventory_by_key is not None else None,
-            "pack_size": int(inventory.pack_size) if inventory_by_key is not None else None,
-            "minimum_order_quantity": int(inventory.minimum_order_quantity) if inventory_by_key is not None else None,
+            "inventory_as_of_date": str(inventory.as_of_date.date()),
+            "window_demand": policy["window_demand"],
+            "net_available": policy["net_available"],
+            "target_stock": policy["target_stock"],
+            "raw_replenishment": policy["raw_replenishment"],
+            "on_hand": float(inventory.on_hand),
+            "confirmed_inbound": float(inventory.confirmed_inbound),
+            "reserved": float(inventory.reserved),
+            "lead_time_days": int(inventory.lead_time_days),
+            "review_period_days": int(inventory.review_period_days),
+            "safety_stock": float(inventory.safety_stock),
+            "pack_size": int(inventory.pack_size),
+            "minimum_order_quantity": int(inventory.minimum_order_quantity),
         })
 
     return {

@@ -136,6 +136,25 @@ def test_inventory_service_uses_active_snapshot_policy(monkeypatch):
     assert result["cells"][0]["risk_level"] == "high"
 
 
+def test_inventory_service_rejects_missing_snapshot(monkeypatch):
+    from app.core.exceptions import InventoryUnavailableError
+    from app.services import inventory_service
+
+    monkeypatch.setattr(
+        inventory_service,
+        "load_active_inventory_snapshot",
+        lambda: None,
+    )
+    monkeypatch.setattr(
+        inventory_service.forecast_service,
+        "get_forecast_all",
+        lambda *_args: pytest.fail("missing inventory must fail before forecasting"),
+    )
+
+    with pytest.raises(InventoryUnavailableError, match="库存快照"):
+        inventory_service.get_inventory()
+
+
 def test_inventory_service_rejects_stale_snapshot(monkeypatch):
     from app.core.exceptions import InventoryUnavailableError
     from app.services import inventory_service

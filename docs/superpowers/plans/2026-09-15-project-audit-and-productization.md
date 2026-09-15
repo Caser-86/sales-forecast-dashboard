@@ -739,16 +739,16 @@ README、部署清单、演示稿、历史设计和计划齐全，且主动说�
 | TASK-004 | Docker构建排除 | P1 | M | 001 | 部分完成 | backend/frontend上下文规则与89条测试通过；实际镜像内容待Docker daemon恢复后验证 |
 | TASK-005 | liveness/readiness | P1 | M | 004 | 部分完成 | `/health`/`/ready`真实检查缺件与模型加载并503，`/live`独立存活；容器探针待Docker daemon恢复 |
 | TASK-006 | ID与预测失败语义 | P1 | M | 001 | 已完成 | 无效422/404、全失败503、部分失败coverage与前端警告已实现；97条测试、Ruff、JS语法通过 |
-| TASK-007 | ABC总体/边界 | P2 | M | 001、002 | 部分完成 | ABC单项/阈值/并列/全量总体稳定与需求优先级文案已完成；库存风险公式待TASK-016 |
+| TASK-007 | ABC总体/边界 | P2 | M | 001、002 | 已完成 | ABC单项/阈值/并列/全量总体稳定与需求优先级文案已完成；库存服务已移除 ABC-only 风险回退，缺少有效库存快照时明确返回不可用 |
 | TASK-008 | 数据契约/导入 | P1 | L | 001、006 | 部分完成 | 销售CSV校验、不可变版本、原子active指针和CLI已实现；库存快照与模型版本兼容待TASK-009/016 |
 | TASK-009 | 模型包/缓存版本 | P1 | L | 005、008 | 已完成（代码证据） | 模型包携带评估报告、manifest/checksum、data version、JSON scaler/feature schema和选择元数据；active原子切换、失败发布保留旧版本、模拟中断清理临时文件、fresh-process恢复和预测缓存data/model版本键均有测试；真实部署演练仍待Docker |
 | TASK-010 | 未来特征一致性 | P1 | L | 008、009 | 部分完成 | 共享future_features已接入LSTM/LightGBM，递推只使用历史/预测值，类别编码器和feature schema随模型包发布；真实重训和预测器smoke已验证，线上浏览器/部署证据待补 |
 | TASK-011 | 30天同口径回测 | P1 | L | 010 | 已完成 | validation 只用于选择 LSTM/LightGBM/seasonal-naive/候选集成权重，train+validation 重训后仅在 test 评估；报告记录同key、同horizon、per-horizon/segment指标，发布包按选择策略运行 |
-| TASK-012 | 区间校准/绘图 | P1 | M | 002、011 | 已完成（情景范围路径） | 未做统计校准，不再称为置信区间；API/前端明确scenario范围，图表使用下界+带宽且空历史不抛异常；真实浏览器截图待TASK-015 |
+| TASK-012 | 区间校准/绘图 | P1 | M | 002、011 | 已完成（情景范围路径） | 统计校准明确移出 V1，不再称为置信区间；API/前端明确scenario范围，图表使用下界+带宽且空历史不抛异常；真实浏览器截图待TASK-015 |
 | TASK-013 | 模型/依赖/内容安全 | P1 | L | 004、009 | 部分完成 | 模型包路径/checksum校验、Torch weights_only加载、JSON scaler/feature schema、tooltip HTML escape、随包ECharts和CI pip-audit门禁已实现；旧版flat joblib路径已禁止执行，Torch定向升级和可完成的依赖审计报告仍待补 |
 | TASK-014 | 请求一致性/恢复 | P2 | L | 002、003、005、006 | 部分完成 | API timeout/AbortSignal、dashboard/trend/heatmap请求序号与busy收尾已实现；真实浏览器 smoke 已验证初始化无 console error、CORS 和本地 ECharts，延迟乱序、断网恢复和错误重试证据待补 |
 | TASK-015 | 响应式/空态/无障碍 | P2 | M | 012、014 | 部分完成 | 1920/1366/390 三视口截图、1366 网格修复、移动端滚动、焦点样式、aria labels和键盘 Tab 路径已验证；真实 OS/browser 200%缩放和保存/导出键盘路径待补 |
-| TASK-016 | 库存与补货规则 | P1 | L | 007、008、011 | 部分完成 | inventory快照schema/CLI/active版本、可手算补货公式、MOQ/包装/缺输入/超horizon边界、freshness检查、库存拆解字段和缺少商品/门店记录的明确503已实现；人工调整/审批仍不在V1 |
+| TASK-016 | 库存与补货规则 | P1 | L | 007、008、011 | 部分完成 | inventory快照schema/CLI/active版本、可复现 Demo 快照生成、可手算补货公式、MOQ/包装/缺输入/超horizon边界、freshness检查、库存拆解字段和缺少商品/门店记录的明确503已实现；人工调整/审批仍不在V1 |
 | TASK-017 | 草案/导出/追溯 | P1 | L | 003、009、014、016 | 部分完成 | SQLite不可变快照、幂等键、partial拒收、重启/备份恢复、CSV安全导出、版本元数据和前端保存/导出入口已实现；人工调整编辑与浏览器E2E证据待补 |
 | TASK-018 | 元数据API/容量 | P2 | M | 008、009、014 | 部分完成 | `/api/stores` 与 `/api/metadata` 已实现，前端选择器不再触发预测；`scripts/benchmark_api.py`已提供可复现实测格式；模型报告已改为进程内单飞缓存并通过摘要接口限制响应体；实际 10 并发短压、冷启动和 5 分钟容量运行均达标，RSS 未见持续无界增长，但固定 4 核/8GB 复测和超容量拒绝策略待补 |
 | TASK-019 | 可验证同源部署 | P1 | M | 003、004、005、013 | 部分完成 | frontend nginx已反代同源API、计划数据库已持久化、Compose配置可解析；`scripts/deploy.sh` 已改为可配置路径、`docker compose`、健康检查、前端检查和失败日志；Docker daemon下的干净构建/启动和故障非0退出待补 |

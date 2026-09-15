@@ -66,6 +66,8 @@ python scripts/init_data.py
 python scripts/train_models.py
 ```
 
+`init_data.py` 会同时生成并激活与 Demo 销售数据匹配的库存快照；真实环境应改用 `scripts/import_inventory.py` 导入经过校验的库存文件。
+
 如果这些产物已经存在，可以跳过上面的步骤，直接启动：
 
 ```bash

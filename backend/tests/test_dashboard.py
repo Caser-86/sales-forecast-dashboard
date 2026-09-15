@@ -1,6 +1,41 @@
 """大屏聚合接口测试。"""
 from __future__ import annotations
 
+import pandas as pd
+import pytest
+
+
+@pytest.fixture
+def ready_inventory(monkeypatch):
+    from app.services import data_service, inventory_service
+
+    latest = data_service.load_sales()["date"].max()
+    rows = []
+    for product in data_service.get_products():
+        for store in data_service.get_stores():
+            rows.append({
+                "as_of_date": latest,
+                "product_id": product["product_id"],
+                "store_id": store["store_id"],
+                "on_hand": 100.0,
+                "confirmed_inbound": 0.0,
+                "reserved": 0.0,
+                "lead_time_days": 2,
+                "review_period_days": 2,
+                "safety_stock": 10.0,
+                "pack_size": 12,
+                "minimum_order_quantity": 24,
+            })
+    monkeypatch.setattr(
+        inventory_service,
+        "load_active_inventory_snapshot",
+        lambda: pd.DataFrame(rows),
+    )
+    monkeypatch.setattr(
+        inventory_service,
+        "get_active_inventory_id",
+        lambda: "inventory-0123456789abcdef",
+    )
 
 class TestDashboard:
     def test_dashboard_top_product_forecast_is_all_store_sum(self, monkeypatch):
@@ -231,7 +266,7 @@ class TestDashboard:
 
 
 class TestInventory:
-    def test_inventory_returns_cells(self, client):
+    def test_inventory_returns_cells(self, client, ready_inventory):
         """库存接口返回 100 个单元格 (20×5)。"""
         r = client.get("/api/inventory")
         assert r.status_code == 200
@@ -239,31 +274,30 @@ class TestInventory:
         assert body["total"] == 100
         assert len(body["cells"]) == 100
 
-    def test_inventory_cell_fields(self, client):
-        """单元格字段完整。"""
+    def test_inventory_response_contract(self, client, ready_inventory):
+        """单元格字段、风险汇总和风险枚举完整。"""
         r = client.get("/api/inventory")
+        assert r.status_code == 200
+        body = r.json()
+        assert body["risk_summary"]["high"] + body["risk_summary"]["medium"] + body["risk_summary"]["low"] == 100
         cell = r.json()["cells"][0]
         assert "product_id" in cell
         assert "store_id" in cell
         assert "predicted_sales" in cell
         assert "suggested_purchase" in cell
         assert "abc_class" in cell
-        assert "risk_level" in cell
+        assert cell["risk_level"] in ("high", "medium", "low")
 
-    def test_inventory_risk_summary(self, client):
-        """风险分布总和 = 100。"""
-        r = client.get("/api/inventory")
-        body = r.json()
-        risk = body["risk_summary"]
-        assert risk["high"] + risk["medium"] + risk["low"] == 100
+    def test_inventory_is_unavailable_without_snapshot(self, client, monkeypatch):
+        from app.services import inventory_service
 
-    def test_inventory_risk_level_valid(self, client):
-        """风险等级取值合法。"""
-        r = client.get("/api/inventory")
-        for cell in r.json()["cells"]:
-            assert cell["risk_level"] in ("high", "medium", "low")
+        monkeypatch.setattr(inventory_service, "load_active_inventory_snapshot", lambda: None)
+        response = client.get("/api/inventory")
 
-    def test_inventory_scope_filters_product_and_store(self, client):
+        assert response.status_code == 503
+        assert response.json()["error"]["code"] == "INVENTORY_UNAVAILABLE"
+
+    def test_inventory_scope_filters_product_and_store(self, client, ready_inventory):
         r = client.get("/api/inventory", params={"product_id": 1, "store_id": 1})
 
         assert r.status_code == 200
