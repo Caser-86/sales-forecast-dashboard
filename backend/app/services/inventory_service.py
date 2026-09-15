@@ -86,7 +86,10 @@ def get_inventory(
         if inventory_by_key is not None:
             inventory = inventory_by_key.get((f["product_id"], f["store_id"]))
             if inventory is None:
-                continue
+                raise InventoryUnavailableError(
+                    "库存快照缺少商品/门店记录："
+                    f"product_id={f['product_id']}, store_id={f['store_id']}"
+                )
             policy = calculate_replenishment(
                 demand_forecast=[point["predicted_sales"] for point in f["forecast"]],
                 on_hand=inventory.on_hand,

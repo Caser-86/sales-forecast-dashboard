@@ -168,3 +168,48 @@ def test_inventory_service_rejects_stale_snapshot(monkeypatch):
 
     with pytest.raises(InventoryUnavailableError):
         inventory_service.get_inventory()
+
+
+def test_inventory_service_rejects_missing_snapshot_key(monkeypatch):
+    from app.core.exceptions import InventoryUnavailableError
+    from app.services import inventory_service
+
+    monkeypatch.setattr(
+        inventory_service.data_service,
+        "get_products",
+        lambda: [{"product_id": 1, "product_name": "P1", "category": "食品"}],
+    )
+    monkeypatch.setattr(
+        inventory_service.data_service,
+        "get_stores",
+        lambda: [{"store_id": 1, "store_name": "S1"}],
+    )
+    monkeypatch.setattr(
+        inventory_service.data_service,
+        "load_sales",
+        lambda: pd.DataFrame({"date": [pd.Timestamp("2026-09-15")]}),
+    )
+    monkeypatch.setattr(
+        inventory_service.forecast_service,
+        "get_forecast_all",
+        lambda _products, _stores: [{
+            "product_id": 1,
+            "store_id": 1,
+            "total_predicted": 30,
+            "suggested_purchase": 10,
+            "abc_class": "A",
+            "forecast": [{"predicted_sales": 1}] * 30,
+        }],
+    )
+    monkeypatch.setattr(
+        inventory_service,
+        "load_active_inventory_snapshot",
+        lambda: pd.DataFrame({
+            "as_of_date": [pd.Timestamp("2026-09-15")],
+            "product_id": [2],
+            "store_id": [1],
+        }),
+    )
+
+    with pytest.raises(InventoryUnavailableError, match="product_id=1, store_id=1"):
+        inventory_service.get_inventory()
