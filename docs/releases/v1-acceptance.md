@@ -8,7 +8,8 @@ This document is the current sign-off record for the interview-ready V1 branch. 
 
 ## Verified baseline
 
-- Commit: `00f2de80c8adcc38d0fd6592171a420259cb93ea`
+- Current sign-off commit: `dfe8fa250652f43fc4ed1dde8a04d7a3160a756b`
+- Fresh-clone walkthrough evidence commit: `00f2de80c8adcc38d0fd6592171a420259cb93ea`
 - Local full suite: `160 passed`, coverage `90.66%`
 - Fresh Python 3.11 clone: `160 passed`, coverage `90.54%`, `pip check` clean
 - Fresh clone runtime: `/health=200`, `/ready=200`, 30-point forecast, plan save `201`, idempotent retry `200`, export `200`, restart reopen and SQLite restore verified
