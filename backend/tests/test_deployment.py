@@ -41,3 +41,16 @@ def test_compose_persists_plan_database_and_frontend_waits_for_backend():
     assert "DATABASE_URL=${DATABASE_URL:-sqlite:////app/data/dashboard.db}" in compose
     assert "condition: service_healthy" in compose
     assert "healthcheck:" in compose
+
+
+def test_deploy_script_uses_current_compose_and_fails_closed():
+    script = (PROJECT_ROOT / "scripts" / "deploy.sh").read_text(encoding="utf-8")
+
+    assert script.startswith("#!/bin/bash")
+    assert "docker compose build" in script
+    assert "docker-compose" not in script
+    assert 'BACKEND_URL="${BACKEND_URL:-http://127.0.0.1:8000}"' in script
+    assert 'FRONTEND_URL="${FRONTEND_URL:-http://127.0.0.1:3000}"' in script
+    assert '"${BACKEND_URL}/health"' in script
+    assert '"${PROJECT_DIR}/scripts/verify_deployment.sh" "$BACKEND_URL"' in script
+    assert "exit 1" in script
