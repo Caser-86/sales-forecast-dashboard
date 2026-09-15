@@ -34,7 +34,7 @@ This matrix is the execution checklist for `docs/product-v1.md`. A row is accept
 | AC-028 | Versioning | Cache keys and saved results include data/model/policy versions | Cache and plan snapshot test | Not started |
 | AC-029 | Security | Configured API authentication protects real routers, not only an unused helper | Auth integration tests | Passed: missing token 401 and correct token 200 on `/api/products` |
 | AC-030 | Security | Rate limiting has a real enforcement point and returns a documented response when exceeded | Repeated-request integration test | Passed: configured zero limit returns 429 with `Retry-After` |
-| AC-031 | Security | No real env file, token, logs, test data, or model artifacts enter the production image | Image content inspection | Not started |
+| AC-031 | Security | No real env file, token, logs, test data, or model artifacts enter the production image | Image content inspection | Pending: Docker Desktop Linux daemon unavailable; context rules pass |
 | AC-032 | Security | Untrusted model artifacts are rejected; dependencies are scanned and applicable high-severity findings are handled | Artifact negative test plus dependency report | Not started |
 | AC-033 | Security | Product/store text is rendered as text or safely escaped in tooltips and exports | XSS fixture test | Not started |
 | AC-034 | Frontend | Fast scope changes cannot let an older response overwrite a newer scope | Delayed-request browser test | Not started |

@@ -1,0 +1,11 @@
+# Secrets and local configuration
+.env
+.env.*
+
+# Development and repository metadata
+node_modules/
+dist/
+.git/
+.gitignore
+*.md
+*.log
