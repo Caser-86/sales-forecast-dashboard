@@ -7,7 +7,7 @@ from pathlib import Path
 import pandas as pd
 import pytest
 from app.core.exceptions import DatasetValidationError
-from app.services.dataset_service import get_active_sales_path, import_sales_dataset
+from app.services.dataset_service import activate_dataset, get_active_sales_path, import_sales_dataset
 
 
 def _write_sales_csv(path, rows=None):
@@ -74,6 +74,64 @@ def test_invalid_sales_dataset_does_not_replace_previous_active_version(tmp_path
 
     assert json.loads(active.read_text(encoding="utf-8"))["dataset_id"] == "old-version"
     assert not versions.exists()
+
+
+def test_activate_dataset_validates_existing_version_and_switches_active_pointer(tmp_path):
+    source = tmp_path / "sales.csv"
+    versions = tmp_path / "versions"
+    active = tmp_path / "active.json"
+    _write_sales_csv(source)
+    imported = import_sales_dataset(source, versions_dir=versions, active_file=active)
+    _write_sales_csv(source, rows=[
+        {
+            "date": "2025-01-03",
+            "product_id": 3,
+            "store_id": 3,
+            "product_name": "P3",
+            "store_name": "S3",
+            "category": "数码",
+            "sales": 8,
+            "price": 30.0,
+        },
+    ])
+    second = import_sales_dataset(source, versions_dir=versions, active_file=active)
+
+    result = activate_dataset(imported["dataset_id"], versions_dir=versions, active_file=active)
+
+    assert result["dataset_id"] == imported["dataset_id"]
+    assert json.loads(active.read_text(encoding="utf-8"))["dataset_id"] == imported["dataset_id"]
+    assert get_active_sales_path(active_file=active, versions_dir=versions).name == "sales_data.csv"
+    assert second["dataset_id"] != imported["dataset_id"]
+
+
+def test_activate_dataset_rejects_tampered_manifest_without_switching(tmp_path):
+    source = tmp_path / "sales.csv"
+    versions = tmp_path / "versions"
+    active = tmp_path / "active.json"
+    _write_sales_csv(source)
+    imported = import_sales_dataset(source, versions_dir=versions, active_file=active)
+    _write_sales_csv(source, rows=[
+        {
+            "date": "2025-01-03",
+            "product_id": 3,
+            "store_id": 3,
+            "product_name": "P3",
+            "store_name": "S3",
+            "category": "数码",
+            "sales": 8,
+            "price": 30.0,
+        },
+    ])
+    active_version = import_sales_dataset(source, versions_dir=versions, active_file=active)
+    manifest_path = Path(imported["manifest_path"])
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["rows"] = 999
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+
+    with pytest.raises(DatasetValidationError, match="manifest"):
+        activate_dataset(imported["dataset_id"], versions_dir=versions, active_file=active)
+
+    assert json.loads(active.read_text(encoding="utf-8"))["dataset_id"] == active_version["dataset_id"]
 
 
 @pytest.mark.parametrize(

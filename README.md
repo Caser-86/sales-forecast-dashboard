@@ -93,6 +93,7 @@ docker compose down
 ```
 
 更完整的启动、验收和面试前检查见 [`docs/deployment-checklist.md`](docs/deployment-checklist.md)。
+数据版本、模型版本和补货草案的回滚/恢复步骤见 [`docs/recovery-runbook.md`](docs/recovery-runbook.md)。
 
 ### 方式二：本地运行
 
@@ -233,6 +234,7 @@ sales-forecast-dashboard/
 ├── frontend/                # HTML、CSS、ECharts 图表和交互逻辑
 ├── scripts/                 # 数据初始化、训练和部署辅助脚本
 ├── docs/interview-demo.md   # 5 分钟面试演示稿
+├── docs/recovery-runbook.md # 数据、模型和草案恢复手册
 ├── docker-compose.yml
 └── README.md
 ```

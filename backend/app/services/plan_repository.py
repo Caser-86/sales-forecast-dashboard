@@ -4,8 +4,11 @@ from __future__ import annotations
 import csv
 import io
 import json
+import os
 import sqlite3
+import tempfile
 import uuid
+from contextlib import closing
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -56,7 +59,7 @@ class PlanRepository:
         return connection
 
     def _ensure_schema(self) -> None:
-        with self._connect() as connection:
+        with closing(self._connect()) as connection:
             connection.execute(
                 """
                 CREATE TABLE IF NOT EXISTS plan_drafts (
@@ -68,6 +71,7 @@ class PlanRepository:
                 )
                 """
             )
+            connection.commit()
 
     @staticmethod
     def _canonical_snapshot(snapshot: dict[str, Any]) -> str:
@@ -92,7 +96,7 @@ class PlanRepository:
         payload_hash = __import__("hashlib").sha256(canonical.encode("utf-8")).hexdigest()
         now = datetime.now(timezone.utc).isoformat(timespec="seconds")
 
-        with self._connect() as connection:
+        with closing(self._connect()) as connection:
             connection.execute("BEGIN IMMEDIATE")
             existing = connection.execute(
                 "SELECT plan_id, created_at, payload_hash, snapshot_json FROM plan_drafts WHERE idempotency_key = ?",
@@ -120,7 +124,7 @@ class PlanRepository:
         return SavedPlan(plan_id=plan_id, created_at=now, snapshot=json.loads(canonical), created=True)
 
     def get(self, plan_id: str) -> SavedPlan | None:
-        with self._connect() as connection:
+        with closing(self._connect()) as connection:
             row = connection.execute(
                 "SELECT plan_id, created_at, snapshot_json FROM plan_drafts WHERE plan_id = ?",
                 (plan_id,),
@@ -135,7 +139,7 @@ class PlanRepository:
         )
 
     def list(self, limit: int = 50) -> list[SavedPlan]:
-        with self._connect() as connection:
+        with closing(self._connect()) as connection:
             rows = connection.execute(
                 "SELECT plan_id, created_at, snapshot_json FROM plan_drafts "
                 "ORDER BY created_at DESC, plan_id DESC LIMIT ?",
@@ -201,3 +205,59 @@ class PlanRepository:
         finally:
             target.close()
             source.close()
+
+
+def _check_sqlite_database(path: Path) -> int:
+    if not path.is_file():
+        raise ValueError(f"SQLite 文件不存在: {path}")
+    connection = None
+    try:
+        connection = sqlite3.connect(path)
+        integrity = connection.execute("PRAGMA integrity_check").fetchone()[0]
+        if integrity != "ok":
+            raise ValueError(f"SQLite integrity_check 失败: {integrity}")
+        connection.execute("SELECT 1 FROM plan_drafts LIMIT 1").fetchone()
+        return int(connection.execute("SELECT COUNT(*) FROM plan_drafts").fetchone()[0])
+    except sqlite3.Error as exc:
+        raise ValueError(f"SQLite 备份结构无效: {exc}") from exc
+    finally:
+        if connection is not None:
+            connection.close()
+
+
+def restore_database(backup: str | Path, database: str | Path) -> dict[str, object]:
+    """Validate a plan backup and atomically replace the target SQLite file."""
+    backup_path = Path(backup).expanduser().resolve()
+    resolved_database = PlanRepository._resolve_database(database)
+    if resolved_database == ":memory:":
+        raise ValueError("恢复目标必须是 SQLite 文件")
+    database_path = Path(resolved_database)
+    if backup_path == database_path:
+        raise ValueError("备份文件和目标数据库不能是同一个文件")
+
+    plan_count = _check_sqlite_database(backup_path)
+    database_path.parent.mkdir(parents=True, exist_ok=True)
+    descriptor, temporary_name = tempfile.mkstemp(
+        prefix=f".{database_path.name}.restore.",
+        suffix=".tmp",
+        dir=database_path.parent,
+    )
+    temporary = Path(temporary_name)
+    os.close(descriptor)
+    try:
+        source = sqlite3.connect(backup_path)
+        target = sqlite3.connect(temporary)
+        try:
+            source.backup(target)
+        finally:
+            target.close()
+            source.close()
+        restored_count = _check_sqlite_database(temporary)
+        if restored_count != plan_count:
+            raise ValueError("恢复后草案数量与备份不一致")
+        os.replace(temporary, database_path)
+        if _check_sqlite_database(database_path) != plan_count:
+            raise ValueError("替换后草案数量与备份不一致")
+    finally:
+        temporary.unlink(missing_ok=True)
+    return {"backup": str(backup_path), "database": str(database_path), "plan_count": restored_count}

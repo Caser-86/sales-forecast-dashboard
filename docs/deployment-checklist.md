@@ -111,7 +111,7 @@ docker compose up -d --force-recreate backend
 以下内容不由本地检查证明，面试时应主动说明：
 
 - 当前数据由脚本生成，尚未接入真实 ERP/WMS 或数据库。
-- 模型是离线训练，尚未接入定时训练、漂移监控、模型注册和回滚。
+- 模型是离线训练，尚未接入定时训练、漂移监控和自动回滚；当前提供已发布模型包的手动回滚基础。
 - development 默认可不配置 Token；production 必须设置 `API_TOKEN`，当前单租户 API 路由已挂载 Token 依赖。
 - 公网 URL、域名、TLS、密钥托管、远程监控和 GitHub Actions 实际运行结果需要外部基础设施，本仓库本地检查未覆盖。
 

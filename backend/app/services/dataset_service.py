@@ -5,6 +5,7 @@ import hashlib
 import json
 import os
 import re
+import tempfile
 from datetime import timezone
 from pathlib import Path
 from typing import Any
@@ -78,6 +79,24 @@ def _default_versions_dir() -> Path:
 
 def _default_active_file() -> Path:
     return Path(settings.ACTIVE_DATASET_FILE)
+
+
+def _write_active_pointer(pointer_path: Path, dataset_id: str) -> None:
+    pointer_path.parent.mkdir(parents=True, exist_ok=True)
+    file_descriptor, temporary_name = tempfile.mkstemp(
+        prefix=f".{pointer_path.name}.",
+        dir=pointer_path.parent,
+    )
+    temporary = Path(temporary_name)
+    os.close(file_descriptor)
+    try:
+        temporary.write_text(
+            json.dumps({"dataset_id": dataset_id, "manifest": "manifest.json"}, ensure_ascii=False),
+            encoding="utf-8",
+        )
+        os.replace(temporary, pointer_path)
+    finally:
+        temporary.unlink(missing_ok=True)
 
 
 def get_active_dataset_id(*, active_file: Path | None = None) -> str:
@@ -170,13 +189,7 @@ def import_sales_dataset(
 
     if activate:
         pointer_path = Path(active_file) if active_file is not None else _default_active_file()
-        pointer_path.parent.mkdir(parents=True, exist_ok=True)
-        temporary = pointer_path.with_name(f".{pointer_path.name}.tmp")
-        temporary.write_text(
-            json.dumps({"dataset_id": dataset_id, "manifest": str(manifest_path.name)}, ensure_ascii=False),
-            encoding="utf-8",
-        )
-        os.replace(temporary, pointer_path)
+        _write_active_pointer(pointer_path, dataset_id)
 
     return {
         "dataset_id": dataset_id,
@@ -184,4 +197,56 @@ def import_sales_dataset(
         "manifest_path": str(manifest_path),
         "manifest": manifest,
         "active": activate,
+    }
+
+
+def activate_dataset(
+    dataset_id: str,
+    *,
+    versions_dir: Path | None = None,
+    active_file: Path | None = None,
+) -> dict[str, Any]:
+    """Validate an immutable dataset version and atomically make it active."""
+    if not isinstance(dataset_id, str) or not _DATASET_ID_PATTERN.fullmatch(dataset_id):
+        raise DatasetValidationError("数据集 ID 无效")
+
+    root = Path(versions_dir) if versions_dir is not None else _default_versions_dir()
+    version_dir = (root / dataset_id).resolve()
+    try:
+        version_dir.relative_to(root.resolve())
+    except ValueError as exc:
+        raise DatasetValidationError("数据集版本路径无效") from exc
+    sales_path = version_dir / "sales_data.csv"
+    manifest_path = version_dir / "manifest.json"
+    if not sales_path.is_file() or not manifest_path.is_file():
+        raise DatasetValidationError("数据集版本缺少 sales_data.csv 或 manifest.json")
+
+    try:
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        frame = validate_sales_frame(pd.read_csv(sales_path))
+    except DatasetValidationError:
+        raise
+    except (OSError, json.JSONDecodeError, ValueError, pd.errors.ParserError) as exc:
+        raise DatasetValidationError("数据集版本内容无效") from exc
+
+    if not isinstance(manifest, dict) or manifest.get("dataset_id") != dataset_id:
+        raise DatasetValidationError("数据集 manifest 与目录版本不匹配")
+    expected = {
+        "rows": len(frame),
+        "product_count": frame["product_id"].nunique(),
+        "store_count": frame["store_id"].nunique(),
+        "date_start": frame["date"].min().date().isoformat(),
+        "date_end": frame["date"].max().date().isoformat(),
+    }
+    if any(manifest.get(key) != value for key, value in expected.items()):
+        raise DatasetValidationError("数据集 manifest 与内容校验不一致")
+
+    pointer_path = Path(active_file) if active_file is not None else _default_active_file()
+    _write_active_pointer(pointer_path, dataset_id)
+    return {
+        "dataset_id": dataset_id,
+        "sales_path": str(sales_path),
+        "manifest_path": str(manifest_path),
+        "manifest": manifest,
+        "active": True,
     }
