@@ -65,7 +65,17 @@ jobs:
         run: docker compose build --pull=false
 
       - name: Start deployment stack
-        run: docker compose up -d
+        shell: bash
+        run: |
+          if ! docker compose up -d; then
+            echo "=== Compose state after startup failure ==="
+            docker compose ps -a
+            echo "=== Backend logs ==="
+            docker compose logs --no-color backend
+            echo "=== Container health metadata ==="
+            docker inspect sales-backend || true
+            exit 1
+          fi
 
       - name: Wait for deployment stack
         shell: bash
