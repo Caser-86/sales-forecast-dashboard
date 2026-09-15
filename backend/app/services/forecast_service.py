@@ -13,20 +13,46 @@ from typing import Any, Dict
 
 from app.core.config import settings
 from app.core.logging import get_logger
+from app.services.dataset_service import get_active_dataset_id
 
 _ml_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "ml")
 if _ml_dir not in sys.path:
     sys.path.insert(0, _ml_dir)
 
+from artifacts import get_active_model_id  # noqa: E402
+from predictor import ForecastPredictor  # noqa: E402
 from predictor import forecast as _forecast  # noqa: E402
 
 logger = get_logger(__name__)
 
 
 @lru_cache(maxsize=128)
-def get_forecast(product_id: int, store_id: int) -> Dict[str, Any]:
-    """获取 30 天预测结果（带缓存）。"""
+def _get_forecast_cached(
+    product_id: int,
+    store_id: int,
+    model_version: str,
+    data_version: str,
+) -> Dict[str, Any]:
+    """Cache predictions with the model and dataset versions in the key."""
     return _forecast(product_id, store_id)
+
+
+def get_forecast(product_id: int, store_id: int) -> Dict[str, Any]:
+    """获取 30 天预测结果（带模型与数据版本缓存）。"""
+    model_version = get_active_model_id()
+    data_version = get_active_dataset_id()
+    loaded = ForecastPredictor._instance
+    if loaded is not None and (
+        loaded.model_version != model_version or loaded.data_version != data_version
+    ):
+        ForecastPredictor.reset()
+    return _get_forecast_cached(product_id, store_id, model_version, data_version)
+
+
+def clear_forecast_cache() -> None:
+    """Clear cached predictions after an explicit data/model activation."""
+    _get_forecast_cached.cache_clear()
+    ForecastPredictor.reset()
 
 
 def summarize_forecasts(results: list[dict]) -> Dict[str, int | str]:

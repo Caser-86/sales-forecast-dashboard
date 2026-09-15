@@ -12,6 +12,7 @@ from __future__ import annotations
 import json
 import os
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Tuple
 
 import joblib
@@ -20,6 +21,7 @@ import numpy as np
 import pandas as pd
 import torch
 import torch.nn as nn
+from artifacts import publish_model_package
 from feature_engineering import (
     FEATURE_COLS,
     LSTM_FEATURE_COLS,
@@ -252,6 +254,16 @@ def eval_lgbm(model, test_df: pd.DataFrame) -> Tuple[pd.Series, dict]:
     return pd.Series(pred, index=test_df.index), metrics
 
 
+def _active_dataset_version() -> str:
+    """Read the active dataset ID without making training depend on imports."""
+    try:
+        from app.services.dataset_service import get_active_dataset_id
+
+        return get_active_dataset_id()
+    except Exception:
+        return os.environ.get("DATASET_VERSION", "legacy")
+
+
 # ---------------- 主流程 ----------------
 
 def train_all() -> dict:
@@ -319,6 +331,17 @@ def train_all() -> dict:
     with open(REPORT_PATH, "w", encoding="utf-8") as f:
         json.dump(report, f, ensure_ascii=False, indent=2)
     print(f"[4/4] 评估报告已保存 → {REPORT_PATH}")
+    data_version = _active_dataset_version()
+    package = publish_model_package(
+        Path(MODELS_DIR),
+        data_version=data_version,
+        activate=True,
+    )
+    report["metadata"]["model_id"] = package["model_id"]
+    report["metadata"]["data_version"] = data_version
+    with open(REPORT_PATH, "w", encoding="utf-8") as f:
+        json.dump(report, f, ensure_ascii=False, indent=2)
+    print(f"  模型版本已发布并激活 → {package['model_id']}")
     print("训练完成。")
     return report
 

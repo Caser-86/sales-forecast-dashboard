@@ -17,6 +17,9 @@ import lightgbm_model as lgbm_wrapper
 import numpy as np
 import pandas as pd
 import torch
+from app.core.exceptions import ModelArtifactError
+from app.services.dataset_service import get_active_dataset_id, get_active_sales_path
+from artifacts import get_active_model_dir, get_active_model_id, get_active_model_manifest
 from common.abc import classify_abc
 from feature_engineering import FEATURE_COLS, LSTM_FEATURE_COLS
 from lstm_model import SEQ_LEN, SalesLSTM
@@ -29,11 +32,6 @@ _CATEGORY_ENCODER = LabelEncoder().fit(["服装", "家居", "日化", "电子", 
 
 BACKEND_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 MODELS_DIR = os.path.join(BACKEND_DIR, "ml", "saved_models")
-LSTM_PATH = os.path.join(MODELS_DIR, "lstm_model.pth")
-LGBM_PATH = os.path.join(MODELS_DIR, "lightgbm_model.txt")
-SCALER_X_PATH = os.path.join(MODELS_DIR, "lstm_scaler_x.joblib")
-SCALER_Y_PATH = os.path.join(MODELS_DIR, "lstm_scaler_y.joblib")
-RAW_PATH = os.path.join(BACKEND_DIR, "data", "raw", "sales_data.csv")
 FEATURES_PATH = os.path.join(BACKEND_DIR, "data", "processed", "features.csv")
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -57,15 +55,23 @@ class ForecastPredictor:
 
     def __init__(self):
         import joblib
-        self.lstm: SalesLSTM = load_lstm(LSTM_PATH, DEVICE)
-        self.lgbm, self.feature_cols = lgbm_wrapper.load_model(LGBM_PATH)
-        self.scaler_x = joblib.load(SCALER_X_PATH)
-        self.scaler_y = joblib.load(SCALER_Y_PATH)
+        model_dir = get_active_model_dir()
+        self.model_version = get_active_model_id()
+        self.data_version = get_active_dataset_id()
+        manifest = get_active_model_manifest()
+        if manifest is not None and manifest.get("data_version") != self.data_version:
+            raise ModelArtifactError(
+                f"模型 {self.model_version} 与数据集 {self.data_version} 不匹配"
+            )
+        self.lstm: SalesLSTM = load_lstm(str(model_dir / "lstm_model.pth"), DEVICE)
+        self.lgbm, self.feature_cols = lgbm_wrapper.load_model(str(model_dir / "lightgbm_model.txt"))
+        self.scaler_x = joblib.load(model_dir / "lstm_scaler_x.joblib")
+        self.scaler_y = joblib.load(model_dir / "lstm_scaler_y.joblib")
         # 加载含工程特征的历史数据（用于构建 LSTM 输入序列与 LightGBM lag）
         self.history: pd.DataFrame = pd.read_csv(FEATURES_PATH)
         self.history["date"] = pd.to_datetime(self.history["date"])
         # raw 数据仅用于 ABC 分级时的总量统计
-        self.raw: pd.DataFrame = pd.read_csv(RAW_PATH)
+        self.raw: pd.DataFrame = pd.read_csv(get_active_sales_path())
         self.raw["date"] = pd.to_datetime(self.raw["date"])
         recent_start = self.raw["date"].max() - pd.Timedelta(days=29)
         recent_demand = (
@@ -86,6 +92,12 @@ class ForecastPredictor:
                 if cls._instance is None:
                     cls._instance = cls()
         return cls._instance
+
+    @classmethod
+    def reset(cls) -> None:
+        """Drop the loaded singleton so a newly activated model can be used."""
+        with cls._instance_lock:
+            cls._instance = None
 
     # ---------- 内部工具 ----------
 

@@ -80,6 +80,21 @@ def _default_active_file() -> Path:
     return Path(settings.ACTIVE_DATASET_FILE)
 
 
+def get_active_dataset_id(*, active_file: Path | None = None) -> str:
+    """Return the active dataset ID, or the legacy ID before imports exist."""
+    active_path = Path(active_file) if active_file is not None else _default_active_file()
+    if not active_path.exists():
+        return "legacy"
+    try:
+        pointer = json.loads(active_path.read_text(encoding="utf-8"))
+        dataset_id = pointer["dataset_id"]
+    except (OSError, json.JSONDecodeError, KeyError, TypeError):
+        _fail("active 数据集指针无效")
+    if not isinstance(dataset_id, str) or not _DATASET_ID_PATTERN.fullmatch(dataset_id):
+        _fail("active 数据集 ID 无效")
+    return dataset_id
+
+
 def get_active_sales_path(
     *,
     active_file: Path | None = None,
@@ -93,8 +108,9 @@ def get_active_sales_path(
         return fallback_path
 
     try:
-        pointer = json.loads(active_path.read_text(encoding="utf-8"))
-        dataset_id = pointer["dataset_id"]
+        dataset_id = get_active_dataset_id(active_file=active_path)
+    except DatasetValidationError:
+        raise
     except (OSError, json.JSONDecodeError, KeyError, TypeError):
         _fail("active 数据集指针无效")
 

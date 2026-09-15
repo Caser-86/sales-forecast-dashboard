@@ -89,6 +89,11 @@ class ModelNotTrainedError(ServiceUnavailableError):
     code = "MODEL_NOT_TRAINED"
 
 
+class ModelArtifactError(ServiceUnavailableError):
+    """模型产物缺失、损坏或不满足发布契约。"""
+    code = "MODEL_ARTIFACT_INVALID"
+
+
 class ForecastUnavailableError(ServiceUnavailableError):
     """预测服务无法为请求范围提供可用结果。"""
     code = "FORECAST_UNAVAILABLE"

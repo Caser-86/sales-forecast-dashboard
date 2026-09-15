@@ -87,3 +87,29 @@ def test_forecast_all_isolates_single_item_failure(monkeypatch):
     assert result[0]["total_predicted"] == 10
     assert result[1]["error"] == "model unavailable"
     assert "total_predicted" not in result[1]
+
+
+def test_forecast_cache_key_includes_active_versions(monkeypatch):
+    import app.services.forecast_service as service
+
+    versions = {"model": "model-a", "data": "sales-a"}
+    calls = []
+
+    def fake_forecast(product_id, store_id):
+        calls.append((product_id, store_id))
+        return {"product_id": product_id, "store_id": store_id}
+
+    monkeypatch.setattr(service, "_forecast", fake_forecast)
+    monkeypatch.setattr(service, "get_active_model_id", lambda: versions["model"])
+    monkeypatch.setattr(service, "get_active_dataset_id", lambda: versions["data"])
+    service.clear_forecast_cache()
+
+    service.get_forecast(1, 1)
+    service.get_forecast(1, 1)
+    versions["model"] = "model-b"
+    service.get_forecast(1, 1)
+    versions["data"] = "sales-b"
+    service.get_forecast(1, 1)
+
+    assert calls == [(1, 1), (1, 1), (1, 1)]
+    service.clear_forecast_cache()

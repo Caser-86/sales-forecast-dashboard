@@ -11,6 +11,7 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = SCRIPT_DIR.parent
 BACKEND_DIR = PROJECT_ROOT / "backend"
 sys.path.insert(0, str(BACKEND_DIR / "ml"))
+sys.path.insert(0, str(BACKEND_DIR))
 
 from trainer import train_all  # noqa: E402
 

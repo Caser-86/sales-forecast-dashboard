@@ -53,6 +53,8 @@ class Settings(BaseSettings):
     DATA_RAW_DIR: str = str(BACKEND_DIR / "data" / "raw")
     DATA_PROCESSED_DIR: str = str(BACKEND_DIR / "data" / "processed")
     MODELS_DIR: str = str(BACKEND_DIR / "ml" / "saved_models")
+    MODEL_VERSIONS_DIR: str = str(BACKEND_DIR / "ml" / "saved_models" / "versions")
+    ACTIVE_MODEL_FILE: str = str(BACKEND_DIR / "ml" / "saved_models" / "active_model.json")
     DATASET_VERSIONS_DIR: str = str(BACKEND_DIR / "data" / "raw" / "versions")
     ACTIVE_DATASET_FILE: str = str(BACKEND_DIR / "data" / "raw" / "active_dataset.json")
 
@@ -106,6 +108,7 @@ class Settings(BaseSettings):
         Path(self.DATA_RAW_DIR).mkdir(parents=True, exist_ok=True)
         Path(self.DATA_PROCESSED_DIR).mkdir(parents=True, exist_ok=True)
         Path(self.MODELS_DIR).mkdir(parents=True, exist_ok=True)
+        Path(self.MODEL_VERSIONS_DIR).mkdir(parents=True, exist_ok=True)
         Path(self.DATASET_VERSIONS_DIR).mkdir(parents=True, exist_ok=True)
 
     # ---------- 兼容旧代码的路径常量 ----------
@@ -150,6 +153,8 @@ SALES_CSV = settings.SALES_CSV
 FEATURES_CSV = settings.FEATURES_CSV
 REPORT_JSON = settings.REPORT_JSON
 MODELS_DIR = Path(settings.MODELS_DIR)
+MODEL_VERSIONS_DIR = Path(settings.MODEL_VERSIONS_DIR)
+ACTIVE_MODEL_FILE = Path(settings.ACTIVE_MODEL_FILE)
 LSTM_PATH = settings.LSTM_PATH
 LGBM_PATH = settings.LGBM_PATH
 DATABASE_URL = settings.DATABASE_URL

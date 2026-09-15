@@ -9,6 +9,7 @@ from fastapi import APIRouter
 from fastapi.responses import JSONResponse
 
 from app.core.config import settings
+from app.services.dataset_service import get_active_sales_path
 
 router = APIRouter(tags=["健康检查"])
 
@@ -45,15 +46,28 @@ def _model_runtime_status() -> str:
 
 
 def _readiness_payload() -> Dict[str, Any]:
-    models_dir = Path(settings.MODELS_DIR)
+    try:
+        from artifacts import get_active_model_dir
+
+        models_dir = get_active_model_dir()
+    except Exception:
+        models_dir = None
+    try:
+        sales_path = get_active_sales_path()
+    except Exception:
+        sales_path = None
+
+    def model_file(name: str) -> str:
+        return _file_status(models_dir / name) if models_dir is not None else "unreadable"
+
     checks: Dict[str, Dict[str, str]] = {
-        "sales_data": {"status": _file_status(settings.SALES_CSV)},
+        "sales_data": {"status": _file_status(sales_path) if sales_path is not None else "unreadable"},
         "features": {"status": _file_status(settings.FEATURES_CSV)},
         "evaluation_report": {"status": _report_status(settings.REPORT_JSON)},
-        "lstm_model": {"status": _file_status(settings.LSTM_PATH)},
-        "lightgbm_model": {"status": _file_status(settings.LGBM_PATH)},
-        "lstm_scaler_x": {"status": _file_status(models_dir / "lstm_scaler_x.joblib")},
-        "lstm_scaler_y": {"status": _file_status(models_dir / "lstm_scaler_y.joblib")},
+        "lstm_model": {"status": model_file("lstm_model.pth")},
+        "lightgbm_model": {"status": model_file("lightgbm_model.txt")},
+        "lstm_scaler_x": {"status": model_file("lstm_scaler_x.joblib")},
+        "lstm_scaler_y": {"status": model_file("lstm_scaler_y.joblib")},
     }
 
     assets_ready = all(check["status"] == "ok" for check in checks.values())
