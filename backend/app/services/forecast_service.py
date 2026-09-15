@@ -29,6 +29,20 @@ def get_forecast(product_id: int, store_id: int) -> Dict[str, Any]:
     return _forecast(product_id, store_id)
 
 
+def summarize_forecasts(results: list[dict]) -> Dict[str, int | str]:
+    """Summarize successful and failed combinations without treating failures as zero."""
+    requested = len(results)
+    failed = sum(1 for item in results if "error" in item)
+    succeeded = requested - failed
+    status = "ok" if failed == 0 else ("partial" if succeeded else "unavailable")
+    return {
+        "status": status,
+        "requested": requested,
+        "succeeded": succeeded,
+        "failed": failed,
+    }
+
+
 def get_forecast_all(products: list[dict], stores: list[dict]) -> list[dict]:
     """获取所有商品×门店的预测，返回稳定顺序的精简列表。
 
@@ -76,10 +90,6 @@ def get_forecast_all(products: list[dict], stores: list[dict]) -> list[dict]:
                     "store_id": sid,
                     "store_name": s["store_name"],
                     "error": str(e),
-                    "total_predicted": 0,
-                    "suggested_purchase": 0,
-                    "abc_class": "C",
-                    "forecast": [],
                 }
 
     return [results[(p["product_id"], s["store_id"])] for p, s in items]

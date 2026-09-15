@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, List
 
-from app.core.exceptions import NotFoundError
+from app.core.exceptions import ForecastUnavailableError, NotFoundError
 from app.services import data_service, forecast_service
 
 
@@ -38,6 +38,9 @@ def get_inventory(
             raise NotFoundError(f"store_id={store_id} 不存在")
 
     all_forecasts = forecast_service.get_forecast_all(products, stores)
+    coverage = forecast_service.summarize_forecasts(all_forecasts)
+    if coverage["requested"] and coverage["succeeded"] == 0:
+        raise ForecastUnavailableError("当前范围内没有可用库存预测")
 
     cells: List[Dict[str, Any]] = []
     risk_summary = {"high": 0, "medium": 0, "low": 0}
@@ -65,4 +68,5 @@ def get_inventory(
         "total": len(cells),
         "cells": cells,
         "risk_summary": risk_summary,
+        "coverage": coverage,
     }

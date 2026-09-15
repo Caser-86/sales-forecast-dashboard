@@ -86,4 +86,4 @@ def test_forecast_all_isolates_single_item_failure(monkeypatch):
 
     assert result[0]["total_predicted"] == 10
     assert result[1]["error"] == "model unavailable"
-    assert result[1]["total_predicted"] == 0
+    assert "total_predicted" not in result[1]

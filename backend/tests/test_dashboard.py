@@ -136,6 +136,54 @@ class TestDashboard:
         assert len(body["top_products"]) == 1
         assert body["top_products"][0]["product_id"] == 1
 
+    def test_dashboard_reports_partial_forecast_coverage(self, client, monkeypatch):
+        """部分预测失败时返回覆盖率，而不是静默丢弃失败项。"""
+        from app.services import forecast_service
+
+        monkeypatch.setattr(
+            forecast_service,
+            "get_forecast_all",
+            lambda _products, _stores: [
+                {
+                    "product_id": 1,
+                    "product_name": "P1",
+                    "category": "服装",
+                    "store_id": 1,
+                    "store_name": "S1",
+                    "total_predicted": 10,
+                    "suggested_purchase": 11,
+                    "abc_class": "A",
+                    "forecast": [],
+                },
+                {"product_id": 1, "store_id": 2, "error": "model unavailable"},
+            ],
+        )
+
+        response = client.get("/api/dashboard", params={"product_id": 1})
+
+        assert response.status_code == 200
+        assert response.json()["coverage"] == {
+            "status": "partial",
+            "requested": 2,
+            "succeeded": 1,
+            "failed": 1,
+        }
+
+    def test_dashboard_returns_503_when_all_forecasts_fail(self, client, monkeypatch):
+        """所有预测失败时不能返回总量为零的正常大屏。"""
+        from app.services import forecast_service
+
+        monkeypatch.setattr(
+            forecast_service,
+            "get_forecast_all",
+            lambda _products, _stores: [{"product_id": 1, "store_id": 1, "error": "model unavailable"}],
+        )
+
+        response = client.get("/api/dashboard", params={"product_id": 1, "store_id": 1})
+
+        assert response.status_code == 503
+        assert response.json()["error"]["code"] == "FORECAST_UNAVAILABLE"
+
 
 class TestInventory:
     def test_inventory_returns_cells(self, client):

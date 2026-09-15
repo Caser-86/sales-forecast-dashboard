@@ -82,3 +82,8 @@ class DataNotInitializedError(ServiceUnavailableError):
 class ModelNotTrainedError(ServiceUnavailableError):
     """模型未训练。"""
     code = "MODEL_NOT_TRAINED"
+
+
+class ForecastUnavailableError(ServiceUnavailableError):
+    """预测服务无法为请求范围提供可用结果。"""
+    code = "FORECAST_UNAVAILABLE"

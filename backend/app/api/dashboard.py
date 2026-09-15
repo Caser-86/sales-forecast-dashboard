@@ -8,7 +8,7 @@ from common.abc import classify_abc
 from fastapi import APIRouter, Query
 
 from app.core.config import settings
-from app.core.exceptions import NotFoundError
+from app.core.exceptions import ForecastUnavailableError, NotFoundError
 from app.schemas import DashboardData, InventoryResult, KpiResult
 from app.services import data_service, forecast_service, inventory_service
 
@@ -40,7 +40,10 @@ def _compute_kpi(
     # 所有商品×门店的预测总量（与 total_sales 同口径）
     if all_f is None:
         all_f = forecast_service.get_forecast_all(products, stores)
-    total_predicted = sum(f.get("total_predicted", 0) for f in all_f)
+    coverage = forecast_service.summarize_forecasts(all_f)
+    if coverage["requested"] and coverage["succeeded"] == 0:
+        raise ForecastUnavailableError("当前范围内没有可用预测")
+    total_predicted = sum(f["total_predicted"] for f in all_f if "error" not in f)
 
     # 增长率
     growth_rate = round((total_predicted - total_sales) / total_sales * 100, 2) if total_sales else 0.0
@@ -71,6 +74,7 @@ def _compute_kpi(
         "accuracy": accuracy,
         "mape": round(float(mape), 2),
         "window": window,
+        "coverage": coverage,
         "sku_count": len(products),
         "alert_count": alert_count,
         "abc_distribution": abc_dist,
@@ -140,6 +144,7 @@ def get_dashboard(
         "abc_distribution": kpi["abc_distribution"],
         "top_products": top_products,
         "category_sales": category_sales,
+        "coverage": kpi["coverage"],
         "last_updated": datetime.now().isoformat(timespec="seconds"),
     }
 

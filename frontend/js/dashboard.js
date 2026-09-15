@@ -143,6 +143,12 @@ async function loadDashboard() {
     const scope = currentScope();
     try {
         const dashboard = await api.getDashboard(scope);
+        const coverage = dashboard.coverage || {};
+        if (coverage.status === "partial") {
+            showDashboardError(
+                `预测覆盖不完整：成功 ${coverage.succeeded}/${coverage.requested}，失败 ${coverage.failed} 项`
+            );
+        }
         KpiCards.render(dashboard.kpi);
         CategoryPieChart.load(dashboard.category_sales);
         TopProductsChart.load(dashboard.top_products);

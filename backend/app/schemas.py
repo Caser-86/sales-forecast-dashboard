@@ -59,6 +59,13 @@ class MetricWindow(BaseModel):
     forecast_days: int
 
 
+class ForecastCoverage(BaseModel):
+    status: str
+    requested: int
+    succeeded: int
+    failed: int
+
+
 class Kpi(BaseModel):
     total_sales: int
     total_predicted: int
@@ -66,6 +73,7 @@ class Kpi(BaseModel):
     accuracy: float
     mape: float
     window: MetricWindow
+    coverage: ForecastCoverage
     sku_count: int
     alert_count: int
 
@@ -91,6 +99,7 @@ class DashboardData(BaseModel):
     abc_distribution: Dict[str, int]
     top_products: List[TopProduct]
     category_sales: List[CategorySales]
+    coverage: ForecastCoverage
     last_updated: str
 
 
@@ -109,6 +118,7 @@ class InventoryResult(BaseModel):
     total: int
     cells: List[InventoryCell]
     risk_summary: Dict[str, int]
+    coverage: ForecastCoverage
 
 
 class KpiResult(BaseModel):
@@ -118,6 +128,7 @@ class KpiResult(BaseModel):
     accuracy: float
     mape: float
     window: MetricWindow
+    coverage: ForecastCoverage
     sku_count: int
     alert_count: int
     abc_distribution: Dict[str, int]

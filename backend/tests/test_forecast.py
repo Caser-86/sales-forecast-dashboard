@@ -61,3 +61,16 @@ class TestForecast:
         })
         body = r.json()
         assert body["suggested_purchase"] >= body["total_predicted"]
+
+    def test_forecast_rejects_negative_ids(self, client):
+        """预测 ID 必须在请求校验阶段拒绝负数。"""
+        response = client.get("/api/forecast", params={"product_id": -1, "store_id": 1})
+
+        assert response.status_code == 422
+
+    def test_forecast_returns_404_for_unknown_product(self, client):
+        """不存在的商品应返回明确的 404，而不是模型内部错误。"""
+        response = client.get("/api/forecast", params={"product_id": 99999, "store_id": 1})
+
+        assert response.status_code == 404
+        assert response.json()["error"]["code"] == "NOT_FOUND"

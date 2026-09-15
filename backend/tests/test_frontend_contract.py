@@ -27,6 +27,14 @@ def test_frontend_api_exposes_quality_endpoints():
     assert "store_id" in api
 
 
+def test_dashboard_surfaces_partial_forecast_coverage():
+    script = (PROJECT_ROOT / "frontend" / "js" / "dashboard.js").read_text(encoding="utf-8")
+
+    assert "dashboard.coverage" in script
+    assert "coverage.failed" in script
+    assert "coverage.status" in script
+
+
 def test_dashboard_labels_quantity_metrics_without_revenue_claim():
     html = (PROJECT_ROOT / "frontend" / "index.html").read_text(encoding="utf-8")
     pie = (PROJECT_ROOT / "frontend" / "js" / "charts" / "category-pie.js").read_text(encoding="utf-8")
