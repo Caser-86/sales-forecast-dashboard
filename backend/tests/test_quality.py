@@ -20,8 +20,9 @@ class TestQualityEndpoints:
             assert backtest["protocol"]["horizon_days"] == 30
             assert backtest["protocol"]["origin_count"] > 0
             assert backtest["lstm"]["samples"] > 0
-            assert len(backtest["lstm"]["per_horizon"]) == 30
-            assert backtest["lstm"]["segments"]
+            assert backtest["lstm"]["per_horizon_count"] == 30
+            assert backtest["lstm"]["segment_count"] == 100
+            assert len(r.content) < 100_000
 
     def test_data_quality_exposes_integrity_checks(self, client):
         r = client.get("/api/data-quality")

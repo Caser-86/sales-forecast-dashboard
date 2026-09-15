@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 from functools import lru_cache
+from threading import Lock
 from typing import Any, Dict, List
 
 import pandas as pd
@@ -17,6 +18,8 @@ from app.core.logging import get_logger
 from app.services.dataset_service import get_active_sales_path
 
 logger = get_logger(__name__)
+_REPORT_CACHE: Dict[str, Any] | None = None
+_REPORT_LOCK = Lock()
 
 
 @lru_cache(maxsize=1)
@@ -35,14 +38,72 @@ def load_sales() -> pd.DataFrame:
     return df
 
 
-@lru_cache(maxsize=1)
 def load_report() -> Dict[str, Any]:
     """加载模型评估报告。"""
-    if not REPORT_JSON.exists():
+    global _REPORT_CACHE
+    if _REPORT_CACHE is not None:
+        return _REPORT_CACHE
+    with _REPORT_LOCK:
+        if _REPORT_CACHE is not None:
+            return _REPORT_CACHE
+        if not REPORT_JSON.exists():
+            _REPORT_CACHE = {}
+        else:
+            import json
+
+            with open(REPORT_JSON, "r", encoding="utf-8") as f:
+                _REPORT_CACHE = json.load(f)
+        return _REPORT_CACHE
+
+
+def _metric_summary(metrics: Any) -> Dict[str, Any]:
+    """Keep model-info compact while retaining report traceability counts."""
+    if not isinstance(metrics, dict):
         return {}
-    import json
-    with open(REPORT_JSON, "r", encoding="utf-8") as f:
-        return json.load(f)
+    fields = ("samples", "mape_samples", "mae", "rmse", "wape", "mape")
+    summary = {field: metrics[field] for field in fields if field in metrics}
+    summary["per_horizon_count"] = len(metrics.get("per_horizon", {}))
+    summary["segment_count"] = len(metrics.get("segments", {}))
+    return summary
+
+
+def _backtest_summary(backtest: Any) -> Dict[str, Any]:
+    """Expose a bounded API summary; keep the full report in the artifact file."""
+    if not isinstance(backtest, dict):
+        return {}
+    model_names = ("lstm", "lightgbm", "seasonal_naive_7d")
+    summary: Dict[str, Any] = {
+        "protocol": backtest.get("protocol", {}),
+        **{
+            name: _metric_summary(backtest.get(name))
+            for name in model_names
+            if isinstance(backtest.get(name), dict)
+        },
+    }
+    selected = backtest.get("selected")
+    if isinstance(selected, dict):
+        summary["selected"] = {
+            "strategy": selected.get("strategy"),
+            "candidate": selected.get("candidate"),
+            "metrics": _metric_summary(selected.get("metrics")),
+        }
+    selection = backtest.get("selection")
+    if isinstance(selection, dict):
+        selected_meta = selection.get("selected")
+        candidates = selection.get("candidates")
+        summary["selection"] = {
+            "protocol": selection.get("protocol", {}),
+            "selected": {
+                key: selected_meta.get(key)
+                for key in ("candidate", "strategy", "weights", "metric", "score", "ranking")
+                if isinstance(selected_meta, dict) and key in selected_meta
+            },
+            "candidates": {
+                str(name): _metric_summary(metrics)
+                for name, metrics in candidates.items()
+            } if isinstance(candidates, dict) else {},
+        }
+    return summary
 
 
 def get_model_info() -> Dict[str, Any]:
@@ -80,7 +141,7 @@ def get_model_info() -> Dict[str, Any]:
         "model_selection": model_selection,
         "split": split,
         "metrics": metrics,
-        "backtest": metadata.get("rolling_backtest", {}),
+        "backtest": _backtest_summary(metadata.get("rolling_backtest", {})),
     }
 
 

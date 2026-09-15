@@ -42,12 +42,12 @@ This matrix is the execution checklist for `docs/product-v1.md`. A row is accept
 | AC-036 | Frontend | Trend chart handles empty history and draws the intended lower/upper interval band | Chart unit/browser test | Partial: empty-history guard and lower-plus-width band are covered by frontend contract/static checks; browser rendering evidence remains |
 | AC-037 | Accessibility | Core selection, refresh, save, and export flow is keyboard reachable and labeled | Browser keyboard test | Partial: real Tab traversal reaches scope selectors, refresh, plan name, trend selectors, and chart aria nodes; save/export remain unexercised because the current inventory state correctly disables them |
 | AC-038 | Responsive | 1920x1080, 1366x768, 390x844, and 200% zoom preserve access to core actions | Browser screenshots and checklist | Partial: real screenshots pass at 1920x1080, 1366x768, and 390x844; a 200% CSS-zoom proxy keeps refresh/save visible, while an OS/browser zoom run remains |
-| AC-039 | Performance | On a fixed 4-core/8GB reference environment, warm read API P95 <=500ms and cold full dashboard <=10s | Benchmark script output | Not started |
+| AC-039 | Performance | On a fixed 4-core/8GB reference environment, warm read API P95 <=500ms and cold full dashboard <=10s | Benchmark script output | Partial: on the available 8-core/16-thread/23.3 GiB Windows host, 100 warm `/api/model-info` requests at concurrency 10 completed with P95 43.65ms and a cold `/api/dashboard` request completed in 909.82ms; the required 4-core/8GB reference rerun remains |
 | AC-040 | Performance | Ten concurrent users for five minutes keep error rate below 1% without unbounded memory growth | Load test report | Not started |
 | AC-041 | Deployment | Clean clone can install, validate, build, start, and verify without hidden local artifacts | Deployment transcript | Not started |
 | AC-042 | Deployment | Readiness failure and backend outage make deployment verification exit non-zero | Fault-injected deployment test | Not started |
 | AC-043 | Recovery | Dataset/model rollback and replenishment-draft backup/restore are each exercised once | Recovery runbook evidence | Not started |
-| AC-044 | Tests | Core domain/data branches reach at least 85% coverage and critical failure paths are present | Coverage report plus test list | Passed: 151 tests, 91.37% measured coverage, Ruff and failure-path tests pass |
+| AC-044 | Tests | Core domain/data branches reach at least 85% coverage and critical failure paths are present | Coverage report plus test list | Passed: 152 tests, 91.34% measured coverage, Ruff and failure-path tests pass |
 | AC-045 | Docs | A non-author developer follows README to import, forecast, save, export, and recover a draft | Fresh-environment walkthrough | Not started |
 | AC-046 | Release | No P0/P1 remains open; all exceptions have owner, rationale, and target release | Release sign-off in `docs/releases/` | Not started |
 
