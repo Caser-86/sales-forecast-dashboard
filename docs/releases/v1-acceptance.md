@@ -4,7 +4,7 @@
 
 **Status: NOT READY FOR RELEASE**
 
-This document is the current sign-off record for the interview-ready V1 branch. It is intentionally not a release approval: the acceptance matrix still contains dependency-source and browser-zoom evidence gaps.
+This document is the current sign-off record for the interview-ready V1 branch. It is intentionally not a release approval: the acceptance matrix still contains a browser-zoom evidence gap.
 
 ## Verified baseline
 
@@ -21,7 +21,6 @@ This document is the current sign-off record for the interview-ready V1 branch. 
 
 | Acceptance | Owner | Rationale | Target release | Evidence needed |
 |---|---|---|---|---|
-| AC-032 | Security reviewer | `pip-audit 2.7.3` can audit the rebuilt image's PyPI dependencies, but cannot resolve the CPU-index package `torch==2.5.1+cpu` from PyPI | Before first V1 tag | Run a supported audit workflow for the CPU wheel, record findings, and resolve or explicitly accept every applicable high-severity issue |
 | AC-038 | Frontend QA | Desktop/mobile screenshots and a CSS-zoom proxy pass, but the required 200% OS/browser zoom run is not proven | Before first V1 tag | Execute the 200% zoom run on the target browser matrix and attach repeatable screenshots/output |
 
 ## Release gate

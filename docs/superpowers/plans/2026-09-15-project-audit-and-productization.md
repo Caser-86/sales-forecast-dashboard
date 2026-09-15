@@ -246,9 +246,9 @@ FastAPI -> 明确数据快照 -> 共享预测服务 -> 版本化缓存
 | AI专项 | 无LLM/Agent/RAG，Prompt Injection、Tool权限、RAG污染不适用；适用的是数据投毒、模型供应链、预测输出有限值与合理范围校验 |
 | 第三方前端资源 | ECharts 已固定版本随前端发布并记录许可证；新增第三方资源仍需同样审计 |
 
-**已核验依赖安全证据：** PyTorch官方GHSA-53q9-r3pm-6pq6说明 `<=2.5.1` 受影响，2.6.0修复该项 `weights_only=True` 加载漏洞。当前代码甚至显式使用False，不能只改成True而保留旧版本。应定向选择经兼容性验证、无已知适用高危漏洞的版本，不把2.6.0视为截至今天的全面安全版本。[PyTorch官方公告](https://github.com/pytorch/pytorch/security/advisories/GHSA-53q9-r3pm-6pq6)
+**已核验依赖安全证据：** PyTorch官方GHSA-53q9-r3pm-6pq6说明 `<=2.5.1` 受影响，2.6.0修复该项 `weights_only=True` 加载漏洞。当前代码显式使用 `weights_only=True`，并已将CPU wheel升级到 `2.14.0+cpu`；该版本从PyTorch CPU index解析，OSV严格审计返回无已知漏洞。[PyTorch官方公告](https://github.com/pytorch/pytorch/security/advisories/GHSA-53q9-r3pm-6pq6)
 
-本轮已运行 `pip-audit==2.7.3`，但扫描因 `torch==2.5.1+cpu` 不存在于 PyPI 而退出，未产生完整依赖结论。其他直接/传递依赖的全部CVE及可达性无法确认；必须在发布前使用支持 PyTorch CPU 索引的审计方案生成锁定清单、扫描报告和风险处置记录，不能根据 pip check 宣称无漏洞。
+在升级前，`pip-audit==2.7.3` 因 `torch==2.5.1+cpu` 不存在于 PyPI 而退出，未产生完整依赖结论；该问题已通过升级到 `torch==2.14.0+cpu` 并使用 PyPI + PyTorch CPU index 的 OSV 严格审计闭环。当前审计结果记录在 `docs/dependency-audit-2026-09-15.md`。
 
 # 12. 性能问题
 
@@ -745,14 +745,14 @@ README、部署清单、演示稿、历史设计和计划齐全，且主动说�
 | TASK-010 | 未来特征一致性 | P1 | L | 008、009 | 部分完成 | 共享future_features已接入LSTM/LightGBM，递推只使用历史/预测值，类别编码器和feature schema随模型包发布；真实重训和预测器smoke已验证，线上浏览器/部署证据待补 |
 | TASK-011 | 30天同口径回测 | P1 | L | 010 | 已完成 | validation 只用于选择 LSTM/LightGBM/seasonal-naive/候选集成权重，train+validation 重训后仅在 test 评估；报告记录同key、同horizon、per-horizon/segment指标，发布包按选择策略运行 |
 | TASK-012 | 区间校准/绘图 | P1 | M | 002、011 | 已完成（情景范围路径） | 统计校准明确移出 V1，不再称为置信区间；API/前端明确scenario范围，图表使用下界+带宽且空历史不抛异常；真实浏览器已确认120点下界与120点带宽渲染 |
-| TASK-013 | 模型/依赖/内容安全 | P1 | L | 004、009 | 部分完成 | 模型包路径/checksum校验、Torch weights_only加载、JSON scaler/feature schema、tooltip HTML escape、随包ECharts和CI pip-audit门禁已实现；真实浏览器 XSS fixture、干净镜像检查和容器依赖扫描已完成，只有PyTorch CPU wheel供应源审计仍待补 |
+| TASK-013 | 模型/依赖/内容安全 | P1 | L | 004、009 | 已完成（当前依赖集） | 模型包路径/checksum校验、Torch weights_only加载、JSON scaler/feature schema、tooltip HTML escape、随包ECharts和CI pip-audit门禁已实现；`torch==2.14.0+cpu` 从PyTorch CPU index解析，OSV严格审计、干净镜像检查和容器依赖扫描均无已知漏洞 |
 | TASK-014 | 请求一致性/恢复 | P2 | L | 002、003、005、006 | 部分完成 | API timeout/AbortSignal、dashboard/trend/heatmap请求序号与busy收尾已实现；浏览器已验证延迟乱序、首次超时后重试恢复、API 500、空数据和部分失败状态，Docker/断网矩阵仍待补 |
 | TASK-015 | 响应式/空态/无障碍 | P2 | M | 012、014 | 部分完成 | 1920/1366/390 三视口截图、1366 网格修复、移动端滚动、焦点样式、aria labels、保存/导出键盘路径、空态和真实浏览器 Tab 路径已验证；Codex浏览器两次Ctrl+plus已确认大字号下刷新/保存仍可见，但精确200%与可复现截图仍待补 |
 | TASK-016 | 库存与补货规则 | P1 | L | 007、008、011 | 部分完成 | inventory快照schema/CLI/active版本、可复现 Demo 快照生成、可手算补货公式、MOQ/包装/缺输入/超horizon边界、freshness检查、库存拆解字段和缺少商品/门店记录的明确503已实现；人工调整/审批仍不在V1 |
 | TASK-017 | 草案/导出/追溯 | P1 | L | 003、009、014、016 | 已完成 | SQLite不可变快照、幂等键、partial拒收、重启/备份恢复、CSV安全导出、版本元数据已实现；真实浏览器已完成保存、重启恢复、导出和键盘路径验证；人工调整编辑不在V1 |
 | TASK-018 | 元数据API/容量 | P2 | M | 008、009、014 | 已完成（本地受限环境） | `/api/stores` 与 `/api/metadata` 已实现，前端选择器不再触发预测；`scripts/benchmark_api.py`和300秒并发记录已验证，4核/8GB下1500次请求0失败、P95 247.88ms、内存无持续增长；默认限流超额返回429 |
 | TASK-019 | 可验证同源部署 | P1 | M | 003、004、005、013 | 已完成（本地Docker） | frontend nginx已反代同源API、计划数据库已持久化、Compose配置可解析；`scripts/deploy.sh` 已改为可配置路径、`docker compose`、健康检查、前端检查和失败日志；干净镜像、健康探针、接口验收及backend停止后的502故障路径已验证 |
-| TASK-020 | CI测试门禁分层 | P1 | L | 006、010-015、017、019 | 部分完成 | CI已加入85%覆盖率、pip check、空白检查、镜像构建和pip-audit job；E2E/实跑Actions结果待补 |
-| TASK-021 | 文档/日志/恢复手册 | P2 | M | 009、011、017-020 | 部分完成 | README、部署清单、恢复手册、fresh clone、Docker/性能和依赖审计证据已同步版本/Token/metadata/plans路径；销售数据/模型 CLI 回滚、SQLite 草案恢复、Python 3.11 干净环境和 Docker 停服恢复均已演练，远端CI结果与PyTorch供应源证据仍待补 |
+| TASK-020 | CI测试门禁分层 | P1 | L | 006、010-015、017、019 | 部分完成 | CI已加入85%覆盖率、pip check、空白检查、镜像构建和OSV pip-audit job；旧Torch pin导致的Actions审计失败已修复，待新run验证，E2E仍未纳入Actions |
+| TASK-021 | 文档/日志/恢复手册 | P2 | M | 009、011、017-020 | 部分完成 | README、部署清单、恢复手册、fresh clone、Docker/性能和依赖审计证据已同步版本/Token/metadata/plans路径；销售数据/模型 CLI 回滚、SQLite 草案恢复、Python 3.11 干净环境和 Docker 停服恢复均已演练，新依赖版本的远端CI结果仍待补 |
 | TASK-022 | 小范围清理 | P3 | M | 017、020、021 | 未开始 | 删除有六类证据，完整回归通过 |
-| TASK-023 | Release验收 | P1 | M | 必须任务；022可延后 | 部分完成 | `docs/releases/v1-acceptance.md` 已记录 commit、测试、fresh clone、恢复、Docker、浏览器和受限性能证据；决策仍保持 NOT READY，仅PyTorch CPU wheel审计、真实OS/browser 200%缩放和远端CI结果仍待补齐 |
+| TASK-023 | Release验收 | P1 | M | 必须任务；022可延后 | 部分完成 | `docs/releases/v1-acceptance.md` 已记录 commit、测试、fresh clone、恢复、Docker、依赖、浏览器和受限性能证据；决策仍保持 NOT READY，仅真实OS/browser 200%缩放和新依赖版本的远端CI结果仍待补齐 |

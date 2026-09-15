@@ -6,7 +6,7 @@ This record covers the local Docker Desktop run on 2026-09-15 after the security
 
 ```text
 docker compose build --no-cache backend -> success
-backend image digest -> sha256:dc3bbdd9cc8932ad094e306fc71f79539b21b056a52c25949d40d6f233d9bae5
+backend image digest -> sha256:a14f2711e32d6cf2250f24fbef9381240d1da76b35cb63293ccf150e04b451bb
 backend container -> healthy
 frontend container -> healthy
 ```
@@ -21,7 +21,7 @@ For outage injection, stopping `sales-backend` produced a refused backend health
 
 ## Dependency scan
 
-The container-local `pip-audit 2.7.3 --local --format json` scan reported no known vulnerabilities for the installed auditable packages after upgrading FastAPI, Starlette, LightGBM, pip, and setuptools. `torch==2.5.1+cpu` is explicitly reported as skipped because the CPU wheel is not published on PyPI; this remains an open audit exception rather than an assumed pass.
+The container-local `pip-audit 2.7.3` scan reported no known vulnerabilities after upgrading FastAPI, Starlette, LightGBM, pip, setuptools, and `torch==2.14.0+cpu`. The requirements audit uses the OSV service and both PyPI and the PyTorch CPU index, so the CPU wheel is resolved from its actual source rather than treated as an un-auditable PyPI-only package.
 
 ## Constrained performance
 

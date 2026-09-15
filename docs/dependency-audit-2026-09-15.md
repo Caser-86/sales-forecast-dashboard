@@ -8,13 +8,16 @@ starlette 1.6.0
 lightgbm 4.6.0
 pip 26.2.1
 setuptools 84.0.0
-torch 2.5.1+cpu
+torch 2.14.0+cpu
 ```
 
-`pip-audit 2.7.3 --local --format json` reported `No known vulnerabilities found` for all auditable installed packages. The only skipped item was:
+`pip-audit 2.7.3` with the OSV service reported no known vulnerabilities for the audited installed packages. The precise CPU wheel was also audited from the PyTorch CPU index with:
 
 ```text
-torch Dependency not found on PyPI and could not be audited: torch (2.5.1+cpu)
+pip-audit -r backend/requirements.txt --vulnerability-service osv \
+  --index-url https://pypi.org/simple \
+  --extra-index-url https://download.pytorch.org/whl/cpu --strict
+No known vulnerabilities found
 ```
 
-Running the requirements audit with both PyPI and the PyTorch CPU index produced the same explicit skip, so this is retained as an open exception rather than silently suppressed. The remaining package findings from the first scan were resolved by the version upgrades above.
+The previous `torch==2.5.1+cpu` pin was replaced after OSV identified PyTorch advisories with fixes at newer versions. The container and CI audit now resolve the CPU wheel through the explicit PyTorch index instead of treating its PyPI absence as a silent skip.

@@ -8,7 +8,7 @@ pandas==2.2.3
 numpy==1.26.4
 # CPU-only wheel keeps Docker and CI images free of unused CUDA/NVIDIA packages.
 --extra-index-url https://download.pytorch.org/whl/cpu
-torch==2.5.1+cpu
+torch==2.14.0+cpu
 lightgbm==4.6.0
 scikit-learn==1.6.0
 slowapi==0.1.9
