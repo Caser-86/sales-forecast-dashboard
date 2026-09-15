@@ -12,9 +12,10 @@ REQUIRED_FILES = (
     "lstm_model.pth",
     "lightgbm_model.txt",
     "lightgbm_model.txt.meta.json",
-    "lstm_scaler_x.joblib",
-    "lstm_scaler_y.joblib",
+    "lstm_scaler_x.json",
+    "lstm_scaler_y.json",
     "category_encoder.json",
+    "feature_schema.json",
 )
 
 
@@ -52,9 +53,9 @@ def test_publish_model_package_rejects_missing_artifact_without_changing_active(
     active = tmp_path / "active.json"
     _write_complete_source(source)
     first = publish_model_package(source_dir=source, versions_dir=versions, active_file=active)
-    (source / "lstm_scaler_y.joblib").unlink()
+    (source / "lstm_scaler_y.json").unlink()
 
-    with pytest.raises(ModelArtifactError, match="lstm_scaler_y.joblib"):
+    with pytest.raises(ModelArtifactError, match="lstm_scaler_y.json"):
         publish_model_package(source_dir=source, versions_dir=versions, active_file=active)
 
     assert get_active_model_id(active_file=active) == first["model_id"]

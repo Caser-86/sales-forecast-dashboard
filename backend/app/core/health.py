@@ -60,14 +60,20 @@ def _readiness_payload() -> Dict[str, Any]:
     def model_file(name: str) -> str:
         return _file_status(models_dir / name) if models_dir is not None else "unreadable"
 
+    def scaler_status(json_name: str, legacy_name: str) -> str:
+        if models_dir is None:
+            return "unreadable"
+        json_status = _file_status(models_dir / json_name)
+        return json_status if json_status == "ok" else _file_status(models_dir / legacy_name)
+
     checks: Dict[str, Dict[str, str]] = {
         "sales_data": {"status": _file_status(sales_path) if sales_path is not None else "unreadable"},
         "features": {"status": _file_status(settings.FEATURES_CSV)},
         "evaluation_report": {"status": _report_status(settings.REPORT_JSON)},
         "lstm_model": {"status": model_file("lstm_model.pth")},
         "lightgbm_model": {"status": model_file("lightgbm_model.txt")},
-        "lstm_scaler_x": {"status": model_file("lstm_scaler_x.joblib")},
-        "lstm_scaler_y": {"status": model_file("lstm_scaler_y.joblib")},
+        "lstm_scaler_x": {"status": scaler_status("lstm_scaler_x.json", "lstm_scaler_x.joblib")},
+        "lstm_scaler_y": {"status": scaler_status("lstm_scaler_y.json", "lstm_scaler_y.joblib")},
     }
 
     assets_ready = all(check["status"] == "ok" for check in checks.values())

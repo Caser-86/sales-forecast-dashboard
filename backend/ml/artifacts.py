@@ -18,9 +18,10 @@ REQUIRED_MODEL_FILES = (
     "lstm_model.pth",
     "lightgbm_model.txt",
     "lightgbm_model.txt.meta.json",
-    "lstm_scaler_x.joblib",
-    "lstm_scaler_y.joblib",
+    "lstm_scaler_x.json",
+    "lstm_scaler_y.json",
     "category_encoder.json",
+    "feature_schema.json",
 )
 _MODEL_ID_PATTERN = re.compile(r"^model-[0-9a-f]{16}$")
 

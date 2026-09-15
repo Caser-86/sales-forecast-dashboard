@@ -75,3 +75,27 @@ class TestForecast:
 
         assert response.status_code == 404
         assert response.json()["error"]["code"] == "NOT_FOUND"
+
+    def test_forecast_returns_503_when_history_is_insufficient(self, client, monkeypatch):
+        from app.api import forecast
+
+        monkeypatch.setattr(
+            forecast.data_service,
+            "get_products",
+            lambda: [{"product_id": 1, "product_name": "P1"}],
+        )
+        monkeypatch.setattr(
+            forecast.data_service,
+            "get_stores",
+            lambda: [{"store_id": 1, "store_name": "S1"}],
+        )
+        monkeypatch.setattr(
+            forecast.forecast_service,
+            "get_forecast",
+            lambda _product_id, _store_id: (_ for _ in ()).throw(ValueError("历史数据不足")),
+        )
+
+        response = client.get("/api/forecast", params={"product_id": 1, "store_id": 1})
+
+        assert response.status_code == 503
+        assert response.json()["error"]["code"] == "FORECAST_UNAVAILABLE"

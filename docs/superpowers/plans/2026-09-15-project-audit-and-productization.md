@@ -741,11 +741,11 @@ README、部署清单、演示稿、历史设计和计划齐全，且主动说�
 | TASK-006 | ID与预测失败语义 | P1 | M | 001 | 已完成 | 无效422/404、全失败503、部分失败coverage与前端警告已实现；97条测试、Ruff、JS语法通过 |
 | TASK-007 | ABC总体/边界 | P2 | M | 001、002 | 部分完成 | ABC单项/阈值/并列/全量总体稳定与需求优先级文案已完成；库存风险公式待TASK-016 |
 | TASK-008 | 数据契约/导入 | P1 | L | 001、006 | 部分完成 | 销售CSV校验、不可变版本、原子active指针和CLI已实现；库存快照与模型版本兼容待TASK-009/016 |
-| TASK-009 | 模型包/缓存版本 | P1 | L | 005、008 | 部分完成 | 模型包manifest/校验、active原子切换、失败发布保留旧版本、预测缓存data/model版本键已实现；中断/重启证据与完整模型元数据待补 |
-| TASK-010 | 未来特征一致性 | P1 | L | 008、009 | 部分完成 | 共享future_features已接入LSTM/LightGBM，递推只使用历史/预测值，类别编码器随模型包发布；完整特征schema/重训一致性证据待补 |
-| TASK-011 | 30天同口径回测 | P1 | L | 010 | 部分完成 | leakage-safe rolling_backtest内核、7日基线、同key/同horizon与per-horizon指标已实现；真实LSTM/LightGBM as-of适配、报告接入与模型选择待补 |
+| TASK-009 | 模型包/缓存版本 | P1 | L | 005、008 | 部分完成 | 模型包manifest/校验、active原子切换、失败发布保留旧版本、JSON scaler/feature schema和预测缓存data/model版本键已实现；中断/重启证据与完整模型元数据待补 |
+| TASK-010 | 未来特征一致性 | P1 | L | 008、009 | 部分完成 | 共享future_features已接入LSTM/LightGBM，递推只使用历史/预测值，类别编码器和feature schema随模型包发布；真实重训已生成并加载同一schema，线上浏览器/部署证据待补 |
+| TASK-011 | 30天同口径回测 | P1 | L | 010 | 部分完成 | leakage-safe rolling_backtest、7日基线、真实LSTM/LightGBM as-of适配、同key/同horizon、per-horizon/segment报告已实现并通过实际训练；模型选择策略仍待补 |
 | TASK-012 | 区间校准/绘图 | P1 | M | 002、011 | 已完成（情景范围路径） | 未做统计校准，不再称为置信区间；API/前端明确scenario范围，图表使用下界+带宽且空历史不抛异常；真实浏览器截图待TASK-015 |
-| TASK-013 | 模型/依赖/内容安全 | P1 | L | 004、009 | 部分完成 | 模型包路径/checksum校验、Torch weights_only加载、tooltip HTML escape已实现；依赖扫描、joblib安全格式和ECharts本地资源待补 |
+| TASK-013 | 模型/依赖/内容安全 | P1 | L | 004、009 | 部分完成 | 模型包路径/checksum校验、Torch weights_only加载、JSON scaler/feature schema、tooltip HTML escape和CI pip-audit门禁已实现；旧版flat模型仍保留joblib兼容读取、ECharts本地资源和远程审计结果待补 |
 | TASK-014 | 请求一致性/恢复 | P2 | L | 002、003、005、006 | 部分完成 | API timeout/AbortSignal、dashboard/trend/heatmap请求序号与busy收尾已实现；延迟请求、断网恢复和CDN初始化浏览器证据待补 |
 | TASK-015 | 响应式/空态/无障碍 | P2 | M | 012、014 | 部分完成 | 移动端滚动/堆叠、图表最小高度、焦点样式、aria labels和真实header readiness状态已实现；四视口/200%缩放/键盘浏览器证据待补 |
 | TASK-016 | 库存与补货规则 | P1 | L | 007、008、011 | 部分完成 | inventory快照schema/CLI/active版本、可手算补货公式、MOQ/包装/缺输入/超horizon边界、freshness检查、库存拆解字段和缺少商品/门店记录的明确503已实现；人工调整/审批仍不在V1 |

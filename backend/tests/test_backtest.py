@@ -38,6 +38,7 @@ def test_rolling_backtest_forecaster_only_receives_origin_history():
     assert result["origins"] == ["2025-01-15"]
     assert seen == [pd.Timestamp("2025-01-15")]
     assert result["model"]["samples"] == result["baseline"]["samples"] == 3
+    assert result["model"]["keys"] == result["baseline"]["keys"]
 
 
 def test_rolling_backtest_predictions_do_not_change_when_future_truth_changes():
@@ -69,3 +70,18 @@ def test_seasonal_naive_repeats_last_observed_week_without_future_truth():
     assert seasonal_naive_forecast(history, horizon=10, lag_days=7) == [
         10, 20, 30, 40, 50, 60, 70, 10, 20, 30
     ]
+
+
+def test_rolling_backtest_reports_segment_and_per_horizon_metrics():
+    from ml.backtest import rolling_backtest
+
+    result = rolling_backtest(
+        _sales_frame(1.0),
+        lambda history, horizon: [history["sales"].iloc[-1]] * horizon,
+        origins=[pd.Timestamp("2025-01-15")],
+        horizon=3,
+        min_history_days=14,
+    )
+
+    assert result["model"]["per_horizon"]["1"]["samples"] == 1
+    assert "1:1" in result["model"]["segments"]

@@ -165,6 +165,7 @@ class ModelInfoResult(BaseModel):
     ensemble_weights: Dict[str, float] = Field(default_factory=dict)
     split: Dict[str, Any] = Field(default_factory=dict)
     metrics: Dict[str, Dict[str, float]] = Field(default_factory=dict)
+    backtest: Dict[str, Any] = Field(default_factory=dict)
 
 
 class DataQualityResult(BaseModel):

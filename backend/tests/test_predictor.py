@@ -4,8 +4,11 @@
 """
 from __future__ import annotations
 
+import json
 import sys
 from pathlib import Path
+
+import pytest
 
 # 注入 backend/ml 路径
 BACKEND_DIR = Path(__file__).resolve().parent.parent
@@ -53,3 +56,16 @@ class TestCategoryEncoder:
         expected = {c: i for i, c in enumerate(sorted(le.classes_))}
         for cat, idx in expected.items():
             assert int(le.transform([cat])[0]) == idx
+
+
+def test_feature_schema_rejects_mismatched_feature_columns(tmp_path):
+    import predictor
+    from app.core.exceptions import ModelArtifactError
+
+    (tmp_path / "feature_schema.json").write_text(
+        json.dumps({"feature_cols": ["future_sales"], "lstm_feature_cols": [], "target_col": "sales"}),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ModelArtifactError, match="特征 schema"):
+        predictor._validate_feature_schema(tmp_path)

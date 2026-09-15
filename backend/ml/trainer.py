@@ -15,13 +15,19 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Tuple
 
-import joblib
 import lightgbm_model as lgbm_wrapper
 import numpy as np
 import pandas as pd
 import torch
 import torch.nn as nn
+from app.core.config import settings
 from artifacts import publish_model_package
+from backtest import (
+    make_lightgbm_forecaster,
+    make_lstm_forecaster,
+    rolling_backtest,
+    seasonal_naive_forecast,
+)
 from feature_engineering import (
     FEATURE_COLS,
     LSTM_FEATURE_COLS,
@@ -31,6 +37,7 @@ from feature_engineering import (
 from future_features import CALENDAR_VERSION
 from lstm_model import SEQ_LEN, SalesLSTM, build_sequences
 from lstm_model import save_model as save_lstm
+from scaler_io import save_scaler
 from sklearn.preprocessing import StandardScaler
 
 BACKEND_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -38,8 +45,8 @@ PROCESSED_DIR = os.path.join(BACKEND_DIR, "data", "processed")
 MODELS_DIR = os.path.join(BACKEND_DIR, "ml", "saved_models")
 LSTM_PATH = os.path.join(MODELS_DIR, "lstm_model.pth")
 LGBM_PATH = os.path.join(MODELS_DIR, "lightgbm_model.txt")
-SCALER_X_PATH = os.path.join(MODELS_DIR, "lstm_scaler_x.joblib")
-SCALER_Y_PATH = os.path.join(MODELS_DIR, "lstm_scaler_y.joblib")
+SCALER_X_PATH = os.path.join(MODELS_DIR, "lstm_scaler_x.json")
+SCALER_Y_PATH = os.path.join(MODELS_DIR, "lstm_scaler_y.json")
 REPORT_PATH = os.path.join(PROCESSED_DIR, "evaluation_report.json")
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -192,8 +199,8 @@ def train_lstm(train_df: pd.DataFrame, val_df: pd.DataFrame) -> Tuple[SalesLSTM,
 
     # 保存 scaler
     os.makedirs(MODELS_DIR, exist_ok=True)
-    joblib.dump(scaler_x, SCALER_X_PATH)
-    joblib.dump(scaler_y, SCALER_Y_PATH)
+    save_scaler(scaler_x, SCALER_X_PATH)
+    save_scaler(scaler_y, SCALER_Y_PATH)
     save_lstm(model, LSTM_PATH)
     print(f"  LSTM 模型已保存 → {LSTM_PATH}")
     return model, {"scaler_x": scaler_x, "scaler_y": scaler_y}
@@ -304,6 +311,40 @@ def train_all() -> dict:
     print(f"  前一周同日基线 → MAPE={baseline_metrics['mape']:.2f}%, "
           f"RMSE={baseline_metrics['rmse']:.2f} (样本数: {baseline_metrics['samples']})")
 
+    backtest_columns = list(dict.fromkeys(
+        ["date", "product_id", "store_id", "sales"] + FEATURE_COLS + LSTM_FEATURE_COLS
+    ))
+    backtest_frame = df[backtest_columns]
+    lgbm_rolling = rolling_backtest(
+        backtest_frame,
+        make_lightgbm_forecaster(lgbm_model),
+        horizon=settings.FORECAST_DAYS,
+        min_history_days=SEQ_LEN,
+        baseline_forecaster=seasonal_naive_forecast,
+    )
+    lstm_rolling = rolling_backtest(
+        backtest_frame,
+        make_lstm_forecaster(lstm_model, scalers["scaler_x"], scalers["scaler_y"], DEVICE),
+        origins=lgbm_rolling["origins"],
+        horizon=settings.FORECAST_DAYS,
+        min_history_days=SEQ_LEN,
+        baseline_forecaster=seasonal_naive_forecast,
+    )
+    if lgbm_rolling["evaluated_keys"] != lstm_rolling["evaluated_keys"]:
+        raise RuntimeError("LSTM 与 LightGBM 滚动回测评估 key 不一致")
+    rolling_report = {
+        "protocol": {
+            "horizon_days": settings.FORECAST_DAYS,
+            "origins": lgbm_rolling["origins"],
+            "origin_count": len(lgbm_rolling["origins"]),
+            "eligible_key_count": len(lgbm_rolling["evaluated_keys"]),
+            "min_history_days": SEQ_LEN,
+        },
+        "lstm": lstm_rolling["model"],
+        "lightgbm": lgbm_rolling["model"],
+        "seasonal_naive_7d": lgbm_rolling["baseline"],
+    }
+
     report = {
         "metadata": {
             "trained_at_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
@@ -322,6 +363,7 @@ def train_all() -> dict:
                 "validation_end": str(val_df["date"].max().date()),
             },
             "ensemble_weights": {"lstm": 0.4, "lightgbm": 0.6},
+            "rolling_backtest": rolling_report,
         },
         "seasonal_naive_7d": baseline_metrics,
         "lstm": lstm_metrics,
@@ -344,6 +386,20 @@ def train_all() -> dict:
         ),
         encoding="utf-8",
     )
+    (Path(MODELS_DIR) / "feature_schema.json").write_text(
+        json.dumps(
+            {
+                "feature_cols": FEATURE_COLS,
+                "lstm_feature_cols": LSTM_FEATURE_COLS,
+                "target_col": TARGET_COL,
+                "calendar_version": CALENDAR_VERSION,
+                "horizon_days": settings.FORECAST_DAYS,
+            },
+            ensure_ascii=False,
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
     data_version = _active_dataset_version()
     package = publish_model_package(
         Path(MODELS_DIR),
@@ -357,7 +413,6 @@ def train_all() -> dict:
     print(f"  模型版本已发布并激活 → {package['model_id']}")
     print("训练完成。")
     return report
-
 
 if __name__ == "__main__":
     train_all()

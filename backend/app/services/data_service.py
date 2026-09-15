@@ -77,6 +77,7 @@ def get_model_info() -> Dict[str, Any]:
         "ensemble_weights": {str(k): float(v) for k, v in weights.items()},
         "split": split,
         "metrics": metrics,
+        "backtest": metadata.get("rolling_backtest", {}),
     }
 
 

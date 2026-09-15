@@ -60,6 +60,23 @@ def _load_category_encoder(model_dir):
         raise ModelArtifactError("模型类别编码器无效") from exc
 
 
+def _validate_feature_schema(model_dir) -> None:
+    """Reject a published package whose feature contract differs from serving code."""
+    schema_path = model_dir / "feature_schema.json"
+    if not schema_path.is_file():
+        return
+    try:
+        schema = json.loads(schema_path.read_text(encoding="utf-8"))
+        if schema.get("feature_cols") != FEATURE_COLS:
+            raise ValueError("feature_cols 不一致")
+        if schema.get("lstm_feature_cols") != LSTM_FEATURE_COLS:
+            raise ValueError("lstm_feature_cols 不一致")
+        if schema.get("target_col") != "sales":
+            raise ValueError("target_col 不一致")
+    except (OSError, json.JSONDecodeError, TypeError, ValueError) as exc:
+        raise ModelArtifactError("模型特征 schema 无效") from exc
+
+
 class ForecastPredictor:
     """单例式预测器，加载一次模型后可重复调用。"""
 
@@ -67,7 +84,6 @@ class ForecastPredictor:
     _instance_lock = Lock()
 
     def __init__(self):
-        import joblib
         model_dir = get_active_model_dir()
         self.model_version = get_active_model_id()
         self.data_version = get_active_dataset_id()
@@ -77,10 +93,23 @@ class ForecastPredictor:
                 f"模型 {self.model_version} 与数据集 {self.data_version} 不匹配"
             )
         self.category_encoder = _load_category_encoder(model_dir)
+        _validate_feature_schema(model_dir)
         self.lstm: SalesLSTM = load_lstm(str(model_dir / "lstm_model.pth"), DEVICE)
         self.lgbm, self.feature_cols = lgbm_wrapper.load_model(str(model_dir / "lightgbm_model.txt"))
-        self.scaler_x = joblib.load(model_dir / "lstm_scaler_x.joblib")
-        self.scaler_y = joblib.load(model_dir / "lstm_scaler_y.joblib")
+        from scaler_io import load_scaler
+
+        scaler_x_json = model_dir / "lstm_scaler_x.json"
+        scaler_y_json = model_dir / "lstm_scaler_y.json"
+        if scaler_x_json.is_file() and scaler_y_json.is_file():
+            self.scaler_x = load_scaler(scaler_x_json)
+            self.scaler_y = load_scaler(scaler_y_json)
+        else:
+            # Legacy flat artifacts predate the JSON scaler format. New published
+            # packages cannot reach this branch because the manifest requires JSON.
+            import joblib
+
+            self.scaler_x = joblib.load(model_dir / "lstm_scaler_x.joblib")
+            self.scaler_y = joblib.load(model_dir / "lstm_scaler_y.joblib")
         # 加载含工程特征的历史数据（用于构建 LSTM 输入序列与 LightGBM lag）
         self.history: pd.DataFrame = pd.read_csv(FEATURES_PATH)
         self.history["date"] = pd.to_datetime(self.history["date"])

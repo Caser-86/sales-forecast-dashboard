@@ -6,6 +6,14 @@ from typing import Any
 
 import numpy as np
 import pandas as pd
+import torch
+
+try:
+    from .feature_engineering import FEATURE_COLS, LSTM_FEATURE_COLS
+    from .future_features import build_future_feature_row
+except ImportError:  # Support the existing scripts that import ml modules as top-level modules.
+    from feature_engineering import FEATURE_COLS, LSTM_FEATURE_COLS
+    from future_features import build_future_feature_row
 
 Forecaster = Callable[[pd.DataFrame, int], Sequence[float]]
 REQUIRED_COLUMNS = {"date", "product_id", "store_id", "sales"}
@@ -24,7 +32,7 @@ def seasonal_naive_forecast(history: pd.DataFrame, horizon: int, lag_days: int =
     return [float(cycle[index % len(cycle)]) for index in range(horizon)]
 
 
-def _metric_summary(records: list[dict[str, Any]]) -> dict[str, Any]:
+def _basic_metric_summary(records: list[dict[str, Any]]) -> dict[str, Any]:
     if not records:
         return {
             "samples": 0,
@@ -33,8 +41,6 @@ def _metric_summary(records: list[dict[str, Any]]) -> dict[str, Any]:
             "rmse": 0.0,
             "wape": 0.0,
             "mape": None,
-            "per_horizon": {},
-            "keys": [],
         }
 
     actual = np.asarray([row["actual"] for row in records], dtype=float)
@@ -57,7 +63,6 @@ def _metric_summary(records: list[dict[str, Any]]) -> dict[str, Any]:
             "mape": float(np.mean(np.abs(step_error[step_positive] / step_actual[step_positive])) * 100)
             if step_positive.any() else None,
         }
-    keys = sorted({row["key"] for row in records})
     return {
         "samples": len(records),
         "mape_samples": int(positive.sum()),
@@ -68,8 +73,105 @@ def _metric_summary(records: list[dict[str, Any]]) -> dict[str, Any]:
         "mape": float(np.mean(np.abs(error[positive] / actual[positive])) * 100)
         if positive.any() else None,
         "per_horizon": per_horizon,
-        "keys": keys,
     }
+
+
+def _metric_summary(records: list[dict[str, Any]]) -> dict[str, Any]:
+    """Return overall, per-horizon, and product/store segment metrics."""
+    if not records:
+        return {**_basic_metric_summary(records), "keys": [], "segments": {}}
+    by_segment: dict[str, list[dict[str, Any]]] = {}
+    for row in records:
+        segment = row["key"].split(":", 1)[1]
+        by_segment.setdefault(segment, []).append(row)
+    return {
+        **_basic_metric_summary(records),
+        "keys": sorted({row["key"] for row in records}),
+        "segments": {
+            segment: _basic_metric_summary(segment_records)
+            for segment, segment_records in sorted(by_segment.items())
+        },
+    }
+
+
+def make_lightgbm_forecaster(model: Any, feature_cols: Sequence[str] = FEATURE_COLS) -> Forecaster:
+    """Adapt a trained LightGBM model to the leakage-safe rolling protocol."""
+
+    def forecaster(history: pd.DataFrame, horizon: int) -> list[float]:
+        if history.empty:
+            raise ValueError("history 不能为空")
+        sales_history = history["sales"].astype(float).tolist()
+        last = history.iloc[-1]
+        price = float(history["price"].iloc[-1]) if "price" in history else 0.0
+        competitor = (
+            float(history["competitor_price"].iloc[-1])
+            if "competitor_price" in history else price
+        )
+        category_enc = int(last["category_enc"]) if "category_enc" in history else 0
+        product_id = int(last["product_id"])
+        store_id = int(last["store_id"])
+        last_date = pd.Timestamp(last["date"]).date()
+        predictions: list[float] = []
+        for step in range(horizon):
+            future_date = last_date + pd.Timedelta(days=step + 1)
+            row = build_future_feature_row(
+                forecast_date=future_date,
+                sales_history=sales_history,
+                price=price,
+                competitor_price=competitor,
+                category_enc=category_enc,
+            )
+            model_row = {"product_id": product_id, "store_id": store_id, **row}
+            prediction = max(
+                0.0,
+                float(model.predict(np.asarray([[model_row[col] for col in feature_cols]]))[0]),
+            )
+            predictions.append(prediction)
+            sales_history.append(prediction)
+        return predictions
+
+    return forecaster
+
+
+def make_lstm_forecaster(model: Any, scaler_x: Any, scaler_y: Any, device: str | torch.device = "cpu") -> Forecaster:
+    """Adapt a trained LSTM to the same recursive, origin-only protocol."""
+
+    def forecaster(history: pd.DataFrame, horizon: int) -> list[float]:
+        if len(history) < 14:
+            raise ValueError("history 不足 14 天")
+        recent = history.sort_values("date").tail(14)
+        sequence = scaler_x.transform(recent[LSTM_FEATURE_COLS].values.astype(np.float32))
+        sales_history = history.sort_values("date")["sales"].astype(float).tolist()
+        price = float(recent["price"].iloc[-1]) if "price" in recent else 0.0
+        competitor = (
+            float(recent["competitor_price"].iloc[-1])
+            if "competitor_price" in recent else price
+        )
+        category_enc = int(recent["category_enc"].iloc[-1]) if "category_enc" in recent else 0
+        last_date = pd.Timestamp(recent["date"].iloc[-1]).date()
+        predictions: list[float] = []
+        model.eval()
+        with torch.no_grad():
+            for step in range(horizon):
+                input_tensor = torch.tensor(sequence[None], dtype=torch.float32, device=device)
+                prediction = max(0.0, float(scaler_y.inverse_transform(
+                    model(input_tensor).detach().cpu().numpy().reshape(-1, 1)
+                )[0, 0]))
+                predictions.append(prediction)
+                sales_history.append(prediction)
+                future_row = build_future_feature_row(
+                    forecast_date=last_date + pd.Timedelta(days=step + 1),
+                    sales_history=sales_history,
+                    price=price,
+                    competitor_price=competitor,
+                    category_enc=category_enc,
+                    predicted_sales=prediction,
+                )
+                next_row = np.asarray([[future_row[column] for column in LSTM_FEATURE_COLS]], dtype=np.float32)
+                sequence = np.vstack([sequence[1:], scaler_x.transform(next_row)])
+        return predictions
+
+    return forecaster
 
 
 def rolling_backtest(
