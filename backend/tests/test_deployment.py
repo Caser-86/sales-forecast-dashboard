@@ -41,7 +41,7 @@ def test_frontend_image_installs_same_origin_proxy():
 def test_compose_persists_plan_database_and_frontend_waits_for_backend():
     compose = (PROJECT_ROOT / "docker-compose.yml").read_text(encoding="utf-8")
 
-    assert "DATABASE_URL=${DATABASE_URL:-sqlite:////app/data/dashboard.db}" in compose
+    assert "DATABASE_URL=${DATABASE_URL:-sqlite:////app/runtime/dashboard.db}" in compose
     assert "condition: service_healthy" in compose
     assert "healthcheck:" in compose
     assert '"http://127.0.0.1/"' in compose
@@ -53,6 +53,14 @@ def test_compose_uses_a_persistent_named_volume_for_container_logs():
     assert "- backend_logs:/app/logs" in compose
     assert "backend_logs:" in compose
     assert "- ./backend/logs:/app/logs" not in compose
+
+
+def test_compose_uses_a_persistent_runtime_volume_for_plan_database():
+    compose = (PROJECT_ROOT / "docker-compose.yml").read_text(encoding="utf-8")
+
+    assert "DATABASE_URL=${DATABASE_URL:-sqlite:////app/runtime/dashboard.db}" in compose
+    assert "- backend_runtime:/app/runtime" in compose
+    assert "backend_runtime:" in compose
 
 
 def test_deploy_script_uses_current_compose_and_fails_closed():

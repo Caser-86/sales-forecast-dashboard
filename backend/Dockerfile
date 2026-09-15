@@ -16,7 +16,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # 创建非 root 用户
 RUN useradd -m -u 1000 appuser && \
-    mkdir -p data/raw data/processed ml/saved_models logs && \
+    mkdir -p data/raw data/processed ml/saved_models runtime logs && \
     chown -R appuser:appuser /app
 
 COPY --chown=appuser:appuser . .
