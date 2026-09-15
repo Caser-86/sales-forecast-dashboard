@@ -8,7 +8,8 @@ services:
       # 持久化数据与模型（不进镜像，便于升级时保留）
       - ./backend/data:/app/data
       - ./backend/ml/saved_models:/app/ml/saved_models
-      - ./backend/logs:/app/logs
+      # Named volume keeps appuser writable on Linux hosts and survives container replacement.
+      - backend_logs:/app/logs
     environment:
       - ENV=${ENV:-development}
       - DEBUG=${DEBUG:-false}
@@ -46,3 +47,6 @@ services:
       start_period: 5s
       retries: 3
     restart: unless-stopped
+
+volumes:
+  backend_logs:

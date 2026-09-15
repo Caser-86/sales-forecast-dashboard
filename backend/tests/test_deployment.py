@@ -47,6 +47,14 @@ def test_compose_persists_plan_database_and_frontend_waits_for_backend():
     assert '"http://127.0.0.1/"' in compose
 
 
+def test_compose_uses_a_persistent_named_volume_for_container_logs():
+    compose = (PROJECT_ROOT / "docker-compose.yml").read_text(encoding="utf-8")
+
+    assert "- backend_logs:/app/logs" in compose
+    assert "backend_logs:" in compose
+    assert "- ./backend/logs:/app/logs" not in compose
+
+
 def test_deploy_script_uses_current_compose_and_fails_closed():
     script = (PROJECT_ROOT / "scripts" / "deploy.sh").read_text(encoding="utf-8")
 
