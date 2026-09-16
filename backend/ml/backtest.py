@@ -8,12 +8,8 @@ import numpy as np
 import pandas as pd
 import torch
 
-try:
-    from .feature_engineering import FEATURE_COLS, LSTM_FEATURE_COLS
-    from .future_features import build_future_feature_row
-except ImportError:  # Support the existing scripts that import ml modules as top-level modules.
-    from feature_engineering import FEATURE_COLS, LSTM_FEATURE_COLS
-    from future_features import build_future_feature_row
+from .feature_engineering import FEATURE_COLS, LSTM_FEATURE_COLS
+from .future_features import build_future_feature_row
 
 Forecaster = Callable[[pd.DataFrame, int], Sequence[float]]
 REQUIRED_COLUMNS = {"date", "product_id", "store_id", "sales"}

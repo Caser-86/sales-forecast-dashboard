@@ -13,20 +13,21 @@ from datetime import timedelta
 from threading import Lock
 from typing import Dict, List
 
-import lightgbm_model as lgbm_wrapper
 import numpy as np
 import pandas as pd
 import torch
 from app.core.config import settings
 from app.core.exceptions import ModelArtifactError
 from app.services.dataset_service import get_active_dataset_id, get_active_sales_path
-from artifacts import get_active_model_dir, get_active_model_id, get_active_model_manifest
 from common.abc import classify_abc
-from feature_engineering import FEATURE_COLS, LSTM_FEATURE_COLS
-from future_features import DEFAULT_HOLIDAYS, build_future_feature_row
-from lstm_model import SEQ_LEN, SalesLSTM
-from lstm_model import load_model as load_lstm
 from sklearn.preprocessing import LabelEncoder
+
+from . import lightgbm_model as lgbm_wrapper
+from .artifacts import get_active_model_dir, get_active_model_id, get_active_model_manifest
+from .feature_engineering import FEATURE_COLS, LSTM_FEATURE_COLS
+from .future_features import DEFAULT_HOLIDAYS, build_future_feature_row
+from .lstm_model import SEQ_LEN, SalesLSTM
+from .lstm_model import load_model as load_lstm
 
 # 类别编码器：品类集合固定（服装/家居/日化/电子/食品），
 # 在模块加载时构造一次，避免在预测循环内重复 fit。
@@ -143,7 +144,7 @@ class ForecastPredictor:
         self.lgbm_weight = self.model_selection["weights"]["lightgbm"]
         self.lstm: SalesLSTM = load_lstm(str(model_dir / "lstm_model.pth"), DEVICE)
         self.lgbm, self.feature_cols = lgbm_wrapper.load_model(str(model_dir / "lightgbm_model.txt"))
-        from scaler_io import load_scaler
+        from .scaler_io import load_scaler
 
         scaler_x_json = model_dir / "lstm_scaler_x.json"
         scaler_y_json = model_dir / "lstm_scaler_y.json"

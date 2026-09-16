@@ -64,7 +64,7 @@ class Settings(BaseSettings):
     ACTIVE_INVENTORY_FILE: str = str(BACKEND_DIR / "data" / "inventory" / "active_inventory.json")
     INVENTORY_MAX_AGE_DAYS: int = Field(default=7, ge=0, description="库存快照允许的最大年龄")
 
-    # ---------- 数据库（保留扩展点，当前未启用）----------
+    # ---------- 数据库（SQLite 草案持久化）----------
     DATABASE_URL: str = f"sqlite:///{(BACKEND_DIR / 'dashboard.db').as_posix()}"
 
     # ---------- API ----------

@@ -1,6 +1,6 @@
 # Fresh Clone Walkthrough
 
-这份记录证明非作者可以从远程分支开始，按 README 完成初始化、导入、训练、预测、保存、导出和恢复。记录只覆盖本地 Python 运行路径，不替代 Docker 镜像和容器级验收。
+这份历史快照证明非作者可以从远程分支开始，按 README 完成初始化、导入、训练、预测、保存、导出和恢复。记录只覆盖本地 Python 运行路径，不替代 Docker 镜像和容器级验收；当前分支的最新测试和 CI 结果以 `docs/releases/v1-acceptance.md` 为准。
 
 ## 环境与来源
 

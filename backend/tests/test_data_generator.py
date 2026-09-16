@@ -2,18 +2,10 @@
 from __future__ import annotations
 
 import os
-import sys
 from datetime import date
-from pathlib import Path
 
 import pandas as pd
-
-# 注入 backend/ml 路径
-BACKEND_DIR = Path(__file__).resolve().parent.parent
-ML_DIR = BACKEND_DIR / "ml"
-sys.path.insert(0, str(ML_DIR))
-
-import data_generator as gen  # noqa: E402
+from ml import data_generator as gen
 
 
 class TestProductCatalog:

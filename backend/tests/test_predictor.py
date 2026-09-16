@@ -5,15 +5,8 @@
 from __future__ import annotations
 
 import json
-import sys
-from pathlib import Path
 
 import pytest
-
-# 注入 backend/ml 路径
-BACKEND_DIR = Path(__file__).resolve().parent.parent
-ML_DIR = BACKEND_DIR / "ml"
-sys.path.insert(0, str(ML_DIR))
 
 
 class TestCategoryEncoder:
@@ -26,7 +19,7 @@ class TestCategoryEncoder:
     """
 
     def _encoder(self):
-        import predictor
+        from ml import predictor
         return predictor._CATEGORY_ENCODER
 
     def test_encoder_covers_5_categories(self):
@@ -59,8 +52,8 @@ class TestCategoryEncoder:
 
 
 def test_feature_schema_rejects_mismatched_feature_columns(tmp_path):
-    import predictor
     from app.core.exceptions import ModelArtifactError
+    from ml import predictor
 
     (tmp_path / "feature_schema.json").write_text(
         json.dumps({
@@ -77,8 +70,8 @@ def test_feature_schema_rejects_mismatched_feature_columns(tmp_path):
 
 
 def test_model_selection_rejects_invalid_strategy(tmp_path):
-    import predictor
     from app.core.exceptions import ModelArtifactError
+    from ml import predictor
 
     (tmp_path / "model_selection.json").write_text(
         json.dumps({"strategy": "untrusted_model", "weights": {}}),
@@ -90,8 +83,8 @@ def test_model_selection_rejects_invalid_strategy(tmp_path):
 
 
 def test_model_selection_rejects_inconsistent_weights(tmp_path):
-    import predictor
     from app.core.exceptions import ModelArtifactError
+    from ml import predictor
 
     (tmp_path / "model_selection.json").write_text(
         json.dumps({

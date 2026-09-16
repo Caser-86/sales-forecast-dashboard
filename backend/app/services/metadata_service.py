@@ -4,7 +4,7 @@ from __future__ import annotations
 from datetime import date
 from typing import Any
 
-from artifacts import get_active_model_id
+from ml.artifacts import get_active_model_id
 
 from app.core.config import settings
 from app.services import data_service
@@ -54,4 +54,3 @@ def get_metadata() -> dict[str, Any]:
     }
     result.update(_inventory_metadata(reference_date))
     return result
-

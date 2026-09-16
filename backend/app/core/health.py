@@ -37,7 +37,7 @@ def _report_status(path: Path) -> str:
 def _model_runtime_status() -> str:
     """Load the active predictor once so readiness means more than file presence."""
     try:
-        from predictor import ForecastPredictor
+        from ml.predictor import ForecastPredictor
 
         ForecastPredictor.get()
         return "ok"
@@ -47,7 +47,7 @@ def _model_runtime_status() -> str:
 
 def _readiness_payload() -> Dict[str, Any]:
     try:
-        from artifacts import get_active_model_dir
+        from ml.artifacts import get_active_model_dir
 
         models_dir = get_active_model_dir()
     except Exception:

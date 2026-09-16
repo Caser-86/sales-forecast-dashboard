@@ -4,24 +4,17 @@
 """
 from __future__ import annotations
 
-# 通过 sys.path 注入 ml 目录
-import os
-import sys
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from functools import lru_cache
 from typing import Any, Dict
 
+from ml.artifacts import get_active_model_id
+from ml.predictor import ForecastPredictor
+from ml.predictor import forecast as _forecast
+
 from app.core.config import settings
 from app.core.logging import get_logger
 from app.services.dataset_service import get_active_dataset_id
-
-_ml_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "ml")
-if _ml_dir not in sys.path:
-    sys.path.insert(0, _ml_dir)
-
-from artifacts import get_active_model_id  # noqa: E402
-from predictor import ForecastPredictor  # noqa: E402
-from predictor import forecast as _forecast  # noqa: E402
 
 logger = get_logger(__name__)
 

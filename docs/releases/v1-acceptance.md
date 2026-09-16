@@ -10,11 +10,12 @@ This document is the current sign-off record for the interview-ready V1 branch. 
 
 - Verified code/image commit: `d3cded008385a47e6cc062a4f7a8a316eccf9edc` (real Chrome 200% verifier and evidence)
 - Fresh-clone walkthrough evidence commit: `00f2de80c8adcc38d0fd6592171a420259cb93ea`
-- Local full suite: `163 passed`, coverage `90.67%`
+- Current branch head: `d9cf99b8a946daada3a50288718530eaf080e81d` (final evidence/documentation sync)
+- Local full suite: `163 passed`, coverage `90.71%`
 - Fresh Python 3.11 clone: `160 passed`, coverage `90.54%`, `pip check` clean
 - Fresh clone runtime: `/health=200`, `/ready=200`, 30-point forecast, plan save `201`, idempotent retry `200`, export `200`, restart reopen and SQLite restore verified
 - No P0 has been confirmed in the current audit
-- Remote GitHub Actions CI: [run 34993938865](https://github.com/Caser-86/sales-forecast-dashboard/actions/runs/34993938865) completed successfully for commit `efe5e10`; Quality Gates and Dependency Audit both passed, including the committed Chromium smoke suite (2 tests)
+- Remote GitHub Actions CI: [run 34994923588](https://github.com/Caser-86/sales-forecast-dashboard/actions/runs/34994923588) completed successfully for the current branch head; Quality Gates and Dependency Audit both passed, including the committed Chromium smoke suite (2 tests)
 - Local browser evidence for partial failures, XSS, delayed scope changes, timeout/retry/API failure/empty states, and trend interval rendering is recorded in [`docs/browser-acceptance-2026-09-15.md`](../browser-acceptance-2026-09-15.md)
 - Real Google Chrome 200% evidence: [`browser-zoom-200-2026-09-16.json`](../evidence/browser-zoom-200-2026-09-16.json) and [`browser-zoom-200-2026-09-16.png`](../evidence/browser-zoom-200-2026-09-16.png)
 - Docker, image-content, outage, dependency, and constrained performance evidence is recorded in [`docs/deployment-performance-2026-09-15.md`](../deployment-performance-2026-09-15.md) and [`docs/dependency-audit-2026-09-15.md`](../dependency-audit-2026-09-15.md)
