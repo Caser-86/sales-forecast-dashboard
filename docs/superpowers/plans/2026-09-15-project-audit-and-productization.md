@@ -325,8 +325,8 @@ README、部署清单、演示稿、历史设计和计划齐全，且主动说�
 |---|---|---|
 | 可以安全删除 | 当前无需要立即删除的已跟踪文件 | 未同时完成引用、构建、运行、配置、测试、历史迁移六项排除 |
 | 建议删除/替换 | Top图表无数据custom series、未使用confBand实现片段 | 先完成正确展示并加测试，再删旧实现；不是删除整个图表 |
-| 建议删除 | SQLModel依赖、未使用DATABASE_URL | 仅当草案持久化方案确定不使用SQLModel；不要提前删除 |
-| 需要确认 | slowapi和RATE_LIMIT配置 | 选择接入或删掉误导配置，不能移除实际防护能力 |
+| 已处理（TASK-022） | SQLModel依赖 | 草案仓储实际使用参数化 `sqlite3`，`DATABASE_URL` 仍有计划仓储、Compose 和恢复脚本消费者，因此只移除未使用的 SQLModel 依赖 |
+| 已处理（TASK-022） | slowapi和RATE_LIMIT配置 | slowapi 没有消费者已移除；项目自有 `RateLimitMiddleware` 仍使用 `RATE_LIMIT_*` 配置，未移除实际防护能力 |
 | 需要确认 | 未使用异常子类、历史计划 | 全引用检查后移除代码；历史文档优先标记而非删 |
 | 必须保留 | app/config.py兼容层 | data_service和测试仍引用 |
 | 必须保留 | nginx.conf | 当前未自动接通但代表部署意图，应明确接入或文档化替代 |
