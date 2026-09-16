@@ -272,4 +272,4 @@ sales-forecast-dashboard/
 ## 版本信息
 
 - 仓库：[Caser-86/sales-forecast-dashboard](https://github.com/Caser-86/sales-forecast-dashboard)
-- 当前文档对应分支：`codex/formal-project-optimization`
+- 当前文档对应分支：`codex/task-001-v1-contract`
