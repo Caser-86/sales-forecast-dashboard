@@ -4,6 +4,8 @@
 
 > **项目定位**：这是一个使用生成数据的面试演示项目，不是已经接入真实 ERP/WMS 的生产系统。文档会明确区分已验证能力和后续生产化工作。
 
+当前状态与未完成任务见 [`CONTEXT.md`](CONTEXT.md) 和 [`TODO.md`](TODO.md)；V1 验收结论见 [`docs/releases/v1-acceptance.md`](docs/releases/v1-acceptance.md)。
+
 ## 一句话介绍
 
 业务人员选择商品和门店后，可以查看历史销量与未来预测；管理者可以按商品/门店筛选经营范围，观察 KPI、品类结构、Top 商品以及库存风险，并在页面上看到模型和输入数据是否处于可用状态。
@@ -48,7 +50,7 @@ flowchart LR
 
 ### 关键设计决策
 
-1. **时间切分而不是随机切分**：避免未来信息进入训练集，训练、验证、测试按日期分为 70%/15%/15%。
+1. **时间切分而不是随机切分**：避免未来信息进入训练集，训练、验证、测试按日期分为 60%/20%/20%。
 2. **保留可比较基线**：模型指标必须和前一周同日基线放在同一份报告里，避免只展示对模型有利的数字。
 3. **统一聚合口径**：商品级 Top 预测由所有门店预测结果求和；KPI 的历史销量和预测销量使用同一时间窗口。
 4. **批量预测受控并发**：预测服务使用有上限的线程池，并保持商品/门店输入顺序稳定；单个组合失败不会拖垮整个大屏。
@@ -189,6 +191,8 @@ Docker、依赖扫描和 4 核/8GB 性能证据见 [`docs/deployment-performance
 
 ## 测试与质量门禁
 
+测试和 Ruff 使用开发依赖；首次执行前运行 `python -m pip install -r backend/requirements-dev.txt`。
+
 ```bash
 # 全部后端测试
 python -m pytest backend/tests -q
@@ -220,8 +224,10 @@ python scripts/benchmark_api.py --requests 100 --concurrency 10
 
 - 从空工作区重新生成被 Git 忽略的演示数据、特征和模型产物。
 - 运行后端测试与 Ruff 检查。
+- 检查生产依赖一致性，并执行 OSV `pip-audit`。
 - 检查 `frontend/js` 下所有 JavaScript 文件的语法。
 - 验证 Docker Compose 配置可以解析。
+- 构建并启动部署镜像，执行 Chromium Playwright smoke。
 
 远程是否通过以 GitHub Actions 页面中的实际运行结果为准；本地检查通过不等于已经完成公开部署。
 
@@ -229,6 +235,8 @@ python scripts/benchmark_api.py --requests 100 --concurrency 10
 
 ```text
 sales-forecast-dashboard/
+├── CONTEXT.md                # 当前状态、架构、边界和关键决策
+├── TODO.md                   # 仅保留未完成的后续任务
 ├── backend/
 │   ├── app/                 # FastAPI、路由、服务、配置、异常和健康检查
 │   ├── ml/                  # 数据生成、特征工程、LSTM、LightGBM、训练和预测
@@ -236,6 +244,7 @@ sales-forecast-dashboard/
 │   └── tests/               # API、业务聚合、模型辅助函数和前端契约测试
 ├── frontend/                # HTML、CSS、ECharts 图表和交互逻辑
 ├── scripts/                 # 数据初始化、训练和部署辅助脚本
+├── docs/                     # 当前产品、部署、验收、证据和归档资料
 ├── docs/interview-demo.md   # 5 分钟面试演示稿
 ├── docs/recovery-runbook.md # 数据、模型和草案恢复手册
 ├── docker-compose.yml
@@ -253,6 +262,8 @@ sales-forecast-dashboard/
 - 多副本部署、队列化推理和完整可观测性平台。
 
 下一阶段可以按风险优先级推进：先接入真实数据并建立数据契约，再补定时训练与漂移监控，最后完善鉴权、队列和部署可观测性。
+
+具体未完成项见 [`TODO.md`](TODO.md)。
 
 ## 环境变量
 
@@ -272,4 +283,5 @@ sales-forecast-dashboard/
 ## 版本信息
 
 - 仓库：[Caser-86/sales-forecast-dashboard](https://github.com/Caser-86/sales-forecast-dashboard)
-- 当前文档对应分支：`codex/task-001-v1-contract`
+- 当前状态入口：[`CONTEXT.md`](CONTEXT.md)
+- 后续任务入口：[`TODO.md`](TODO.md)
