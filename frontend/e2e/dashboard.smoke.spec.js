@@ -124,6 +124,20 @@ test("opens forecast analysis and exposes source-traceable detail", async ({ pag
     await expect(page.locator("#exportForecastCsv")).toBeEnabled();
 });
 
+test("shows complete forecast detail and downloads a safe CSV", async ({ page }) => {
+    await waitForDashboard(page);
+
+    await page.locator('.app-nav [data-route="forecast"]').click();
+    await expect(page.locator("#forecastAnalysisStatus")).toHaveText("明细已更新");
+    await expect(page.locator("#forecastHistoryBody tr")).toHaveCount(30);
+    await expect(page.locator("#forecastFutureBody tr")).toHaveCount(30);
+    await expect(page.locator("#forecastMetricSummary")).toContainText("MAPE");
+
+    const download = page.waitForEvent("download");
+    await page.locator("#exportForecastCsv").click();
+    expect((await download).suggestedFilename()).toMatch(/^forecast-\d+-\d+\.csv$/);
+});
+
 test("opens inventory decision and exposes server-side what-if controls", async ({ page }) => {
     await waitForDashboard(page);
 
@@ -132,6 +146,25 @@ test("opens inventory decision and exposes server-side what-if controls", async 
     await expect(page.locator("#inventoryDecisionStatus")).not.toHaveText("加载库存清单中");
     await expect(page.locator("#replenishmentBody")).toBeAttached();
     await expect(page.locator("#replenishmentRiskFilter")).toBeVisible();
+});
+
+test("filters inventory risk and renders the server-side replenishment formula", async ({ page }) => {
+    await waitForDashboard(page);
+
+    await page.locator('.app-nav [data-route="inventory"]').click();
+    await expect(page.locator("#inventoryDecisionStatus")).toHaveText("库存清单已更新");
+    const unfilteredRow = page.locator("#replenishmentBody tr[data-key]").first();
+    await expect(unfilteredRow).toBeVisible();
+    const risk = (await unfilteredRow.locator("td").nth(4).textContent()).trim();
+    await page.locator("#replenishmentRiskFilter").selectOption(risk);
+    const firstRow = page.locator("#replenishmentBody tr[data-key]").first();
+    await expect(firstRow).toBeVisible();
+    await firstRow.locator(".replenishment-select").check();
+    await page.locator("#replenishmentPackSize").fill("10");
+    await page.locator("#replenishmentMoq").fill("30");
+    await page.locator("#runReplenishmentPreview").click();
+    await expect(page.locator("#replenishmentPreview")).toContainText("包装/MOQ 后建议");
+    await expect(page.locator("#replenishmentPreview")).toContainText("来源库存");
 });
 
 test("creates a batch replenishment draft from selected inventory rows", async ({ page }) => {
