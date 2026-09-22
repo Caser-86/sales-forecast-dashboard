@@ -137,9 +137,11 @@ scripts\verify_offline_demo.ps1 -Root .demo-runtime -RunFullReplayE2E
 scripts\benchmark_demo.ps1 -Root .demo-runtime -CpuCores 4 -MemoryBudgetGB 8
 # 参考机长期容量/内存趋势（显式关闭限流，输出 working_set_samples）
 scripts\benchmark_demo.ps1 -Root .demo-runtime -CpuCores 4 -MemoryBudgetGB 8 -DurationSeconds 300 -DisableRateLimit
+# T10 参考机证据包：严格硬件门禁、完整回放和 300 秒容量证据
+scripts\run_t10_acceptance.ps1 -Root .demo-runtime
 ```
 
-预期证据：默认浏览器回归、完整业务回放、失败重试、完整训练期间服务稳定性、候选激活后的跨页面版本一致性和运行快照回滚分别输出明确的 Playwright `passed`；静态离线检查输出 `ready=true` 且 `remote_references=[]`；性能基线输出 `under_memory_budget=true`，长期模式另输出请求持续时间和 `working_set_samples`。`-RunFullReplayE2E` 会在启动前恢复独立演示目录的 `standard` 场景，允许从上次中断状态直接重跑。这些命令不能替代固定 4 核/8GB 机器和完全断网人工演示。
+预期证据：默认浏览器回归、完整业务回放、失败重试、完整训练期间服务稳定性、候选激活后的跨页面版本一致性和运行快照回滚分别输出明确的 Playwright `passed`；静态离线检查输出 `ready=true` 且 `remote_references=[]`；性能基线输出 `under_memory_budget=true`，长期模式另输出请求持续时间和 `working_set_samples`。`-RunFullReplayE2E` 会在启动前恢复独立演示目录的 `standard` 场景，允许从上次中断状态直接重跑。`run_t10_acceptance.ps1` 会将硬件、回放和容量日志集中写入 `.demo-runtime\logs\t10-acceptance`，硬件不匹配时先失败并保留报告。这些命令不能替代固定 4 核/8GB 机器和完全断网人工演示。
 
 ## 8. T10 现场门禁
 

@@ -121,6 +121,11 @@ def test_windows_demo_supports_offline_guard_and_reference_cpu_affinity():
     assert "DEMO_TRAINING_FAILURE_MODE" in offline_script
     assert "DEMO_TRAINING_FAILURE_MARKER" in offline_script
     assert "DEMO_TRAINING_PROFILE" in offline_script
+    t10_script = (PROJECT_ROOT / "scripts" / "run_t10_acceptance.ps1").read_text(encoding="utf-8")
+    assert "check_reference_machine.ps1" in t10_script
+    assert "verify_offline_demo.ps1" in t10_script
+    assert "benchmark_demo.ps1" in t10_script
+    assert "manual_fully_disconnected_replay = \"required_external\"" in t10_script
     assert "-CpuAffinityCores" in benchmark_script
     assert "under_memory_budget" in benchmark_script
     assert "ExpectedLogicalProcessors" in reference_script
