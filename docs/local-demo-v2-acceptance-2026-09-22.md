@@ -29,6 +29,13 @@
 | 4 核亲和性基线 | `scripts/benchmark_demo.ps1` 使用 4 核 CPU affinity：启动 `8.75s`，API `100/100`，p50 `23.96ms`，p95 `150.15ms`，工作集 `413.1MB`，低于 8GB 观测预算 |
 | 参考机物理条件前置检查 | 当前开发机实测 `16` 逻辑处理器、`23.29GB` 内存；`scripts/check_reference_machine.ps1 -Strict` 按预期以退出码 `1` 拒绝，未把 affinity 观测冒充物理 `4 核/8GB` 验收 |
 
+## 2026-09-23 补充证据
+
+- 全量后端回归：`230 passed`，覆盖率 `86.00%`，Ruff、96 个前端 JavaScript 文件语法检查、Compose 配置和离线资源检查均通过。
+- 鉴权完整回放：在保留历史计划且先切换到 `stale_inventory` 的运行目录上执行 `scripts\verify_offline_demo.ps1 -RunFullReplayE2E`，脚本自动恢复 `standard` 场景，Playwright `1 passed (12.4s)`；输出 `offline_guard=true`、健康状态 `healthy`、20 个商品和 100 个库存单元。
+- 当前开发机 affinity 短基线：4 核 affinity、100 请求/10 并发，成功 `100/100`，p50 `29.89ms`，p95 `133.41ms`，峰值工作集 `412.7MB`，启动 `8.05s`。这仍是进程/亲和性观测，不是物理参考机验收。
+- T10 证据入口：`scripts\run_t10_acceptance.ps1` 已验证会在物理条件不匹配时先停止；当前主机报告 `ready=false`、16 逻辑处理器、23.29GB 内存，报告保存于 `.demo-runtime\logs\t10-acceptance\report.json`。
+
 ## 面试现场入口
 
 ```powershell
