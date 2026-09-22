@@ -16,7 +16,7 @@
 | 内存观测 | 同一运行进程工作集约 `386.7MB`；不是固定 4 核/8GB 容器结果 |
 | 离线资源 | `python scripts/verify_offline_demo.py --root .demo-runtime` 返回 `ready=true`、无非本机远程引用；资源包包含 15 个生成资源文件 |
 | Windows 启动 | GitHub Actions 新增 `Windows Demo Startup`：在 `windows-latest` 准备资源、启动 PowerShell 服务、探活 API/前端并停止 |
-| 离线运行时冒烟 | `scripts/verify_offline_demo.ps1` 在 Windows 本机通过；进程内外部 DNS 被守卫阻断，健康、商品、模型、库存和前端探活均通过 |
+| 离线运行时冒烟 | `scripts/verify_offline_demo.ps1` 在 Windows 本机通过；进程内外部 DNS 被守卫阻断，健康、商品、模型、库存和前端探活均通过；追加 `-RunBrowserE2E` 后浏览器回归 `11 passed, 1 skipped` |
 | 4 核亲和性基线 | `scripts/benchmark_demo.ps1` 使用 4 核 CPU affinity：启动 `8.75s`，API `100/100`，p50 `23.96ms`，p95 `150.15ms`，工作集 `413.1MB`，低于 8GB 观测预算 |
 
 ## 面试现场入口

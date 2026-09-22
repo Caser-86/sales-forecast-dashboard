@@ -38,6 +38,8 @@ python scripts/package_demo.py --root .demo-runtime --output .demo-runtime/dist/
 python scripts/verify_offline_demo.py --root .demo-runtime
 # 进程级离线运行时冒烟：会阻断后端非本机网络访问，并自动停止服务
 scripts\verify_offline_demo.ps1 -Root .demo-runtime
+# 追加浏览器业务回归，验证本地服务不依赖外网资源
+scripts\verify_offline_demo.ps1 -Root .demo-runtime -RunBrowserE2E
 # 4 核 affinity 性能基线，内存预算是进程工作集观测而非物理内存硬限制
 scripts\benchmark_demo.ps1 -Root .demo-runtime -CpuCores 4 -MemoryBudgetGB 8
 ```
