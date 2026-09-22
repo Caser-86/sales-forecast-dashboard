@@ -26,11 +26,17 @@ $referenceFactsPath = Join-Path $evidenceRoot "reference-machine.json"
 $referenceStrictPath = Join-Path $evidenceRoot "reference-machine-strict.log"
 $replayLogPath = Join-Path $evidenceRoot "full-replay.log"
 $benchmarkLogPath = Join-Path $evidenceRoot "benchmark.log"
+$manualTemplateSource = Join-Path $projectRoot "docs\t10-manual-evidence-template.md"
+$manualTemplatePath = Join-Path $evidenceRoot "manual-replay.md"
 $checkScript = Join-Path $projectRoot "scripts\check_reference_machine.ps1"
 $verifyScript = Join-Path $projectRoot "scripts\verify_offline_demo.ps1"
 $benchmarkScript = Join-Path $projectRoot "scripts\benchmark_demo.ps1"
 
 New-Item -ItemType Directory -Force $evidenceRoot | Out-Null
+if (-not (Test-Path -LiteralPath $manualTemplateSource)) {
+    throw "T10 manual evidence template is missing: $manualTemplateSource"
+}
+Copy-Item -LiteralPath $manualTemplateSource -Destination $manualTemplatePath -Force
 if (-not (Test-Path -LiteralPath (Join-Path $runtimeRoot "demo-manifest.json"))) {
     throw "No verified demo manifest found. Run python scripts/prepare_demo.py --root '$runtimeRoot' before the offline handoff."
 }
@@ -59,6 +65,7 @@ $report = [ordered]@{
     full_replay_log = $replayLogPath
     benchmark = $null
     benchmark_log = $benchmarkLogPath
+    manual_evidence_template = $manualTemplatePath
     manual_fully_disconnected_replay = "required_external"
 }
 
