@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-    [string]$Root = (Join-Path $PSScriptRoot "..\.demo-runtime"),
+    [string]$Root = "",
     [int]$BackendPort = 18007,
     [int]$FrontendPort = 13007,
     [ValidateRange(1, 32)]
@@ -18,7 +18,9 @@ param(
 
 $ErrorActionPreference = "Stop"
 $projectRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
-$runtimeRoot = if ([IO.Path]::IsPathRooted($Root)) {
+$runtimeRoot = if ([string]::IsNullOrWhiteSpace($Root)) {
+    [IO.Path]::GetFullPath((Join-Path $projectRoot ".demo-runtime"))
+} elseif ([IO.Path]::IsPathRooted($Root)) {
     [IO.Path]::GetFullPath($Root)
 } else {
     [IO.Path]::GetFullPath((Join-Path $projectRoot $Root))
@@ -77,13 +79,27 @@ try {
             $benchmarkProcess.Refresh()
         }
         $benchmarkProcess.WaitForExit()
-        if ($benchmarkProcess.ExitCode -ne 0) {
+        $benchmarkProcess.Refresh()
+        $benchmarkExitCode = $benchmarkProcess.ExitCode
+        if (-not (Test-Path -LiteralPath $benchmarkOutputPath)) {
             $errorText = if (Test-Path -LiteralPath $benchmarkErrorPath) { Get-Content -LiteralPath $benchmarkErrorPath -Raw } else { "" }
-            throw "API duration benchmark failed with exit code $($benchmarkProcess.ExitCode): $errorText"
+            throw "API duration benchmark produced no JSON output. Exit code $($benchmarkExitCode): $errorText"
+        }
+        try {
+            $benchmark = (Get-Content -LiteralPath $benchmarkOutputPath -Raw) | ConvertFrom-Json
+        } catch {
+            $errorText = if (Test-Path -LiteralPath $benchmarkErrorPath) { Get-Content -LiteralPath $benchmarkErrorPath -Raw } else { "" }
+            throw "API duration benchmark produced invalid JSON. Exit code $($benchmarkExitCode): $errorText"
+        }
+        if ([int]$benchmark.failed -gt 0) {
+            throw "API duration benchmark reported $($benchmark.failed) failed requests."
+        }
+        if ($null -ne $benchmarkExitCode -and $benchmarkExitCode -ne 0) {
+            $errorText = if (Test-Path -LiteralPath $benchmarkErrorPath) { Get-Content -LiteralPath $benchmarkErrorPath -Raw } else { "" }
+            throw "API duration benchmark failed with exit code $($benchmarkExitCode): $errorText"
         }
         $finalSample = Get-WorkingSetSample $state.backendPid $state.frontendPid
         if ($finalSample) { $workingSetSamples.Add($finalSample) }
-        $benchmark = (Get-Content -LiteralPath $benchmarkOutputPath -Raw) | ConvertFrom-Json
     } else {
         $benchmarkArguments[0] = $benchmarkScript
         $benchmarkJson = & $python @benchmarkArguments

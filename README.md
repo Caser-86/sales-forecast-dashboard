@@ -61,6 +61,8 @@ scripts\run_t10_acceptance.ps1 -Root .demo-runtime
 `-RunFullReplayE2E` 每次执行前会把独立演示目录恢复到 `standard` 场景，因此上次回放中断后可以直接重跑，不需要手工清理场景状态。
 `run_t10_acceptance.ps1` 在当前开发机等硬件不匹配时会按预期失败，并保留 `report.json`；它不会把 4 核 affinity 观测冒充物理参考机验收。
 
+上述 PowerShell 入口省略 `-Root` 时默认使用项目根目录下的 `.demo-runtime`；现场建议显式传入 `-Root`，便于同时维护多个演示运行目录。
+
 候选训练通过后台任务运行，不会自动切换当前活动模型。提交后可在模型中心查询任务状态，训练成功后人工激活会先校验兼容性并发布候选包：
 
 ```powershell

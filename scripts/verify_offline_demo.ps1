@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-    [string]$Root = (Join-Path $PSScriptRoot "..\.demo-runtime"),
+    [string]$Root = "",
     [int]$BackendPort = 18006,
     [int]$FrontendPort = 13006,
     [switch]$RunBrowserE2E,
@@ -17,7 +17,9 @@ if ($selectedModes.Count -gt 1) {
     throw "Choose only one browser E2E mode."
 }
 $projectRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
-$runtimeRoot = if ([IO.Path]::IsPathRooted($Root)) {
+$runtimeRoot = if ([string]::IsNullOrWhiteSpace($Root)) {
+    [IO.Path]::GetFullPath((Join-Path $projectRoot ".demo-runtime"))
+} elseif ([IO.Path]::IsPathRooted($Root)) {
     [IO.Path]::GetFullPath($Root)
 } else {
     [IO.Path]::GetFullPath((Join-Path $projectRoot $Root))

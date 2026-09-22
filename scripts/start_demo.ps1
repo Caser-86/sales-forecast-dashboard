@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-    [string]$Root = (Join-Path $PSScriptRoot "..\.demo-runtime"),
+    [string]$Root = "",
     [int]$BackendPort = 8000,
     [int]$FrontendPort = 3000,
     [switch]$Prepare,
@@ -12,7 +12,9 @@ param(
 
 $ErrorActionPreference = "Stop"
 $projectRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
-$runtimeRoot = if ([IO.Path]::IsPathRooted($Root)) {
+$runtimeRoot = if ([string]::IsNullOrWhiteSpace($Root)) {
+    [IO.Path]::GetFullPath((Join-Path $projectRoot ".demo-runtime"))
+} elseif ([IO.Path]::IsPathRooted($Root)) {
     [IO.Path]::GetFullPath($Root)
 } else {
     [IO.Path]::GetFullPath((Join-Path $projectRoot $Root))
