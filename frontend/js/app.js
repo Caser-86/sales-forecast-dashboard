@@ -65,11 +65,16 @@ function setRoute(route = getRouteState().route) {
     dataCenter?.classList.toggle("hidden", activeRoute !== "data");
     const modelCenter = document.getElementById("modelCenterPage");
     modelCenter?.classList.toggle("hidden", activeRoute !== "models");
+    const forecastAnalysis = document.getElementById("forecastAnalysisPage");
+    forecastAnalysis?.classList.toggle("hidden", activeRoute !== "forecast");
     if (activeRoute === "data") {
         window.DataCenterPage?.load();
     }
     if (activeRoute === "models") {
         window.ModelCenterPage?.load();
+    }
+    if (activeRoute === "forecast") {
+        window.ForecastAnalysisPage?.load();
     }
     RoutePlaceholder.render(activeRoute, ROUTE_COPY[activeRoute]);
     RoutePlaceholder.setScope(state.scope);

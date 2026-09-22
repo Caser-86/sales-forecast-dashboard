@@ -2,7 +2,10 @@
 window.RoutePlaceholder = {
     render(activeRoute, copy) {
         const placeholder = document.getElementById("routePlaceholder");
-        placeholder.classList.toggle("hidden", activeRoute === "overview" || activeRoute === "data");
+        placeholder.classList.toggle(
+            "hidden",
+            ["overview", "data", "models", "forecast"].includes(activeRoute)
+        );
         document.getElementById("routePlaceholderTitle").textContent = copy.title;
         document.getElementById("routePlaceholderDescription").textContent = copy.description;
     },

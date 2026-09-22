@@ -113,3 +113,13 @@ test("opens the model center and shows the persistent training surface", async (
     await expect(page.locator("#modelVersionsBody")).toBeAttached();
     await expect(page.locator("#modelCenterStatus")).not.toHaveText("加载模型清单中");
 });
+
+test("opens forecast analysis and exposes source-traceable detail", async ({ page }) => {
+    await waitForDashboard(page);
+
+    await page.locator('.app-nav [data-route="forecast"]').click();
+    await expect(page.locator("#forecastAnalysisPage")).toBeVisible();
+    await expect(page.locator("#forecastAnalysisStatus")).not.toHaveText("加载目录中");
+    await expect(page.locator("#forecastSourceSummary")).toContainText("有效历史样本");
+    await expect(page.locator("#exportForecastCsv")).toBeEnabled();
+});

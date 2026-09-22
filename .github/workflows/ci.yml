@@ -66,6 +66,8 @@ jobs:
 
       - name: Start deployment stack
         shell: bash
+        env:
+          RATE_LIMIT_REQUESTS: 300
         run: |
           if ! docker compose up -d; then
             echo "=== Compose state after startup failure ==="

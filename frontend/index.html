@@ -160,6 +160,49 @@
             </div>
         </section>
 
+        <section id="forecastAnalysisPage" class="module-page hidden" aria-label="预测分析">
+            <div class="module-page-header">
+                <div>
+                    <span class="route-kicker">FORECAST ANALYSIS / SOURCE TRACEABLE</span>
+                    <h1>预测分析</h1>
+                    <p>下钻到单个商品和门店，查看历史样本、未来 30 天预测、情景范围和模型基线。</p>
+                </div>
+                <span id="forecastAnalysisStatus" class="module-status" aria-live="polite">加载目录中</span>
+            </div>
+
+            <div class="dataset-card forecast-controls-card">
+                <label class="forecast-search-label">搜索商品
+                    <input id="forecastCatalogSearch" type="search" placeholder="商品名称、品类或 ID">
+                </label>
+                <label>商品<select id="forecastProductSelect"></select></label>
+                <label>门店<select id="forecastStoreSelect"></select></label>
+                <button id="loadForecastDetail" class="refresh-button dataset-primary" type="button">加载明细</button>
+                <button id="exportForecastCsv" class="refresh-button" type="button" disabled>导出 CSV</button>
+            </div>
+
+            <div id="forecastSourceSummary" class="dataset-preview" role="status"></div>
+            <div id="forecastMetricSummary" class="dataset-preview"></div>
+
+            <div class="dataset-card forecast-chart-card">
+                <div id="forecastAnalysisChart" class="forecast-analysis-chart" role="img" aria-label="历史销量与预测销量"></div>
+            </div>
+
+            <div class="forecast-table-grid">
+                <div class="dataset-card">
+                    <div class="dataset-card-header"><h2>历史样本</h2><span class="module-status">最近 30 天</span></div>
+                    <div class="dataset-table-wrap">
+                        <table class="dataset-table"><thead><tr><th>日期</th><th>实际销量</th><th>价格</th><th>促销</th></tr></thead><tbody id="forecastHistoryBody"></tbody></table>
+                    </div>
+                </div>
+                <div class="dataset-card">
+                    <div class="dataset-card-header"><h2>未来 30 天</h2><span class="module-status">情景范围</span></div>
+                    <div class="dataset-table-wrap">
+                        <table class="dataset-table"><thead><tr><th>日期</th><th>预测销量</th><th>下界</th><th>上界</th></tr></thead><tbody id="forecastFutureBody"></tbody></table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
         <!-- Dashboard 作用域与运行状态 -->
         <section class="dashboard-toolbar" data-overview-only="true" aria-label="大屏筛选与状态">
             <div class="toolbar-group">
@@ -269,6 +312,8 @@
         <script src="js/pages/route-placeholder.js?v=1"></script>
         <script src="js/pages/data-center.js?v=1"></script>
         <script src="js/pages/model-center.js?v=1"></script>
+        <script src="js/pages/catalog.js?v=1"></script>
+        <script src="js/pages/forecast-analysis.js?v=1"></script>
     <script src="js/app.js?v=1"></script>
     <script src="js/safe-text.js?v=1"></script>
     <script src="js/charts/kpi-cards.js?v=2"></script>
