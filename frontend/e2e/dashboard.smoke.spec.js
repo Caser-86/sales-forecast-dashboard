@@ -133,3 +133,12 @@ test("opens inventory decision and exposes server-side what-if controls", async 
     await expect(page.locator("#replenishmentBody")).toBeAttached();
     await expect(page.locator("#replenishmentRiskFilter")).toBeVisible();
 });
+
+test("opens plan center with immutable draft history surface", async ({ page }) => {
+    await waitForDashboard(page);
+
+    await page.locator('.app-nav [data-route="plans"]').click();
+    await expect(page.locator("#planCenterPage")).toBeVisible();
+    await expect(page.locator("#planVersionsBody")).toBeAttached();
+    await expect(page.locator("#planCenterStatus")).not.toHaveText("加载草案中");
+});

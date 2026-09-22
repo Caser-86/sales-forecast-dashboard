@@ -220,6 +220,8 @@ const api = {
         return this.post(`/models/${encodeURIComponent(modelId)}/activate`, {}, options);
     },
     previewReplenishment(payload, options) { return this.post("/replenishment/preview", payload, options); },
+    getPlans(limit = 50, options) { return this.get(`/plans?limit=${limit}`, options); },
+    getPlan(planId, options) { return this.get(`/plans/${encodeURIComponent(planId)}`, options); },
     getDatasets(options) { return this.get("/datasets", options); },
     datasetTemplateUrl(kind) { return `${BASE}/datasets/templates/${encodeURIComponent(kind)}`; },
     previewDataset(kind, text, filename, options = {}) {

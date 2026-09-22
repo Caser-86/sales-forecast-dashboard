@@ -241,6 +241,30 @@
             </div>
         </section>
 
+        <section id="planCenterPage" class="module-page hidden" aria-label="计划中心">
+            <div class="module-page-header">
+                <div>
+                    <span class="route-kicker">PLAN CENTER / IMMUTABLE DRAFTS</span>
+                    <h1>计划中心</h1>
+                    <p>查看已保存的补货草案、来源版本和明细；当前版本提供不可变快照与导出，审批流将在后续阶段接入。</p>
+                </div>
+                <span id="planCenterStatus" class="module-status" aria-live="polite">加载草案中</span>
+            </div>
+
+            <div class="dataset-card">
+                <div class="dataset-card-header"><h2>草案历史</h2><button id="refreshPlans" class="refresh-button" type="button">刷新列表</button></div>
+                <div class="dataset-table-wrap">
+                    <table class="dataset-table"><thead><tr><th>草案</th><th>条目数</th><th>数据版本</th><th>模型版本</th><th>库存版本</th><th>创建时间</th><th>操作</th></tr></thead><tbody id="planVersionsBody"></tbody></table>
+                </div>
+            </div>
+
+            <div id="planDetail" class="dataset-card hidden">
+                <div class="dataset-card-header"><div><h2 id="planDetailTitle">草案详情</h2><p id="planDetailSource"></p></div><a id="planDetailExport" class="refresh-button plan-link" href="#" download>导出 CSV</a></div>
+                <div id="planDetailSummary" class="dataset-preview"></div>
+                <div class="dataset-table-wrap"><table class="dataset-table"><thead><tr><th>商品</th><th>门店</th><th>风险</th><th>预测销量</th><th>建议采购</th><th>人工调整</th></tr></thead><tbody id="planDetailItemsBody"></tbody></table></div>
+            </div>
+        </section>
+
         <!-- Dashboard 作用域与运行状态 -->
         <section class="dashboard-toolbar" data-overview-only="true" aria-label="大屏筛选与状态">
             <div class="toolbar-group">
@@ -353,6 +377,7 @@
         <script src="js/pages/catalog.js?v=1"></script>
         <script src="js/pages/forecast-analysis.js?v=1"></script>
         <script src="js/pages/replenishment.js?v=1"></script>
+        <script src="js/pages/plans.js?v=1"></script>
     <script src="js/app.js?v=1"></script>
     <script src="js/safe-text.js?v=1"></script>
     <script src="js/charts/kpi-cards.js?v=2"></script>

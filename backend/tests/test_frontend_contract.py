@@ -116,6 +116,19 @@ def test_frontend_has_inventory_decision_contract():
     assert "previewReplenishment" in api
 
 
+def test_frontend_has_plan_center_contract():
+    html = (PROJECT_ROOT / "frontend" / "index.html").read_text(encoding="utf-8")
+    page = (PROJECT_ROOT / "frontend" / "js" / "pages" / "plans.js").read_text(encoding="utf-8")
+    api = (PROJECT_ROOT / "frontend" / "js" / "api.js").read_text(encoding="utf-8")
+
+    for element_id in ("planCenterPage", "planVersionsBody", "planDetail", "refreshPlans"):
+        assert f'id="{element_id}"' in html
+    assert "getPlans" in page
+    assert "getPlan" in page
+    assert "planExportUrl" in page
+    assert "getPlans" in api
+
+
 def test_frontend_has_shared_runtime_context_and_retry_contract():
     html = (PROJECT_ROOT / "frontend" / "index.html").read_text(encoding="utf-8")
     ui = (PROJECT_ROOT / "frontend" / "js" / "ui.js").read_text(encoding="utf-8")
