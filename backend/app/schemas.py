@@ -372,3 +372,17 @@ class DatasetCatalog(BaseModel):
     inventory: List[DatasetVersionResult] = Field(default_factory=list)
     models: List[Dict[str, Any]] = Field(default_factory=list)
     runtime_snapshots: List[RuntimeSnapshotResponse] = Field(default_factory=list)
+
+
+class DemoScenarioRequest(BaseModel):
+    confirm: bool = False
+
+
+class DemoArtifactRequest(BaseModel):
+    artifact_name: Optional[str] = None
+
+
+class DemoScenarioResponse(BaseModel):
+    active: str
+    scenario: Dict[str, Any]
+    scenarios: List[Dict[str, Any]] = Field(default_factory=list)

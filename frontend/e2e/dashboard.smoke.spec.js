@@ -166,4 +166,6 @@ test("opens system status and shows runtime diagnostics", async ({ page }) => {
     await expect(page.locator("#systemPage")).toBeVisible();
     await expect(page.locator("#systemPageStatus")).not.toHaveText("加载系统状态中");
     await expect(page.locator("#systemRuntimeBody")).toBeAttached();
+    await expect(page.locator("#demoScenarioSelect")).toBeVisible();
+    await expect(page.locator("#createDiagnosticPackage")).toBeVisible();
 });

@@ -53,7 +53,7 @@
         const config = await api.getAuthConfig();
         state.enabled = Boolean(config.enabled);
         if (!state.enabled) {
-            state.user = { display_name: "本地演示", role_label: "管理员" };
+            state.user = { display_name: "本地演示", role: "admin", role_label: "管理员" };
             state.ready = true;
             renderUser();
             return;

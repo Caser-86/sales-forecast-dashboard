@@ -238,6 +238,16 @@ const api = {
         });
     },
     getPlanEvents(planId, options) { return this.get(`/plans/${encodeURIComponent(planId)}/events`, options); },
+    getDemoScenarios(options) { return this.get("/demo/scenarios", options); },
+    switchDemoScenario(name, confirm = false, options) {
+        return this.post(`/demo/scenarios/${encodeURIComponent(name)}`, { confirm }, options);
+    },
+    getDemoArtifacts(options) { return this.get("/demo/artifacts", options); },
+    createDemoBackup(options) { return this.post("/demo/backups", {}, options); },
+    restoreDemoBackup(artifactName, options) {
+        return this.post("/demo/backups/restore", { artifact_name: artifactName }, options);
+    },
+    createDiagnosticPackage(options) { return this.post("/demo/diagnostics", {}, options); },
     getDatasets(options) { return this.get("/datasets", options); },
     datasetTemplateUrl(kind) { return `${BASE}/datasets/templates/${encodeURIComponent(kind)}`; },
     previewDataset(kind, text, filename, options = {}) {

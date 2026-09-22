@@ -20,6 +20,7 @@ from app.api import (
     auth,
     dashboard,
     datasets,
+    demo,
     forecast,
     jobs,
     models,
@@ -164,6 +165,12 @@ app.include_router(
     replenishment.router,
     prefix=settings.API_PREFIX,
     tags=["补货试算"],
+    dependencies=[TokenDependency],
+)
+app.include_router(
+    demo.router,
+    prefix=settings.API_PREFIX,
+    tags=["本地演示"],
     dependencies=[TokenDependency],
 )
 

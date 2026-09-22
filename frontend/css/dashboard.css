@@ -485,6 +485,24 @@ select:focus-visible,
 .system-summary-item strong.healthy { color: var(--accent-green); }
 .system-summary-item strong.warning { color: var(--accent-yellow); }
 
+.demo-scenario-controls {
+    display: flex;
+    align-items: end;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-top: 12px;
+}
+
+.demo-scenario-controls label {
+    display: grid;
+    gap: 6px;
+    color: var(--text-dim);
+    font-size: 11px;
+    min-width: 220px;
+}
+
+.dataset-card-note { margin: 5px 0 0; color: var(--text-dim); font-size: 11px; }
+
 .dataset-card h2 {
     color: var(--text);
     font-size: 16px;

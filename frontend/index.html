@@ -287,6 +287,24 @@
                 <div id="systemSummary" class="system-summary-grid"></div>
             </div>
 
+            <div class="dataset-card" id="demoScenarioCard">
+                <div class="dataset-card-header"><div><h2>确定性演示场景</h2><p class="dataset-card-note">场景只作用于独立 DEMO_ROOT，切换前会要求确认并保留可恢复备份。</p></div><span id="demoScenarioStatus" class="module-status">加载场景中</span></div>
+                <div class="demo-scenario-controls">
+                    <label for="demoScenarioSelect">场景<select id="demoScenarioSelect" class="select"></select></label>
+                    <div class="dataset-actions">
+                        <button id="applyDemoScenario" class="refresh-button dataset-primary" type="button">切换场景</button>
+                        <button id="createDemoBackup" class="refresh-button" type="button">创建备份</button>
+                        <button id="createDiagnosticPackage" class="refresh-button" type="button">生成诊断包</button>
+                    </div>
+                </div>
+                <div id="demoScenarioDescription" class="dataset-preview"></div>
+                <div class="demo-scenario-controls">
+                    <label for="demoBackupSelect">恢复备份<select id="demoBackupSelect" class="select"></select></label>
+                    <button id="restoreDemoBackup" class="refresh-button" type="button">恢复选中备份</button>
+                </div>
+                <div id="demoArtifactStatus" class="dataset-preview" role="status"></div>
+            </div>
+
             <div class="forecast-table-grid">
                 <div class="dataset-card"><div class="dataset-card-header"><h2>活动运行快照</h2><span class="module-status">只读</span></div><div class="dataset-table-wrap"><table class="dataset-table"><thead><tr><th>组件</th><th>版本</th></tr></thead><tbody id="systemRuntimeBody"></tbody></table></div></div>
                 <div class="dataset-card"><div class="dataset-card-header"><h2>数据质量</h2><span class="module-status">只读</span></div><div class="dataset-table-wrap"><table class="dataset-table"><thead><tr><th>检查项</th><th>结果</th></tr></thead><tbody id="systemQualityBody"></tbody></table></div></div>
