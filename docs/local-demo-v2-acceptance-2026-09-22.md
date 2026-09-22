@@ -7,7 +7,7 @@
 | 范围 | 实际证据 |
 | --- | --- |
 | 后端质量门禁 | `217 passed`，覆盖率 `85.81%`，Ruff 通过 |
-| 默认浏览器回归 | `11 passed, 1 skipped`；跳过项是仅在显式鉴权模式运行的审批 E2E |
+| 默认浏览器回归 | `11 passed, 2 skipped`；跳过项是显式鉴权审批 E2E 和仅由 `-RunModelRecoveryE2E` 启用的模型恢复 E2E |
 | 本地角色审批 | Playwright 鉴权用例 `1 passed`：分析员创建/提交，审批员批准，管理员查看 `submit`/`approve` 审计 |
 | 场景与恢复 | 缺货场景可切换；库存过期场景的 `/api/inventory` 返回 `503`；恢复备份后场景回到 `standard` |
 | 本地启动 | `scripts/start_demo.ps1 -Root .demo-runtime -BackendPort 18005 -FrontendPort 13005`，启动到 `/health=healthy` 为 `8.40s` |

@@ -1,5 +1,12 @@
 const { test, expect } = require("@playwright/test");
 
+test.beforeEach(async ({}, testInfo) => {
+    testInfo.skip(
+        process.env.DEMO_TRAINING_FAILURE_MODE !== "fail_once" || process.env.DEMO_TRAINING_PROFILE !== "smoke",
+        "requires scripts/verify_offline_demo.ps1 -RunModelRecoveryE2E"
+    );
+});
+
 test("recovers a real failed training job and activates its isolated candidate", async ({ page }) => {
     test.setTimeout(360_000);
     const pageErrors = [];
