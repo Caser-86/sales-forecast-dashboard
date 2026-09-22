@@ -95,6 +95,7 @@ def test_windows_demo_supports_offline_guard_and_reference_cpu_affinity():
     start_script = (PROJECT_ROOT / "scripts" / "start_demo.ps1").read_text(encoding="utf-8")
     offline_script = (PROJECT_ROOT / "scripts" / "verify_offline_demo.ps1").read_text(encoding="utf-8")
     benchmark_script = (PROJECT_ROOT / "scripts" / "benchmark_demo.ps1").read_text(encoding="utf-8")
+    reference_script = (PROJECT_ROOT / "scripts" / "check_reference_machine.ps1").read_text(encoding="utf-8")
 
     assert "[switch]$Offline" in start_script
     assert "$CpuAffinityCores" in start_script
@@ -115,3 +116,7 @@ def test_windows_demo_supports_offline_guard_and_reference_cpu_affinity():
     assert "DEMO_TRAINING_PROFILE" in offline_script
     assert "-CpuAffinityCores" in benchmark_script
     assert "under_memory_budget" in benchmark_script
+    assert "ExpectedLogicalProcessors" in reference_script
+    assert "ExpectedMemoryGB" in reference_script
+    assert "Win32_ComputerSystem" in reference_script
+    assert "$Strict" in reference_script

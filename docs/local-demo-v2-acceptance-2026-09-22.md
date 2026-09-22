@@ -27,6 +27,7 @@
 | 运行快照发布/回滚 | `scripts/verify_offline_demo.ps1 -RunRuntimeRollbackE2E` 通过 `1 passed (12.1s)`；候选发布/激活、回滚和回滚后跨页面活动版本一致性均通过 |
 | T8 持久化与来源保护 | `test_persistence_migration.py`、`test_plan_workflow.py` 通过；旧版 `plan_drafts` 迁移前生成 `.migration.bak`，工作流/会话可在服务重载后恢复，过期库存或版本漂移审批返回 `409 CONFLICT` |
 | 4 核亲和性基线 | `scripts/benchmark_demo.ps1` 使用 4 核 CPU affinity：启动 `8.75s`，API `100/100`，p50 `23.96ms`，p95 `150.15ms`，工作集 `413.1MB`，低于 8GB 观测预算 |
+| 参考机物理条件前置检查 | 当前开发机实测 `16` 逻辑处理器、`23.29GB` 内存；`scripts/check_reference_machine.ps1 -Strict` 按预期以退出码 `1` 拒绝，未把 affinity 观测冒充物理 `4 核/8GB` 验收 |
 
 ## 面试现场入口
 

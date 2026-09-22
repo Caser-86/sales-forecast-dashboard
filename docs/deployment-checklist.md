@@ -145,3 +145,11 @@ scripts\benchmark_demo.ps1 -Root .demo-runtime -CpuCores 4 -MemoryBudgetGB 8
 2. 从干净的 `.demo-runtime` 执行 `prepare_demo.py`，再执行 `start_demo.ps1`，完成总览、导入错误 CSV、预测下钻、库存试算、计划审批和场景恢复全链路。
 3. 在固定 4 核/8GB 约束下重复 `benchmark_demo.ps1`，记录启动时间、API p50/p95、工作集峰值和长时间内存趋势。
 4. 保存命令输出、机器配置和人工复演结果到验收记录；未完成上述证据前，不将 T10 标记为完成。
+
+参考机开始前先执行严格硬件检查：
+
+```powershell
+scripts\check_reference_machine.ps1 -ExpectedLogicalProcessors 4 -ExpectedMemoryGB 8 -Strict
+```
+
+当前开发机不满足该严格条件时，命令应失败；这正是预期行为，不能用 affinity 模式的基线替代物理参考机证据。

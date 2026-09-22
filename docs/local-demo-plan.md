@@ -188,7 +188,7 @@
 
 - [x] 准备固定演示资源包，记录数据种子、模型包、依赖与机器信息；`scripts/package_demo.py` 排除数据库、日志、任务、上传文件和会话，不把大模型和私有数据提交 Git。
 - [x] 增加 `scripts/verify_offline_demo.py`，检查前端应用源码无非本机远程引用且 ECharts 使用仓库内置资源；新增 `scripts/verify_offline_demo.ps1`，在进程级离线网络守卫下完成健康、商品、模型、库存和前端运行时冒烟，并可用 `-RunBrowserE2E`、`-RunModelStabilityE2E` 执行完整浏览器或训练稳定性回归。
-- [x] 新增 `scripts/benchmark_demo.ps1`，支持 4 核 CPU affinity、启动/API/工作集观测和 8GB 进程预算；当前 Windows 11 本机已记录 4 核 affinity 基线，但物理固定 4 核/8GB 参考机仍待补测。
+- [x] 新增 `scripts/benchmark_demo.ps1`，支持 4 核 CPU affinity、启动/API/工作集观测和 8GB 进程预算；新增 `scripts/check_reference_machine.ps1 -Strict` 检查物理逻辑处理器和内存是否匹配目标参考机。当前 Windows 11 本机已记录 4 核 affinity 基线，但物理固定 4 核/8GB 参考机仍待补测。
 - [ ] 在完全断开外网的机器上完成从首次启动到完整人工演示，并在固定 4 核/8GB 参考机记录长期内存与容量趋势。
 - [x] 扩展 `.github/workflows/ci.yml` 与 `frontend/e2e/`：默认业务回归后重启后端并运行带鉴权审批 E2E；新增 `windows-latest` 真实准备/启动/探活/停止检查。
 - [x] 增加 `-RunModelRecoveryE2E`：在明确的非生产 `smoke` 训练档案中执行真实 worker 失败注入、重试、候选隔离和人工激活；该命令不替代固定硬件和完整人工复演。
