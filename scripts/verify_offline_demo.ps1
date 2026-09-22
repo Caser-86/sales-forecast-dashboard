@@ -3,10 +3,14 @@ param(
     [string]$Root = (Join-Path $PSScriptRoot "..\.demo-runtime"),
     [int]$BackendPort = 18006,
     [int]$FrontendPort = 13006,
-    [switch]$RunBrowserE2E
+    [switch]$RunBrowserE2E,
+    [switch]$RunModelRecoveryE2E
 )
 
 $ErrorActionPreference = "Stop"
+if ($RunBrowserE2E -and $RunModelRecoveryE2E) {
+    throw "Choose either -RunBrowserE2E or -RunModelRecoveryE2E, not both."
+}
 $projectRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 $runtimeRoot = if ([IO.Path]::IsPathRooted($Root)) {
     [IO.Path]::GetFullPath($Root)
@@ -19,7 +23,11 @@ $previousBaseUrl = $env:BASE_URL
 $previousApiBaseUrl = $env:API_BASE_URL
 $previousCorsOrigins = $env:CORS_ORIGINS
 $previousRateLimitRequests = $env:RATE_LIMIT_REQUESTS
+$previousTrainingFailureMode = $env:DEMO_TRAINING_FAILURE_MODE
+$previousTrainingFailureMarker = $env:DEMO_TRAINING_FAILURE_MARKER
+$previousTrainingProfile = $env:DEMO_TRAINING_PROFILE
 $statePath = Join-Path $runtimeRoot "demo-process.json"
+$trainingFailureMarker = Join-Path $runtimeRoot ".training-failure.marker"
 $startedByScript = $false
 
 try {
@@ -43,7 +51,13 @@ try {
     if ($LASTEXITCODE -eq 0) { throw "Offline socket guard did not block the external connection." }
 
     $env:CORS_ORIGINS = "http://127.0.0.1:$FrontendPort"
-    if ($RunBrowserE2E) { $env:RATE_LIMIT_REQUESTS = "1000" }
+    if ($RunBrowserE2E -or $RunModelRecoveryE2E) { $env:RATE_LIMIT_REQUESTS = "1000" }
+    if ($RunModelRecoveryE2E) {
+        Remove-Item -LiteralPath $trainingFailureMarker -Force -ErrorAction SilentlyContinue
+        $env:DEMO_TRAINING_FAILURE_MODE = "fail_once"
+        $env:DEMO_TRAINING_FAILURE_MARKER = $trainingFailureMarker
+        $env:DEMO_TRAINING_PROFILE = "smoke"
+    }
     & (Join-Path $projectRoot "scripts\start_demo.ps1") -Root $runtimeRoot -BackendPort $BackendPort -FrontendPort $FrontendPort -Offline
     $startedByScript = $true
     $baseUrl = "http://127.0.0.1:$BackendPort"
@@ -58,13 +72,18 @@ try {
     if ($model.status -ne "ready") { throw "Offline demo model status was $($model.status)." }
     if (-not $inventory.cells) { throw "Offline demo returned no inventory cells." }
 
-    if ($RunBrowserE2E) {
+    if ($RunBrowserE2E -or $RunModelRecoveryE2E) {
         $env:BASE_URL = $frontendUrl
         $env:API_BASE_URL = "$baseUrl/api"
         Push-Location (Join-Path $projectRoot "frontend")
         try {
-            & npm.cmd run test:e2e
-            if ($LASTEXITCODE -ne 0) { throw "Offline browser E2E failed with exit code $LASTEXITCODE." }
+            if ($RunModelRecoveryE2E) {
+                & npm.cmd run test:e2e -- model.recovery.spec.js
+                if ($LASTEXITCODE -ne 0) { throw "Offline model recovery E2E failed with exit code $LASTEXITCODE." }
+            } else {
+                & npm.cmd run test:e2e
+                if ($LASTEXITCODE -ne 0) { throw "Offline browser E2E failed with exit code $LASTEXITCODE." }
+            }
         } finally {
             Pop-Location
         }
@@ -79,6 +98,7 @@ try {
         inventory_count = $inventory.cells.Count
         frontend = $frontendUrl
         browser_e2e = [bool]$RunBrowserE2E
+        model_recovery_e2e = [bool]$RunModelRecoveryE2E
     } | ConvertTo-Json
 } finally {
     if ($startedByScript -and (Test-Path -LiteralPath $statePath)) {
@@ -89,4 +109,8 @@ try {
     if ($null -eq $previousApiBaseUrl) { Remove-Item Env:API_BASE_URL -ErrorAction SilentlyContinue } else { $env:API_BASE_URL = $previousApiBaseUrl }
     if ($null -eq $previousCorsOrigins) { Remove-Item Env:CORS_ORIGINS -ErrorAction SilentlyContinue } else { $env:CORS_ORIGINS = $previousCorsOrigins }
     if ($null -eq $previousRateLimitRequests) { Remove-Item Env:RATE_LIMIT_REQUESTS -ErrorAction SilentlyContinue } else { $env:RATE_LIMIT_REQUESTS = $previousRateLimitRequests }
+    if ($null -eq $previousTrainingFailureMode) { Remove-Item Env:DEMO_TRAINING_FAILURE_MODE -ErrorAction SilentlyContinue } else { $env:DEMO_TRAINING_FAILURE_MODE = $previousTrainingFailureMode }
+    if ($null -eq $previousTrainingFailureMarker) { Remove-Item Env:DEMO_TRAINING_FAILURE_MARKER -ErrorAction SilentlyContinue } else { $env:DEMO_TRAINING_FAILURE_MARKER = $previousTrainingFailureMarker }
+    if ($null -eq $previousTrainingProfile) { Remove-Item Env:DEMO_TRAINING_PROFILE -ErrorAction SilentlyContinue } else { $env:DEMO_TRAINING_PROFILE = $previousTrainingProfile }
+    Remove-Item -LiteralPath $trainingFailureMarker -Force -ErrorAction SilentlyContinue
 }

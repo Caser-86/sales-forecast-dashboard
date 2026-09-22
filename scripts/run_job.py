@@ -16,6 +16,47 @@ from app.core.config import settings  # noqa: E402
 from app.services.job_repository import JobRepository  # noqa: E402
 
 
+def should_inject_demo_failure() -> bool:
+    """Inject one explicit local-demo failure without enabling it in production."""
+    if os.environ.get("ENV", "development").strip().lower() == "production":
+        return False
+    if os.environ.get("DEMO_TRAINING_FAILURE_MODE", "").strip().lower() != "fail_once":
+        return False
+    marker_value = os.environ.get("DEMO_TRAINING_FAILURE_MARKER", "").strip()
+    if not marker_value:
+        return False
+
+    marker = Path(marker_value).expanduser()
+    marker.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        descriptor = os.open(marker, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+    except FileExistsError:
+        return False
+    else:
+        os.close(descriptor)
+        return True
+
+
+def demo_training_profile() -> str | None:
+    """Return an explicit non-production training profile for local acceptance."""
+    if os.environ.get("ENV", "development").strip().lower() == "production":
+        return None
+    profile = os.environ.get("DEMO_TRAINING_PROFILE", "").strip().lower()
+    return profile if profile == "smoke" else None
+
+
+def apply_demo_training_profile() -> None:
+    """Shorten only the opt-in local smoke profile without changing production defaults."""
+    if demo_training_profile() != "smoke":
+        return
+    from ml import trainer
+
+    trainer.EPOCHS = 8
+    trainer.PATIENCE = 2
+    trainer.lgbm_wrapper.DEFAULT_PARAMS["n_estimators"] = 50
+    trainer.lgbm_wrapper.DEFAULT_PARAMS["early_stopping_rounds"] = 5
+
+
 def _copy_training_input() -> None:
     source = Path(os.environ.get("JOB_SOURCE_FEATURES", ""))
     if not source.is_file():
@@ -35,10 +76,13 @@ def run(job_id: str) -> int:
         return 2
 
     try:
+        if should_inject_demo_failure():
+            raise RuntimeError("演示故障注入：首次训练失败，可点击重试")
         repository.update_phase(job_id, "preparing")
         _copy_training_input()
         repository.update_phase(job_id, "training")
 
+        apply_demo_training_profile()
         from ml.trainer import train_all
 
         report = train_all(activate=False, data_version=job.input_data_version)

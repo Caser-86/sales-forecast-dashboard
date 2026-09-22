@@ -1,7 +1,54 @@
 """持久化训练任务的状态机与错误边界。"""
 from __future__ import annotations
 
+import importlib.util
 from pathlib import Path
+
+
+def _load_run_job_module():
+    project_root = Path(__file__).resolve().parents[2]
+    module_path = project_root / "scripts" / "run_job.py"
+    spec = importlib.util.spec_from_file_location("run_job_for_tests", module_path)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_demo_failure_injection_is_explicit_and_only_fails_once(monkeypatch, tmp_path):
+    run_job = _load_run_job_module()
+    marker = tmp_path / "training-failure.marker"
+    monkeypatch.setenv("DEMO_TRAINING_FAILURE_MODE", "fail_once")
+    monkeypatch.setenv("DEMO_TRAINING_FAILURE_MARKER", str(marker))
+    monkeypatch.setenv("ENV", "development")
+
+    assert run_job.should_inject_demo_failure() is True
+    assert marker.is_file()
+    assert run_job.should_inject_demo_failure() is False
+
+
+def test_demo_failure_injection_is_disabled_in_production(monkeypatch, tmp_path):
+    run_job = _load_run_job_module()
+    monkeypatch.setenv("DEMO_TRAINING_FAILURE_MODE", "fail_once")
+    monkeypatch.setenv("DEMO_TRAINING_FAILURE_MARKER", str(tmp_path / "marker"))
+    monkeypatch.setenv("ENV", "production")
+
+    assert run_job.should_inject_demo_failure() is False
+
+
+def test_demo_training_profile_is_opt_in_and_disabled_in_production(monkeypatch):
+    run_job = _load_run_job_module()
+
+    monkeypatch.delenv("DEMO_TRAINING_PROFILE", raising=False)
+    monkeypatch.setenv("ENV", "development")
+    assert run_job.demo_training_profile() is None
+
+    monkeypatch.setenv("DEMO_TRAINING_PROFILE", "smoke")
+    assert run_job.demo_training_profile() == "smoke"
+
+    monkeypatch.setenv("ENV", "production")
+    assert run_job.demo_training_profile() is None
+
 from types import SimpleNamespace
 
 import pytest

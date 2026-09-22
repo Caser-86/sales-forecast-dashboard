@@ -40,6 +40,8 @@ python scripts/verify_offline_demo.py --root .demo-runtime
 scripts\verify_offline_demo.ps1 -Root .demo-runtime
 # 追加浏览器业务回归，验证本地服务不依赖外网资源
 scripts\verify_offline_demo.ps1 -Root .demo-runtime -RunBrowserE2E
+# 真实 worker 失败注入、重试、候选隔离和人工激活回归（仅非生产 smoke 档案）
+scripts\verify_offline_demo.ps1 -Root .demo-runtime -RunModelRecoveryE2E
 # 4 核 affinity 性能基线，内存预算是进程工作集观测而非物理内存硬限制
 scripts\benchmark_demo.ps1 -Root .demo-runtime -CpuCores 4 -MemoryBudgetGB 8
 ```

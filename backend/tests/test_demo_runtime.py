@@ -105,5 +105,9 @@ def test_windows_demo_supports_offline_guard_and_reference_cpu_affinity():
     assert "API_BASE_URL" in offline_script
     assert "CORS_ORIGINS" in offline_script
     assert "RATE_LIMIT_REQUESTS" in offline_script
+    assert "RunModelRecoveryE2E" in offline_script
+    assert "DEMO_TRAINING_FAILURE_MODE" in offline_script
+    assert "DEMO_TRAINING_FAILURE_MARKER" in offline_script
+    assert "DEMO_TRAINING_PROFILE" in offline_script
     assert "-CpuAffinityCores" in benchmark_script
     assert "under_memory_budget" in benchmark_script
