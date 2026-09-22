@@ -15,6 +15,16 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 BACKEND_DIR = PROJECT_ROOT / "backend"
 sys.path.insert(0, str(BACKEND_DIR))
 
+
+def _configure_console_output() -> None:
+    """Keep demo preparation logs portable across Windows console encodings."""
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(encoding="utf-8", errors="replace")
+
+
+_configure_console_output()
+
 if TYPE_CHECKING:
     from app.core.config import Settings
 
