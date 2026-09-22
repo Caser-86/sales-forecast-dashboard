@@ -29,6 +29,19 @@ async function openRoute(page, route) {
     await page.locator(`.app-nav [data-route="${route}"]`).click();
 }
 
+async function createdPlanId(page) {
+    const preview = await page.locator("#replenishmentPreview").textContent();
+    const match = preview.match(/草案\s+(\S+)\s+已/);
+    expect(match).not.toBeNull();
+    return match[1];
+}
+
+function planRow(page, planId) {
+    return page.locator("#planVersionsBody tr").filter({
+        has: page.locator(`button.plan-detail-action[data-plan-id="${planId}"]`)
+    }).first();
+}
+
 test("replays the complete offline interview workflow in one authenticated session", async ({ page }) => {
     const pageErrors = [];
     page.on("pageerror", error => pageErrors.push(error.message));
@@ -80,9 +93,10 @@ test("replays the complete offline interview workflow in one authenticated sessi
     await page.locator("#replenishmentAdjustmentReason").fill("完整离线回放调整");
     await page.locator("#createReplenishmentPlan").click();
     await expect(page.locator("#replenishmentPreview")).toContainText("草案");
+    const planId = await createdPlanId(page);
 
     await openRoute(page, "plans");
-    const draft = page.locator("#planVersionsBody tr").filter({ hasText: "草案" }).first();
+    const draft = planRow(page, planId);
     await expect(draft.locator('[data-action="submit"]')).toBeVisible();
     await draft.locator('[data-action="submit"]').click();
     await expect(page.locator("#planCenterStatus")).toContainText("更新");
@@ -90,7 +104,7 @@ test("replays the complete offline interview workflow in one authenticated sessi
     await page.locator("#demoLogout").click();
     await login(page, "approver", "demo-approver");
     await openRoute(page, "plans");
-    const submitted = page.locator("#planVersionsBody tr").filter({ hasText: "待审批" }).first();
+    const submitted = planRow(page, planId);
     await expect(submitted.locator('[data-action="approve"]')).toBeVisible();
     await submitted.locator('[data-action="approve"]').click();
     await expect(page.locator("#planCenterStatus")).toContainText("更新");
@@ -98,7 +112,7 @@ test("replays the complete offline interview workflow in one authenticated sessi
     await page.locator("#demoLogout").click();
     await login(page, "admin", "demo-admin");
     await openRoute(page, "plans");
-    const approved = page.locator("#planVersionsBody tr").filter({ hasText: "已批准" }).first();
+    const approved = planRow(page, planId);
     await approved.locator(".plan-detail-action").click();
     await page.locator('#planWorkflowActions [data-action="events"]').click();
     await expect(page.locator("#planDetailSummary")).toContainText("submit");

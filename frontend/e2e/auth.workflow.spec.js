@@ -23,6 +23,19 @@ async function openDashboard(page) {
     await page.goto("/");
 }
 
+async function createdPlanId(page) {
+    const preview = await page.locator("#replenishmentPreview").textContent();
+    const match = preview.match(/草案\s+(\S+)\s+已/);
+    expect(match).not.toBeNull();
+    return match[1];
+}
+
+function planRow(page, planId) {
+    return page.locator("#planVersionsBody tr").filter({
+        has: page.locator(`button.plan-detail-action[data-plan-id="${planId}"]`)
+    }).first();
+}
+
 test("completes analyst approval and admin audit workflow", async ({ page }) => {
     const pageErrors = [];
     page.on("pageerror", error => pageErrors.push(error.message));
@@ -39,10 +52,11 @@ test("completes analyst approval and admin audit workflow", async ({ page }) => 
     await page.locator("#replenishmentAdjustmentReason").fill("审批流程 E2E");
     await page.locator("#createReplenishmentPlan").click();
     await expect(page.locator("#replenishmentPreview")).toContainText("草案");
+    const planId = await createdPlanId(page);
 
     await page.locator('.app-nav [data-route="plans"]').click();
     await expect(page.locator("#planCenterPage")).toBeVisible();
-    const draft = page.locator("#planVersionsBody tr").filter({ hasText: "草案" }).first();
+    const draft = planRow(page, planId);
     await expect(draft.locator('[data-action="submit"]')).toBeVisible();
     await draft.locator('[data-action="submit"]').click();
     await expect(page.locator("#planCenterStatus")).toContainText("更新");
@@ -51,7 +65,7 @@ test("completes analyst approval and admin audit workflow", async ({ page }) => 
     await expect(page.locator("#demoLogin")).toBeVisible();
     await login(page, "approver", "demo-approver");
     await page.locator('.app-nav [data-route="plans"]').click();
-    const submitted = page.locator("#planVersionsBody tr").filter({ hasText: "待审批" }).first();
+    const submitted = planRow(page, planId);
     await expect(submitted.locator('[data-action="approve"]')).toBeVisible();
     await submitted.locator('[data-action="approve"]').click();
     await expect(page.locator("#planCenterStatus")).toContainText("更新");
@@ -59,7 +73,7 @@ test("completes analyst approval and admin audit workflow", async ({ page }) => 
     await page.locator("#demoLogout").click();
     await login(page, "admin", "demo-admin");
     await page.locator('.app-nav [data-route="plans"]').click();
-    const approved = page.locator("#planVersionsBody tr").filter({ hasText: "已批准" }).first();
+    const approved = planRow(page, planId);
     await approved.locator(".plan-detail-action").click();
     await page.locator('#planWorkflowActions [data-action="events"]').click();
     await expect(page.locator("#planDetailSummary")).toContainText("submit");
@@ -78,9 +92,10 @@ test("shows an optimistic-lock conflict when two approval tabs race", async ({ p
     await page.locator("#replenishmentAdjustmentReason").fill("并发版次测试");
     await page.locator("#createReplenishmentPlan").click();
     await expect(page.locator("#replenishmentPreview")).toContainText("草案");
+    const planId = await createdPlanId(page);
 
     await page.locator('.app-nav [data-route="plans"]').click();
-    const draft = page.locator("#planVersionsBody tr").filter({ hasText: "草案" }).first();
+    const draft = planRow(page, planId);
     await draft.locator('[data-action="submit"]').click();
     await expect(page.locator("#planCenterStatus")).toContainText("更新");
 
@@ -88,13 +103,13 @@ test("shows an optimistic-lock conflict when two approval tabs race", async ({ p
     await expect(page.locator("#demoLogin")).toBeVisible();
     await login(page, "approver", "demo-approver");
     await page.locator('.app-nav [data-route="plans"]').click();
-    await expect(page.locator("#planVersionsBody tr").filter({ hasText: "待审批" }).first()).toBeVisible();
+    await expect(planRow(page, planId)).toBeVisible();
 
     const racingPage = await page.context().newPage();
     await openDashboard(racingPage);
     await racingPage.locator('.app-nav [data-route="plans"]').click();
-    const firstApproval = page.locator("#planVersionsBody tr").filter({ hasText: "待审批" }).first();
-    const secondApproval = racingPage.locator("#planVersionsBody tr").filter({ hasText: "待审批" }).first();
+    const firstApproval = planRow(page, planId);
+    const secondApproval = planRow(racingPage, planId);
     await expect(secondApproval).toBeVisible();
 
     await firstApproval.locator('[data-action="approve"]').click();
