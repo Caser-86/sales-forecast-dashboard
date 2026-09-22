@@ -16,6 +16,38 @@
 | Python 版本 | |
 | 网络断开方式 | |
 
+## 现场执行顺序
+
+以下命令只用于把现场状态准备到可记录状态；最终结论仍必须来自人工复演记录和目标机器证据。
+
+### 断网前准备
+
+在目标参考机联网时，使用一个新的、受控的演示目录完成准备，不把依赖下载或模型训练计入断网复演：
+
+```powershell
+scripts\check_reference_machine.ps1 -ExpectedLogicalProcessors 4 -ExpectedMemoryGB 8 -Strict
+python scripts\prepare_demo.py --root .demo-runtime-t10
+Get-FileHash .demo-runtime-t10\demo-manifest.json -Algorithm SHA256
+```
+
+记录 manifest SHA-256 后，断开外网并在整个 M-01 至 M-10 期间保持断网。不要在断网后运行 `pip install`、`npm install`、模型下载或其他依赖准备命令。
+
+### 断网后启动和复演
+
+```powershell
+python scripts\verify_offline_demo.py --root .demo-runtime-t10
+scripts\start_demo.ps1 -Root .demo-runtime-t10 -BackendPort 18026 -FrontendPort 13026 -Offline -WithAuth
+```
+
+浏览器打开 `http://127.0.0.1:13026`，按下方 M-01 至 M-09 逐项操作；M-10 完成后执行一次停止/重启，再确认计划和活动版本仍可读取：
+
+```powershell
+scripts\stop_demo.ps1 -Root .demo-runtime-t10
+scripts\start_demo.ps1 -Root .demo-runtime-t10 -BackendPort 18026 -FrontendPort 13026 -Offline -WithAuth
+```
+
+停止服务后，在同一目标机上执行 benchmark 和 T10 runner，并将生成的日志路径填回本表。若目标目录或端口不同，必须在记录中写明实际值。
+
 ## 自动门禁
 
 | 检查 | 命令/证据 | 结果 |

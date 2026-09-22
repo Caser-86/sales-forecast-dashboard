@@ -145,12 +145,13 @@ scripts\run_t10_acceptance.ps1 -Root .demo-runtime
 
 ## 8. T10 现场门禁
 
-在与目标参考机一致的 Windows 环境执行：
+在与目标参考机一致的 Windows 环境执行，详细记录模板见 [`docs/t10-manual-evidence-template.md`](t10-manual-evidence-template.md)：
 
-1. 断开外网并确认浏览器、Python 和本地依赖仍可启动。
-2. 从干净的 `.demo-runtime` 执行 `prepare_demo.py`，再执行 `start_demo.ps1`，完成总览、导入错误 CSV、预测下钻、库存试算、计划审批和场景恢复全链路。
-3. 在固定 4 核/8GB 机器上先执行 `check_reference_machine.ps1 -Strict`，再用 `benchmark_demo.ps1 -DurationSeconds 300 -DisableRateLimit` 记录启动时间、API p50/p95、工作集峰值和长期采样趋势。
-4. 使用 `.demo-runtime\logs\t10-acceptance\manual-replay.md` 逐项记录人工复演、断网方式和证据编号；未完成上述证据前，不将 T10 标记为完成。
+1. 联网时先在新的受控目录执行严格硬件检查和 `prepare_demo.py`，记录 `demo-manifest.json` SHA-256；准备过程不计入断网人工复演。
+2. 断开外网后执行 `verify_offline_demo.py` 静态检查，再用 `start_demo.ps1 -Offline -WithAuth` 启动；从浏览器完成总览、错误/有效 CSV、预测下钻、库存试算、计划审批、过期库存阻止、备份恢复和诊断包全链路。
+3. 停止并重启服务，确认活动版本、计划和审计仍可读取；整个 M-01 至 M-10 期间不安装依赖、不下载模型、不访问外部服务。
+4. 在服务停止后执行 `benchmark_demo.ps1 -DurationSeconds 300 -DisableRateLimit` 和 `run_t10_acceptance.ps1`，记录启动时间、API p50/p95、工作集峰值和长期采样趋势。
+5. 使用 `.demo-runtime\logs\t10-acceptance\manual-replay.md` 逐项记录人工复演、断网方式和证据编号；未完成上述证据前，不将 T10 标记为完成。
 
 参考机开始前先执行严格硬件检查：
 
