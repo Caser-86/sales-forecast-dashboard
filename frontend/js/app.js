@@ -91,6 +91,9 @@ function setRoute(route = getRouteState().route) {
     if (activeRoute === "system") {
         window.SystemPage?.load();
     }
+    if (activeRoute === "overview") {
+        window.DashboardPage?.refresh();
+    }
     RoutePlaceholder.render(activeRoute, ROUTE_COPY[activeRoute]);
     RoutePlaceholder.setScope(state.scope);
     updateNavigationLinks(state.scope);

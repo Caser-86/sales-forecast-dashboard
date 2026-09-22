@@ -209,6 +209,8 @@
             state.coverage = result.coverage;
             state.metadata = metadata;
             state.datasets = datasets;
+            byId("inventorySourceSummary").textContent =
+                `来源版本：数据 ${metadata.data_version} · 模型 ${metadata.model_version} · 库存 ${metadata.inventory_version}`;
             const validKeys = new Set(state.cells.map(cellKey));
             state.selectedKeys = new Set([...state.selectedKeys].filter(key => validKeys.has(key)));
             byId("replenishmentCoverage").textContent = `覆盖率：${result.coverage.succeeded}/${result.coverage.requested} · ${result.coverage.status}`;

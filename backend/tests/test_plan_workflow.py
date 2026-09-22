@@ -40,7 +40,9 @@ def _payload(name: str = "演示草案") -> dict:
     }
 
 
-def test_plan_workflow_enforces_roles_versions_and_audit(tmp_path):
+def test_plan_workflow_enforces_roles_versions_and_audit(tmp_path, monkeypatch):
+    from app.services import plan_workflow_service
+
     repository = PlanRepository(tmp_path / "plans.db")
     saved = repository.save("request-1", _payload())
     workflow = PlanWorkflowService(repository.database)
@@ -57,6 +59,16 @@ def test_plan_workflow_enforces_roles_versions_and_audit(tmp_path):
     with pytest.raises(ConflictError):
         workflow.transition(saved.plan_id, "approve", approver, expected_version=1)
 
+    monkeypatch.setattr(
+        plan_workflow_service.metadata_service,
+        "get_metadata",
+        lambda: {
+            "data_version": saved.snapshot["data_version"],
+            "model_version": saved.snapshot["model_version"],
+            "inventory_version": saved.snapshot["inventory_version"],
+            "inventory_status": "fresh",
+        },
+    )
     approved = workflow.transition(saved.plan_id, "approve", approver, expected_version=2)
     assert approved["status"] == "approved"
     assert len(workflow.events(saved.plan_id)) == 2
@@ -80,3 +92,41 @@ def test_rejected_plan_can_create_a_new_draft_revision(tmp_path):
     assert revision["workflow"]["status"] == "draft"
     assert revision["workflow"]["parent_plan_id"] == saved.plan_id
     assert repository.get(revision["plan_id"]).snapshot["name"].endswith("修订版）")
+
+
+def test_approval_rejects_stale_or_drifted_plan_sources(tmp_path, monkeypatch):
+    from app.services import plan_workflow_service
+
+    repository = PlanRepository(tmp_path / "plans.db")
+    saved = repository.save("request-1", _payload())
+    workflow = PlanWorkflowService(repository.database)
+    analyst = DemoUser("analyst", "分析员", "analyst")
+    approver = DemoUser("approver", "审批员", "approver")
+    workflow.ensure_plan(saved.plan_id, analyst)
+    workflow.transition(saved.plan_id, "submit", analyst, expected_version=1)
+
+    monkeypatch.setattr(
+        plan_workflow_service.metadata_service,
+        "get_metadata",
+        lambda: {
+            "data_version": saved.snapshot["data_version"],
+            "model_version": saved.snapshot["model_version"],
+            "inventory_version": saved.snapshot["inventory_version"],
+            "inventory_status": "stale",
+        },
+    )
+    with pytest.raises(ConflictError, match="库存快照已过期"):
+        workflow.transition(saved.plan_id, "approve", approver, expected_version=2)
+
+    monkeypatch.setattr(
+        plan_workflow_service.metadata_service,
+        "get_metadata",
+        lambda: {
+            "data_version": "sales-new",
+            "model_version": saved.snapshot["model_version"],
+            "inventory_version": saved.snapshot["inventory_version"],
+            "inventory_status": "fresh",
+        },
+    )
+    with pytest.raises(ConflictError, match="来源版本已变化"):
+        workflow.transition(saved.plan_id, "approve", approver, expected_version=2)

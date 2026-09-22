@@ -4,12 +4,14 @@ param(
     [int]$BackendPort = 18006,
     [int]$FrontendPort = 13006,
     [switch]$RunBrowserE2E,
-    [switch]$RunModelRecoveryE2E
+    [switch]$RunModelRecoveryE2E,
+    [switch]$RunModelConsistencyE2E
 )
 
 $ErrorActionPreference = "Stop"
-if ($RunBrowserE2E -and $RunModelRecoveryE2E) {
-    throw "Choose either -RunBrowserE2E or -RunModelRecoveryE2E, not both."
+$selectedModes = @($RunBrowserE2E, $RunModelRecoveryE2E, $RunModelConsistencyE2E) | Where-Object { $_ }
+if ($selectedModes.Count -gt 1) {
+    throw "Choose only one browser E2E mode."
 }
 $projectRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 $runtimeRoot = if ([IO.Path]::IsPathRooted($Root)) {
@@ -51,12 +53,17 @@ try {
     if ($LASTEXITCODE -eq 0) { throw "Offline socket guard did not block the external connection." }
 
     $env:CORS_ORIGINS = "http://127.0.0.1:$FrontendPort"
-    if ($RunBrowserE2E -or $RunModelRecoveryE2E) { $env:RATE_LIMIT_REQUESTS = "1000" }
+    if ($RunBrowserE2E -or $RunModelRecoveryE2E -or $RunModelConsistencyE2E) { $env:RATE_LIMIT_REQUESTS = "1000" }
     if ($RunModelRecoveryE2E) {
         Remove-Item -LiteralPath $trainingFailureMarker -Force -ErrorAction SilentlyContinue
         $env:DEMO_TRAINING_FAILURE_MODE = "fail_once"
         $env:DEMO_TRAINING_FAILURE_MARKER = $trainingFailureMarker
         $env:DEMO_TRAINING_PROFILE = "smoke"
+    }
+    if ($RunModelConsistencyE2E) {
+        Remove-Item Env:DEMO_TRAINING_FAILURE_MODE -ErrorAction SilentlyContinue
+        Remove-Item Env:DEMO_TRAINING_FAILURE_MARKER -ErrorAction SilentlyContinue
+        $env:DEMO_TRAINING_PROFILE = "full"
     }
     & (Join-Path $projectRoot "scripts\start_demo.ps1") -Root $runtimeRoot -BackendPort $BackendPort -FrontendPort $FrontendPort -Offline
     $startedByScript = $true
@@ -72,7 +79,7 @@ try {
     if ($model.status -ne "ready") { throw "Offline demo model status was $($model.status)." }
     if (-not $inventory.cells) { throw "Offline demo returned no inventory cells." }
 
-    if ($RunBrowserE2E -or $RunModelRecoveryE2E) {
+    if ($RunBrowserE2E -or $RunModelRecoveryE2E -or $RunModelConsistencyE2E) {
         $env:BASE_URL = $frontendUrl
         $env:API_BASE_URL = "$baseUrl/api"
         Push-Location (Join-Path $projectRoot "frontend")
@@ -80,6 +87,9 @@ try {
             if ($RunModelRecoveryE2E) {
                 & npm.cmd run test:e2e -- model.recovery.spec.js
                 if ($LASTEXITCODE -ne 0) { throw "Offline model recovery E2E failed with exit code $LASTEXITCODE." }
+            } elseif ($RunModelConsistencyE2E) {
+                & npm.cmd run test:e2e -- model.consistency.spec.js
+                if ($LASTEXITCODE -ne 0) { throw "Offline model consistency E2E failed with exit code $LASTEXITCODE." }
             } else {
                 & npm.cmd run test:e2e
                 if ($LASTEXITCODE -ne 0) { throw "Offline browser E2E failed with exit code $LASTEXITCODE." }
@@ -99,6 +109,7 @@ try {
         frontend = $frontendUrl
         browser_e2e = [bool]$RunBrowserE2E
         model_recovery_e2e = [bool]$RunModelRecoveryE2E
+        model_consistency_e2e = [bool]$RunModelConsistencyE2E
     } | ConvertTo-Json
 } finally {
     if ($startedByScript -and (Test-Path -LiteralPath $statePath)) {

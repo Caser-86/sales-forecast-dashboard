@@ -112,12 +112,14 @@ def test_frontend_has_inventory_decision_contract():
         "replenishmentAbcFilter",
         "replenishmentRiskFilter",
         "replenishmentBody",
+        "inventorySourceSummary",
         "replenishmentForm",
         "runReplenishmentPreview",
         "addReplenishmentPlan",
     ):
         assert f'id="{element_id}"' in html
     assert "getInventory" in page
+    assert "model_version" in page
     assert "previewReplenishment" in page
     assert "previewReplenishment" in api
     assert "selectedKeys" in page
@@ -182,6 +184,9 @@ def test_frontend_has_shared_runtime_context_and_retry_contract():
     assert "setLoading" in ui
     assert "DemoUI.showError" in dashboard
     assert "DemoUI.setRuntimeContext" in dashboard
+    app = (PROJECT_ROOT / "frontend" / "js" / "app.js").read_text(encoding="utf-8")
+    assert "DashboardPage?.refresh" in app
+    assert "dashboardInitialized" in dashboard
 
 
 def test_frontend_api_exposes_quality_endpoints():

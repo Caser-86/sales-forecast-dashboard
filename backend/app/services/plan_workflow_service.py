@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from app.core.exceptions import ConflictError, NotFoundError, UnauthorizedError
+from app.services import metadata_service
 from app.services.auth_service import DemoUser
 from app.services.plan_repository import PlanRepository
 
@@ -101,6 +102,20 @@ class PlanWorkflowService:
             result[plan_id] = self.get(plan_id)
         return result
 
+    def _validate_approval_sources(self, plan_id: str) -> None:
+        plan = self.repository.get(plan_id)
+        if plan is None:
+            raise NotFoundError(f"草案 {plan_id} 不存在")
+        metadata = metadata_service.get_metadata()
+        if metadata.get("inventory_status") != "fresh":
+            raise ConflictError("库存快照已过期或不可用，不能批准计划")
+
+        for field in ("data_version", "model_version", "inventory_version"):
+            recorded = plan.snapshot.get(field)
+            current = metadata.get(field)
+            if current and current != "legacy" and recorded and recorded != "legacy" and current != recorded:
+                raise ConflictError(f"来源版本已变化（{field}），请重新生成计划")
+
     @staticmethod
     def _allowed(status: str, action: str, role: str) -> tuple[str, bool]:
         if action == "submit" and status == "draft" and role in {"analyst", "admin"}:
@@ -123,6 +138,8 @@ class PlanWorkflowService:
         next_status, allowed = self._allowed(state["status"], action, actor.role)
         if not allowed:
             raise UnauthorizedError("当前角色不能执行此计划操作，或计划状态已变化")
+        if action == "approve":
+            self._validate_approval_sources(plan_id)
         reason = str(reason or "").strip()[:500]
         if action == "reject" and not reason:
             raise ConflictError("驳回计划必须填写原因")

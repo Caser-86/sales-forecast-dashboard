@@ -183,12 +183,23 @@ def test_plan_api_save_get_and_export(client, monkeypatch, tmp_path):
 def test_plan_api_workflow_enforces_server_side_roles(monkeypatch, client, tmp_path):
     from app.api import plans
     from app.core.config import settings
+    from app.services import plan_workflow_service
     from app.services.plan_repository import PlanRepository
 
     database = tmp_path / "workflow.db"
     monkeypatch.setattr(settings, "DEMO_AUTH_ENABLED", True)
     monkeypatch.setattr(settings, "DATABASE_URL", f"sqlite:///{database.as_posix()}")
     monkeypatch.setattr(plans, "get_repository", lambda: PlanRepository(database))
+    monkeypatch.setattr(
+        plan_workflow_service.metadata_service,
+        "get_metadata",
+        lambda: {
+            "data_version": "sales-0123456789abcdef",
+            "model_version": "model-0123456789abcdef",
+            "inventory_version": "inventory-0123456789abcdef",
+            "inventory_status": "fresh",
+        },
+    )
 
     analyst_login = client.post("/api/auth/login", json={"username": "analyst", "password": "demo-analyst"})
     assert analyst_login.status_code == 200

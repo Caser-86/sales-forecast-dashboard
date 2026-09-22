@@ -8,6 +8,7 @@ let lastInventoryData = null;
 let lastMetadata = null;
 let lastSavedPlanId = null;
 let planRequestKey = null;
+let dashboardInitialized = false;
 
 async function init() {
     try {
@@ -32,6 +33,7 @@ async function init() {
         showDashboardError(`初始化失败: ${e.message}`);
     } finally {
         DemoUI.setLoading(false);
+        dashboardInitialized = true;
     }
 
     setInterval(loadDashboard, 5 * 60 * 1000);
@@ -348,4 +350,7 @@ async function refreshAll() {
 
 window.showDashboardError = showDashboardError;
 window.showEmptyState = showEmptyState;
+window.DashboardPage = {
+    refresh: () => dashboardInitialized ? refreshAll() : Promise.resolve()
+};
 window.addEventListener("DOMContentLoaded", init);

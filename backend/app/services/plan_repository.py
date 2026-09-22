@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import csv
+import hashlib
 import io
 import json
 import os
@@ -12,6 +13,7 @@ from contextlib import closing
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
+from shutil import copy2
 from typing import Any
 
 from app.core.config import settings
@@ -59,7 +61,14 @@ class PlanRepository:
         return connection
 
     def _ensure_schema(self) -> None:
+        migration_backup = self._migration_backup_path()
+        if self._migration_required() and migration_backup is not None and not migration_backup.exists():
+            copy2(self.database, migration_backup)
         with closing(self._connect()) as connection:
+            connection.execute(
+                "CREATE TABLE IF NOT EXISTS app_schema_migrations "
+                "(version INTEGER PRIMARY KEY, applied_at TEXT NOT NULL)"
+            )
             connection.execute(
                 """
                 CREATE TABLE IF NOT EXISTS plan_drafts (
@@ -71,7 +80,63 @@ class PlanRepository:
                 )
                 """
             )
+            columns = {
+                row[1]
+                for row in connection.execute("PRAGMA table_info(plan_drafts)").fetchall()
+            }
+            now = datetime.now(timezone.utc).isoformat(timespec="seconds")
+            if "created_at" not in columns:
+                connection.execute("ALTER TABLE plan_drafts ADD COLUMN created_at TEXT")
+                connection.execute("UPDATE plan_drafts SET created_at = ? WHERE created_at IS NULL", (now,))
+            if "idempotency_key" not in columns:
+                connection.execute("ALTER TABLE plan_drafts ADD COLUMN idempotency_key TEXT")
+                connection.execute(
+                    "UPDATE plan_drafts SET idempotency_key = 'legacy:' || plan_id "
+                    "WHERE idempotency_key IS NULL"
+                )
+            if "payload_hash" not in columns:
+                connection.execute("ALTER TABLE plan_drafts ADD COLUMN payload_hash TEXT")
+                rows = connection.execute(
+                    "SELECT plan_id, snapshot_json FROM plan_drafts WHERE payload_hash IS NULL"
+                ).fetchall()
+                for row in rows:
+                    payload_hash = hashlib.sha256(row[1].encode("utf-8")).hexdigest()
+                    connection.execute(
+                        "UPDATE plan_drafts SET payload_hash = ? WHERE plan_id = ?",
+                        (payload_hash, row[0]),
+                    )
+            connection.execute(
+                "CREATE UNIQUE INDEX IF NOT EXISTS ux_plan_drafts_idempotency_key "
+                "ON plan_drafts(idempotency_key)"
+            )
+            connection.execute(
+                "INSERT OR IGNORE INTO app_schema_migrations(version, applied_at) VALUES (?, ?)",
+                (2, now),
+            )
             connection.commit()
+
+    def _migration_backup_path(self) -> Path | None:
+        if self.database == ":memory:":
+            return None
+        return Path(self.database + ".migration.bak")
+
+    def _migration_required(self) -> bool:
+        if self.database == ":memory:" or not Path(self.database).exists():
+            return False
+        with closing(sqlite3.connect(self.database)) as connection:
+            table = connection.execute(
+                "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'plan_drafts'"
+            ).fetchone()
+            if table is None:
+                return False
+            migrated = connection.execute(
+                "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'app_schema_migrations'"
+            ).fetchone()
+            if migrated is None:
+                return True
+            return connection.execute(
+                "SELECT 1 FROM app_schema_migrations WHERE version = 2"
+            ).fetchone() is None
 
     @staticmethod
     def _canonical_snapshot(snapshot: dict[str, Any]) -> str:
@@ -100,7 +165,7 @@ class PlanRepository:
             raise PlanValidationError("Idempotency-Key 不能为空且长度不能超过 200")
         self._validate_snapshot(snapshot)
         canonical = self._canonical_snapshot(snapshot)
-        payload_hash = __import__("hashlib").sha256(canonical.encode("utf-8")).hexdigest()
+        payload_hash = hashlib.sha256(canonical.encode("utf-8")).hexdigest()
         now = datetime.now(timezone.utc).isoformat(timespec="seconds")
 
         with closing(self._connect()) as connection:
