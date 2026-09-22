@@ -56,6 +56,8 @@ docker-compose.override.yml
 .coverage
 htmlcov/
 .playwright-cli/
+.demo-runtime/
+.superpowers/
 output/playwright/
 frontend/node_modules/
 frontend/playwright-report/

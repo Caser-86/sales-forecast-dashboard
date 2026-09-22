@@ -5,7 +5,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import List
 
-from pydantic import Field, field_validator
+from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # backend/app/core/config.py → 项目根目录
@@ -53,6 +53,8 @@ class Settings(BaseSettings):
     LOG_FILE_BACKUP_COUNT: int = 5
 
     # ---------- 数据路径 ----------
+    # 非空时把所有可写运行时内容放入独立演示目录。
+    DEMO_ROOT: str = ""
     DATA_RAW_DIR: str = str(BACKEND_DIR / "data" / "raw")
     DATA_PROCESSED_DIR: str = str(BACKEND_DIR / "data" / "processed")
     MODELS_DIR: str = str(BACKEND_DIR / "ml" / "saved_models")
@@ -108,6 +110,33 @@ class Settings(BaseSettings):
             raise ValueError(f"ENV 必须是 development / production / test, 实际: {v}")
         return v
 
+    @model_validator(mode="before")
+    @classmethod
+    def _apply_demo_root(cls, values):
+        """Use one isolated root for every writable demo artifact."""
+        values = dict(values or {})
+        demo_root = values.get("DEMO_ROOT")
+        if not demo_root:
+            return values
+
+        root = Path(str(demo_root)).expanduser().resolve()
+        path_defaults = {
+            "LOG_DIR": root / "logs",
+            "DATA_RAW_DIR": root / "data" / "raw",
+            "DATA_PROCESSED_DIR": root / "data" / "processed",
+            "MODELS_DIR": root / "ml" / "saved_models",
+            "MODEL_VERSIONS_DIR": root / "ml" / "saved_models" / "versions",
+            "ACTIVE_MODEL_FILE": root / "ml" / "saved_models" / "active_model.json",
+            "DATASET_VERSIONS_DIR": root / "data" / "raw" / "versions",
+            "ACTIVE_DATASET_FILE": root / "data" / "raw" / "active_dataset.json",
+            "INVENTORY_VERSIONS_DIR": root / "data" / "inventory" / "versions",
+            "ACTIVE_INVENTORY_FILE": root / "data" / "inventory" / "active_inventory.json",
+        }
+        for name, path in path_defaults.items():
+            values.setdefault(name, str(path))
+        values.setdefault("DATABASE_URL", f"sqlite:///{(root / 'dashboard.db').as_posix()}")
+        return values
+
     def ensure_dirs(self) -> None:
         """确保运行时目录存在。"""
         Path(self.LOG_DIR).mkdir(parents=True, exist_ok=True)
@@ -117,6 +146,8 @@ class Settings(BaseSettings):
         Path(self.MODEL_VERSIONS_DIR).mkdir(parents=True, exist_ok=True)
         Path(self.DATASET_VERSIONS_DIR).mkdir(parents=True, exist_ok=True)
         Path(self.INVENTORY_VERSIONS_DIR).mkdir(parents=True, exist_ok=True)
+        if self.DATABASE_URL.startswith("sqlite:///"):
+            Path(self.DATABASE_URL[10:]).parent.mkdir(parents=True, exist_ok=True)
 
     # ---------- 兼容旧代码的路径常量 ----------
     @property

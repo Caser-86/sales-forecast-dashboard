@@ -1,6 +1,7 @@
 """训练评估辅助函数测试。"""
 from __future__ import annotations
 
+import numpy as np
 import pandas as pd
 
 
@@ -39,3 +40,21 @@ def test_time_split_reserves_separate_validation_and_test_windows():
     assert test["date"].nunique() == 30
     assert train["date"].max() < validation["date"].min()
     assert validation["date"].max() < test["date"].min()
+
+
+def test_lightgbm_training_supports_current_sklearn_check_x_y_signature():
+    from ml.lightgbm_model import train_lgbm
+
+    features = np.arange(40, dtype=float).reshape(20, 2)
+    target = features[:, 0] * 0.5 + features[:, 1]
+
+    model = train_lgbm(
+        features[:14],
+        target[:14],
+        features[14:],
+        target[14:],
+        params={"n_estimators": 5, "early_stopping_rounds": 2},
+    )
+
+    predictions = model.predict(features[14:])
+    assert len(predictions) == 6

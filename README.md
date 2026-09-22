@@ -6,6 +6,19 @@
 
 当前状态与未完成任务见 [`CONTEXT.md`](CONTEXT.md) 和 [`TODO.md`](TODO.md)；V1 验收结论见 [`docs/releases/v1-acceptance.md`](docs/releases/v1-acceptance.md)。
 
+下一阶段为**本地完整演示版 V2**，目前已规划、尚未实施。功能范围、分阶段路线和验收标准见 [`docs/local-demo-plan.md`](docs/local-demo-plan.md)。
+
+本地完整演示版的 Windows 入口已经开始实现：先准备一次隔离演示包，再启动服务。准备阶段可能运行 CPU 模型训练，面试现场直接启动已验证的演示包。
+
+```powershell
+python scripts/prepare_demo.py --root .demo-runtime
+scripts\start_demo.ps1 -Root .demo-runtime
+# 浏览器打开 http://127.0.0.1:3000
+scripts\stop_demo.ps1 -Root .demo-runtime
+```
+
+如果需要重新生成数据和模型，使用 `python scripts/prepare_demo.py --root .demo-runtime --force`；启动器会检查演示包、端口和服务健康状态，不会默认触发训练。
+
 ## 一句话介绍
 
 业务人员选择商品和门店后，可以查看历史销量与未来预测；管理者可以按商品/门店筛选经营范围，观察 KPI、品类结构、Top 商品以及库存风险，并在页面上看到模型和输入数据是否处于可用状态。
@@ -261,7 +274,7 @@ sales-forecast-dashboard/
 - 多用户登录、权限模型和生产密钥托管；V1 使用单租户 API Token。
 - 多副本部署、队列化推理和完整可观测性平台。
 
-下一阶段可以按风险优先级推进：先接入真实数据并建立数据契约，再补定时训练与漂移监控，最后完善鉴权、队列和部署可观测性。
+当前优先完成本地完整演示闭环，详见 [`docs/local-demo-plan.md`](docs/local-demo-plan.md)；上述生产化方向在本地版验收后再评估。
 
 具体未完成项见 [`TODO.md`](TODO.md)。
 

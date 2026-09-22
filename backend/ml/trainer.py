@@ -44,13 +44,13 @@ from .lstm_model import save_model as save_lstm
 from .scaler_io import save_scaler
 
 BACKEND_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-PROCESSED_DIR = os.path.join(BACKEND_DIR, "data", "processed")
-MODELS_DIR = os.path.join(BACKEND_DIR, "ml", "saved_models")
+PROCESSED_DIR = settings.DATA_PROCESSED_DIR
+MODELS_DIR = settings.MODELS_DIR
 LSTM_PATH = os.path.join(MODELS_DIR, "lstm_model.pth")
 LGBM_PATH = os.path.join(MODELS_DIR, "lightgbm_model.txt")
 SCALER_X_PATH = os.path.join(MODELS_DIR, "lstm_scaler_x.json")
 SCALER_Y_PATH = os.path.join(MODELS_DIR, "lstm_scaler_y.json")
-REPORT_PATH = os.path.join(PROCESSED_DIR, "evaluation_report.json")
+REPORT_PATH = str(settings.REPORT_JSON)
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 EPOCHS = 100

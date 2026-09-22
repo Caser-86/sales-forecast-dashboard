@@ -34,8 +34,8 @@ from .lstm_model import load_model as load_lstm
 _CATEGORY_ENCODER = LabelEncoder().fit(["服装", "家居", "日化", "电子", "食品"])
 
 BACKEND_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-MODELS_DIR = os.path.join(BACKEND_DIR, "ml", "saved_models")
-FEATURES_PATH = os.path.join(BACKEND_DIR, "data", "processed", "features.csv")
+MODELS_DIR = settings.MODELS_DIR
+FEATURES_PATH = str(settings.FEATURES_CSV)
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 FORECAST_DAYS = settings.FORECAST_DAYS

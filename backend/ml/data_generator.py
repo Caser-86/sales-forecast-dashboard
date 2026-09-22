@@ -12,6 +12,7 @@ from datetime import date, timedelta
 
 import numpy as np
 import pandas as pd
+from app.core.config import settings
 
 # 固定随机种子，保证可复现
 RANDOM_SEED = 42
@@ -20,7 +21,7 @@ np.random.seed(RANDOM_SEED)
 # 项目根目录（backend/ 的上一级）
 BACKEND_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PROJECT_ROOT = os.path.dirname(BACKEND_DIR)
-RAW_DIR = os.path.join(BACKEND_DIR, "data", "raw")
+RAW_DIR = settings.DATA_RAW_DIR
 OUTPUT_PATH = os.path.join(RAW_DIR, "sales_data.csv")
 INVENTORY_OUTPUT_PATH = os.path.join(RAW_DIR, "inventory_snapshot.csv")
 
