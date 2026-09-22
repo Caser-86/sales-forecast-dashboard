@@ -153,6 +153,11 @@ test("opens inventory decision and exposes server-side what-if controls", async 
     await expect(page.locator("#inventoryDecisionStatus")).not.toHaveText("加载库存清单中");
     await expect(page.locator("#replenishmentBody")).toBeAttached();
     await expect(page.locator("#replenishmentRiskFilter")).toBeVisible();
+    await expect(page.locator("#replenishmentNext")).toBeEnabled();
+    await page.locator("#replenishmentNext").click();
+    await expect(page.locator("#replenishmentSummary")).toContainText("第 2/5 页");
+    await page.locator("#replenishmentPrev").click();
+    await expect(page.locator("#replenishmentSummary")).toContainText("第 1/5 页");
 });
 
 test("filters inventory risk and renders the server-side replenishment formula", async ({ page }) => {

@@ -6,6 +6,10 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 
+def _read(relative_path: str) -> str:
+    return (PROJECT_ROOT / relative_path).read_text(encoding="utf-8")
+
+
 def test_dashboard_has_scope_controls_and_refresh_action():
     html = (PROJECT_ROOT / "frontend" / "index.html").read_text(encoding="utf-8")
     script = (PROJECT_ROOT / "frontend" / "js" / "dashboard.js").read_text(encoding="utf-8")
@@ -81,6 +85,35 @@ def test_frontend_has_real_model_center_contract():
     assert "retryJob" in page
     assert "getModels" in api
     assert "submitTraining" in api
+
+
+def test_frontend_has_paginated_business_table_contract():
+    html = _read("frontend/index.html")
+    page_sources = "\n".join(
+        _read(path)
+        for path in (
+            "frontend/js/pages/replenishment.js",
+            "frontend/js/pages/model-center.js",
+            "frontend/js/pages/plans.js",
+        )
+    )
+    for element_id in (
+        "replenishmentSummary",
+        "replenishmentPrev",
+        "replenishmentNext",
+        "modelVersionSummary",
+        "modelVersionPrev",
+        "modelVersionNext",
+        "modelJobSummary",
+        "modelJobPrev",
+        "modelJobNext",
+        "planVersionSummary",
+        "planVersionPrev",
+        "planVersionNext",
+    ):
+        assert f'id="{element_id}"' in html
+    for marker in ("inventoryPage", "modelPage", "jobPage", "planPage"):
+        assert marker in page_sources
 
 
 def test_frontend_has_forecast_analysis_contract():

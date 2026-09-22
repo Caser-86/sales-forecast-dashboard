@@ -7,8 +7,8 @@
 | 范围 | 实际证据 |
 | --- | --- |
 | 后端质量门禁 | `225 passed`，覆盖率 `85.94%`，Ruff 通过 |
-| 默认浏览器回归 | `13 passed, 4 skipped`；跳过项是显式鉴权审批、模型恢复、普通完整训练一致性和运行快照回滚 E2E |
-| T2 页面分页 | 数据中心版本清单和预测商品目录均使用 10 条分页；分页状态、空列表和刷新重置有前端契约覆盖，默认浏览器回归通过 |
+| 默认浏览器回归 | `13 passed, 5 skipped`；跳过项是两条显式鉴权审批、模型恢复、普通完整训练一致性和运行快照回滚 E2E |
+| T2 页面分页 | 数据中心版本清单、预测商品目录、库存风险清单、模型版本/任务和计划历史均有分页；库存页真实浏览器回归完成第 1/5 页与第 2/5 页切换，空态/刷新重置有契约覆盖 |
 | T6/T7 页面回归 | 默认离线浏览器回归中的预测/库存用例通过：商品目录分页、30 天历史与预测、MAPE 口径、安全 CSV、风险筛选和服务端包装/MOQ 试算均有真实页面断言 |
 | T7 策略审计 | `plan_events` 保存 `policy_version`；旧事件表迁移回填策略版次，计划详情、导出和审批事件保持同一不可变策略来源 |
 | 本地角色审批 | Playwright 鉴权用例 `1 passed`：分析员创建/提交，审批员批准，管理员查看 `submit`/`approve` 审计 |
@@ -20,7 +20,7 @@
 | 内存观测 | 同一运行进程工作集约 `386.7MB`；不是固定 4 核/8GB 容器结果 |
 | 离线资源 | `python scripts/verify_offline_demo.py --root .demo-runtime` 返回 `ready=true`、无非本机远程引用；资源包包含 15 个生成资源文件 |
 | Windows 启动 | GitHub Actions 新增 `Windows Demo Startup`：在 `windows-latest` 准备资源、启动 PowerShell 服务、探活 API/前端并停止 |
-| 离线运行时冒烟 | `scripts/verify_offline_demo.ps1` 在 Windows 本机通过；进程内外部 DNS 被守卫阻断，健康、商品、模型、库存和前端探活均通过；追加 `-RunBrowserE2E` 后浏览器回归 `13 passed, 4 skipped` |
+| 离线运行时冒烟 | `scripts/verify_offline_demo.ps1` 在 Windows 本机通过；进程内外部 DNS 被守卫阻断，健康、商品、模型、库存和前端探活均通过；追加 `-RunBrowserE2E` 后浏览器回归 `13 passed, 5 skipped` |
 | 训练恢复浏览器回归 | `scripts/verify_offline_demo.ps1 -RunModelRecoveryE2E` 在进程级离线守卫下通过 `1 passed (58.1s)`；真实 worker 首次失败、第二次进入候选训练并完成候选模型人工激活；使用显式非生产 `smoke` 训练档案 |
 | 普通完整训练版本一致性 | `scripts/verify_offline_demo.ps1 -RunModelConsistencyE2E` 通过 `1 passed (3.6m)`；页面真实完成完整 CPU 训练、候选激活后，总览、数据、预测、库存和系统页展示同一模型版本 |
 | 运行快照发布/回滚 | `scripts/verify_offline_demo.ps1 -RunRuntimeRollbackE2E` 通过 `1 passed (12.1s)`；候选发布/激活、回滚和回滚后跨页面活动版本一致性均通过 |

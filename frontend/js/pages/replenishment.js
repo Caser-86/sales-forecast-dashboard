@@ -8,6 +8,8 @@
         datasets: null,
         coverage: null,
         loading: false,
+        inventoryPage: 1,
+        inventoryPageSize: 20,
     };
 
     function byId(id) { return document.getElementById(id); }
@@ -42,6 +44,17 @@
         const body = byId("replenishmentBody");
         body.textContent = "";
         const cells = filteredCells();
+        const pageCount = Math.max(1, Math.ceil(cells.length / state.inventoryPageSize));
+        if (state.inventoryPage > pageCount) {
+            state.inventoryPage = pageCount;
+            return render();
+        }
+        const start = cells.length ? (state.inventoryPage - 1) * state.inventoryPageSize + 1 : 0;
+        const end = Math.min(state.inventoryPage * state.inventoryPageSize, cells.length);
+        byId("replenishmentSummary").textContent =
+            `库存 ${start}-${end}/${cells.length} · 第 ${state.inventoryPage}/${pageCount} 页`;
+        byId("replenishmentPrev").disabled = state.inventoryPage <= 1;
+        byId("replenishmentNext").disabled = state.inventoryPage >= pageCount;
         if (!cells.length) {
             const row = document.createElement("tr");
             const cell = document.createElement("td");
@@ -52,7 +65,7 @@
             updatePlanButtons();
             return;
         }
-        cells.forEach(item => {
+        cells.slice(start - 1, end).forEach(item => {
             const key = cellKey(item);
             const row = document.createElement("tr");
             row.dataset.key = key;
@@ -198,6 +211,7 @@
     async function load(force = false) {
         if (state.loading || (!force && state.cells.length)) return;
         state.loading = true;
+        if (force) state.inventoryPage = 1;
         setStatus("加载库存清单中");
         try {
             const [result, metadata, datasets] = await Promise.all([
@@ -227,10 +241,22 @@
     }
 
     function init() {
-        byId("replenishmentSearch").addEventListener("input", render);
-        byId("replenishmentAbcFilter").addEventListener("change", render);
-        byId("replenishmentRiskFilter").addEventListener("change", render);
+        const resetPageAndRender = () => {
+            state.inventoryPage = 1;
+            render();
+        };
+        byId("replenishmentSearch").addEventListener("input", resetPageAndRender);
+        byId("replenishmentAbcFilter").addEventListener("change", resetPageAndRender);
+        byId("replenishmentRiskFilter").addEventListener("change", resetPageAndRender);
         byId("refreshReplenishment").addEventListener("click", () => load(true));
+        byId("replenishmentPrev").addEventListener("click", () => {
+            state.inventoryPage = Math.max(1, state.inventoryPage - 1);
+            render();
+        });
+        byId("replenishmentNext").addEventListener("click", () => {
+            state.inventoryPage += 1;
+            render();
+        });
         byId("runReplenishmentPreview").addEventListener("click", runPreview);
         byId("createReplenishmentPlan").addEventListener("click", createPlan);
         byId("addReplenishmentPlan").addEventListener("click", createPlan);

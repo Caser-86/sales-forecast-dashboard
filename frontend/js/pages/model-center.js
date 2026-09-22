@@ -1,6 +1,15 @@
 /* 模型中心：候选模型、持久化训练任务和人工激活。 */
 (function () {
-    const state = { catalog: null, loaded: false, loading: false, pollTimer: null };
+    const state = {
+        catalog: null,
+        loaded: false,
+        loading: false,
+        pollTimer: null,
+        modelPage: 1,
+        modelPageSize: 10,
+        jobPage: 1,
+        jobPageSize: 10,
+    };
 
     function byId(id) { return document.getElementById(id); }
 
@@ -21,6 +30,17 @@
         const body = byId("modelVersionsBody");
         body.textContent = "";
         const models = catalog.models || [];
+        const pageCount = Math.max(1, Math.ceil(models.length / state.modelPageSize));
+        if (state.modelPage > pageCount) {
+            state.modelPage = pageCount;
+            return renderModels(catalog);
+        }
+        const start = models.length ? (state.modelPage - 1) * state.modelPageSize + 1 : 0;
+        const end = Math.min(state.modelPage * state.modelPageSize, models.length);
+        byId("modelVersionSummary").textContent =
+            `模型 ${start}-${end}/${models.length} · 第 ${state.modelPage}/${pageCount} 页`;
+        byId("modelVersionPrev").disabled = state.modelPage <= 1;
+        byId("modelVersionNext").disabled = state.modelPage >= pageCount;
         if (!models.length) {
             const row = document.createElement("tr");
             const cell = document.createElement("td");
@@ -30,7 +50,7 @@
             body.appendChild(row);
             return;
         }
-        models.forEach(model => {
+        models.slice(start - 1, end).forEach(model => {
             const row = document.createElement("tr");
             [
                 model.model_id,
@@ -64,6 +84,17 @@
         const body = byId("modelJobsBody");
         body.textContent = "";
         const jobs = catalog.jobs || [];
+        const pageCount = Math.max(1, Math.ceil(jobs.length / state.jobPageSize));
+        if (state.jobPage > pageCount) {
+            state.jobPage = pageCount;
+            return renderJobs(catalog);
+        }
+        const start = jobs.length ? (state.jobPage - 1) * state.jobPageSize + 1 : 0;
+        const end = Math.min(state.jobPage * state.jobPageSize, jobs.length);
+        byId("modelJobSummary").textContent =
+            `任务 ${start}-${end}/${jobs.length} · 第 ${state.jobPage}/${pageCount} 页`;
+        byId("modelJobPrev").disabled = state.jobPage <= 1;
+        byId("modelJobNext").disabled = state.jobPage >= pageCount;
         if (!jobs.length) {
             const row = document.createElement("tr");
             const cell = document.createElement("td");
@@ -73,7 +104,7 @@
             body.appendChild(row);
             return;
         }
-        jobs.forEach(job => {
+        jobs.slice(start - 1, end).forEach(job => {
             const row = document.createElement("tr");
             [
                 job.job_id,
@@ -115,6 +146,10 @@
     async function load(force = false) {
         if (state.loading || (state.loaded && !force)) return;
         state.loading = true;
+        if (force) {
+            state.modelPage = 1;
+            state.jobPage = 1;
+        }
         try {
             state.catalog = await api.getModels();
             state.loaded = true;
@@ -180,6 +215,22 @@
     function init() {
         byId("startModelTraining").addEventListener("click", startTraining);
         byId("refreshModelCatalog").addEventListener("click", () => load(true));
+        byId("modelVersionPrev").addEventListener("click", () => {
+            state.modelPage = Math.max(1, state.modelPage - 1);
+            renderModels(state.catalog);
+        });
+        byId("modelVersionNext").addEventListener("click", () => {
+            state.modelPage += 1;
+            renderModels(state.catalog);
+        });
+        byId("modelJobPrev").addEventListener("click", () => {
+            state.jobPage = Math.max(1, state.jobPage - 1);
+            renderJobs(state.catalog);
+        });
+        byId("modelJobNext").addEventListener("click", () => {
+            state.jobPage += 1;
+            renderJobs(state.catalog);
+        });
         byId("modelVersionsBody").addEventListener("click", event => {
             const button = event.target.closest(".model-activate");
             if (button) activateModel(button.dataset.modelId);

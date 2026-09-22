@@ -1,6 +1,12 @@
 /* 计划中心：不可变草案列表、明细和导出。 */
 (function () {
-    const state = { plans: [], loaded: false, loading: false };
+    const state = {
+        plans: [],
+        loaded: false,
+        loading: false,
+        planPage: 1,
+        planPageSize: 10,
+    };
 
     function byId(id) { return document.getElementById(id); }
 
@@ -27,6 +33,17 @@
     function renderPlans() {
         const body = byId("planVersionsBody");
         body.textContent = "";
+        const pageCount = Math.max(1, Math.ceil(state.plans.length / state.planPageSize));
+        if (state.planPage > pageCount) {
+            state.planPage = pageCount;
+            return renderPlans();
+        }
+        const start = state.plans.length ? (state.planPage - 1) * state.planPageSize + 1 : 0;
+        const end = Math.min(state.planPage * state.planPageSize, state.plans.length);
+        byId("planVersionSummary").textContent =
+            `草案 ${start}-${end}/${state.plans.length} · 第 ${state.planPage}/${pageCount} 页`;
+        byId("planVersionPrev").disabled = state.planPage <= 1;
+        byId("planVersionNext").disabled = state.planPage >= pageCount;
         if (!state.plans.length) {
             const row = document.createElement("tr");
             const cell = document.createElement("td");
@@ -36,7 +53,7 @@
             body.appendChild(row);
             return;
         }
-        state.plans.forEach(plan => {
+        state.plans.slice(start - 1, end).forEach(plan => {
             const row = document.createElement("tr");
             [plan.name, statusLabel(plan.status), plan.version, plan.item_count, plan.data_version, plan.model_version, plan.inventory_version, plan.created_at].forEach(value => {
                 const cell = document.createElement("td");
@@ -150,6 +167,7 @@
     async function load(force = false) {
         if (state.loading || (state.loaded && !force)) return;
         state.loading = true;
+        if (force) state.planPage = 1;
         try {
             state.plans = await api.getPlans();
             state.loaded = true;
@@ -164,6 +182,14 @@
 
     function init() {
         byId("refreshPlans").addEventListener("click", () => load(true));
+        byId("planVersionPrev").addEventListener("click", () => {
+            state.planPage = Math.max(1, state.planPage - 1);
+            renderPlans();
+        });
+        byId("planVersionNext").addEventListener("click", () => {
+            state.planPage += 1;
+            renderPlans();
+        });
         byId("planVersionsBody").addEventListener("click", event => {
             const button = event.target.closest(".plan-detail-action");
             if (button) showDetail(button.dataset.planId);
