@@ -16,6 +16,24 @@
         element.className = `module-status ${tone}`.trim();
     }
 
+    function escapeCsv(value) {
+        const text = String(value ?? "");
+        return /[",\n]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text;
+    }
+
+    function downloadErrors(kind, errors) {
+        const header = ["row", "column", "message"];
+        const lines = [header, ...errors.map(item => [item.row, item.column, item.message])]
+            .map(row => row.map(escapeCsv).join(","));
+        const blob = new Blob(["\ufeff" + lines.join("\n")], { type: "text/csv;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement("a");
+        anchor.href = url;
+        anchor.download = `${kind}-validation-errors.csv`;
+        anchor.click();
+        window.setTimeout(() => URL.revokeObjectURL(url), 0);
+    }
+
     function renderPreview(kind, result) {
         const target = byId(`${kind}DatasetPreview`);
         const upload = byId(`upload${kind[0].toUpperCase()}${kind.slice(1)}Dataset`);
@@ -31,6 +49,15 @@
         );
         target.textContent = `预检失败：${result.error_count} 个问题${result.truncated ? "（已限制展示数量）" : ""}。 ${details.join("；")}`;
         target.className = "dataset-preview error";
+        if (result.errors?.length) {
+            const download = document.createElement("button");
+            download.type = "button";
+            download.className = "dataset-table-action";
+            download.textContent = "下载错误报告";
+            download.addEventListener("click", () => downloadErrors(kind, result.errors));
+            target.appendChild(document.createTextNode(" "));
+            target.appendChild(download);
+        }
     }
 
     async function preview(kind) {
@@ -100,12 +127,12 @@
             ...(catalog.sales || []).map(item => ({ type: "销售", id: item.dataset_id, range: `${item.date_start} 至 ${item.date_end}`, created: item.created_at_utc, active: item.dataset_id === active.data_version })),
             ...(catalog.inventory || []).map(item => ({ type: "库存", id: item.inventory_id, range: `截至 ${item.as_of_date}`, created: item.created_at_utc, active: item.inventory_id === active.inventory_version })),
             ...(catalog.models || []).map(item => ({ type: "模型", id: item.model_id, range: `数据 ${item.data_version}`, created: item.created_at_utc, active: item.model_id === active.model_version })),
-            ...(catalog.runtime_snapshots || []).map(item => ({ type: "运行快照", id: item.snapshot_id, range: `${item.data_version} / ${item.model_version}`, created: item.created_at_utc, active: item.active })),
+            ...(catalog.runtime_snapshots || []).map(item => ({ type: "运行快照", id: item.snapshot_id, range: `${item.data_version} / ${item.model_version} / ${item.inventory_version}`, created: item.created_at_utc, active: item.active, snapshotId: item.snapshot_id })),
         ];
         if (!rows.length) {
             const empty = document.createElement("tr");
             const cell = document.createElement("td");
-            cell.colSpan = 5;
+            cell.colSpan = 6;
             cell.textContent = "暂无候选版本；可先下载模板并上传。";
             empty.appendChild(cell);
             body.appendChild(empty);
@@ -118,8 +145,35 @@
                 td.textContent = value || "--";
                 tr.appendChild(td);
             });
+            const action = document.createElement("td");
+            if (row.snapshotId && !row.active) {
+                const button = document.createElement("button");
+                button.type = "button";
+                button.className = "dataset-table-action snapshot-rollback";
+                button.dataset.snapshotId = row.snapshotId;
+                button.textContent = "回滚到此版本";
+                action.appendChild(button);
+            } else {
+                action.textContent = row.snapshotId ? "当前活动" : "--";
+            }
+            tr.appendChild(action);
             body.appendChild(tr);
         });
+    }
+
+    async function rollbackSnapshot(snapshotId) {
+        if (!window.confirm(`确认回滚到运行快照 ${snapshotId} 吗？`)) return;
+        setStatus(`正在回滚到 ${snapshotId}`);
+        try {
+            const result = await api.rollbackRuntimeSnapshot(snapshotId);
+            byId("runtimeSnapshotPreview").textContent = `已从 ${result.rolled_back_from} 回滚到 ${result.snapshot_id}，所有请求将读取同一运行快照。`;
+            byId("runtimeSnapshotPreview").className = "dataset-preview success";
+            await load(true);
+        } catch (error) {
+            setStatus(error.message, "error");
+            byId("runtimeSnapshotPreview").textContent = error.message;
+            byId("runtimeSnapshotPreview").className = "dataset-preview error";
+        }
     }
 
     async function publishSnapshot() {
@@ -181,6 +235,10 @@
         });
         byId("publishRuntimeSnapshot").addEventListener("click", publishSnapshot);
         byId("refreshDatasetCatalog").addEventListener("click", () => load(true));
+        byId("datasetVersionsBody").addEventListener("click", event => {
+            const button = event.target.closest(".snapshot-rollback");
+            if (button) rollbackSnapshot(button.dataset.snapshotId);
+        });
     }
 
     window.DataCenterPage = { init, load };

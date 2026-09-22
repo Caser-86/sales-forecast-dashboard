@@ -214,6 +214,11 @@ const api = {
     getJobs(limit = 50, options) { return this.get(`/jobs?limit=${limit}`, options); },
     getJob(jobId, options) { return this.get(`/jobs/${encodeURIComponent(jobId)}`, options); },
     retryJob(jobId, options) { return this.post(`/jobs/${encodeURIComponent(jobId)}/retry`, {}, options); },
+    getModels(options) { return this.get("/models", options); },
+    getModel(modelId, options) { return this.get(`/models/${encodeURIComponent(modelId)}`, options); },
+    activateModel(modelId, options) {
+        return this.post(`/models/${encodeURIComponent(modelId)}/activate`, {}, options);
+    },
     getDatasets(options) { return this.get("/datasets", options); },
     datasetTemplateUrl(kind) { return `${BASE}/datasets/templates/${encodeURIComponent(kind)}`; },
     previewDataset(kind, text, filename, options = {}) {
@@ -231,6 +236,12 @@ const api = {
     publishRuntimeSnapshot(payload, options) { return this.post("/datasets/runtime", payload, options); },
     activateRuntimeSnapshot(snapshotId, options) {
         return this.post(`/datasets/runtime/${encodeURIComponent(snapshotId)}/activate`, {}, options);
+    },
+    getRuntimeSnapshot(snapshotId, options) {
+        return this.get(`/datasets/runtime/${encodeURIComponent(snapshotId)}`, options);
+    },
+    rollbackRuntimeSnapshot(snapshotId, options) {
+        return this.post(`/datasets/runtime/${encodeURIComponent(snapshotId)}/rollback`, {}, options);
     },
     planExportUrl(planId) { return `${BASE}/plans/${encodeURIComponent(planId)}/export`; },
 };

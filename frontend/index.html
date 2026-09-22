@@ -105,8 +105,56 @@
                 </div>
                 <div class="dataset-table-wrap">
                     <table class="dataset-table">
-                        <thead><tr><th>类型</th><th>版本</th><th>业务范围</th><th>创建时间</th><th>状态</th></tr></thead>
+                        <thead><tr><th>类型</th><th>版本</th><th>业务范围</th><th>创建时间</th><th>状态</th><th>操作</th></tr></thead>
                         <tbody id="datasetVersionsBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <section id="modelCenterPage" class="module-page hidden" aria-label="模型中心">
+            <div class="module-page-header">
+                <div>
+                    <span class="route-kicker">MODEL CONTROL / HUMAN ACTIVATION</span>
+                    <h1>模型中心</h1>
+                    <p>训练只生成候选包；只有通过版本兼容校验并由人工确认的模型，才会进入活动运行快照。</p>
+                </div>
+                <span id="modelCenterStatus" class="module-status" aria-live="polite">加载模型清单中</span>
+            </div>
+
+            <div class="dataset-card model-summary-card">
+                <div>
+                    <h2>当前服务模型</h2>
+                    <p id="activeModelSummary">模型版本：--</p>
+                    <p id="activeModelRuntimeSummary">运行快照：--</p>
+                </div>
+                <button id="startModelTraining" class="refresh-button dataset-primary" type="button">训练候选模型</button>
+            </div>
+
+            <div id="modelTrainingStatus" class="dataset-preview" role="status"></div>
+
+            <div class="dataset-card">
+                <div class="dataset-card-header">
+                    <h2>模型版本</h2>
+                    <button id="refreshModelCatalog" class="refresh-button" type="button">刷新清单</button>
+                </div>
+                <div class="dataset-table-wrap">
+                    <table class="dataset-table">
+                        <thead><tr><th>版本</th><th>数据版本</th><th>策略</th><th>指标</th><th>校验摘要</th><th>状态</th><th>操作</th></tr></thead>
+                        <tbody id="modelVersionsBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="dataset-card">
+                <div class="dataset-card-header">
+                    <h2>训练任务</h2>
+                    <span class="module-status">关闭页面后仍可在此查询</span>
+                </div>
+                <div class="dataset-table-wrap">
+                    <table class="dataset-table">
+                        <thead><tr><th>任务</th><th>阶段</th><th>输入版本</th><th>创建时间</th><th>状态</th><th>错误</th></tr></thead>
+                        <tbody id="modelJobsBody"></tbody>
                     </table>
                 </div>
             </div>
@@ -218,8 +266,9 @@
 
     <script src="js/api.js?v=2"></script>
     <script src="js/ui.js?v=1"></script>
-    <script src="js/pages/route-placeholder.js?v=1"></script>
-    <script src="js/pages/data-center.js?v=1"></script>
+        <script src="js/pages/route-placeholder.js?v=1"></script>
+        <script src="js/pages/data-center.js?v=1"></script>
+        <script src="js/pages/model-center.js?v=1"></script>
     <script src="js/app.js?v=1"></script>
     <script src="js/safe-text.js?v=1"></script>
     <script src="js/charts/kpi-cards.js?v=2"></script>

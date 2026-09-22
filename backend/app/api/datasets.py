@@ -108,6 +108,24 @@ def activate_runtime_snapshot(snapshot_id: str):
     return runtime_snapshot_service.activate_runtime_snapshot(snapshot_id)
 
 
+@router.post(
+    "/datasets/runtime/{snapshot_id}/rollback",
+    response_model=RuntimeSnapshotResponse,
+    summary="回滚到运行快照",
+)
+def rollback_runtime_snapshot(snapshot_id: str):
+    return runtime_snapshot_service.rollback_runtime_snapshot(snapshot_id)
+
+
+@router.get(
+    "/datasets/runtime/{snapshot_id}",
+    response_model=RuntimeSnapshotResponse,
+    summary="查看运行快照详情",
+)
+def get_runtime_snapshot(snapshot_id: str):
+    return runtime_snapshot_service.get_runtime_snapshot_detail(snapshot_id)
+
+
 @router.post("/datasets/{kind}/preview", response_model=DatasetPreviewResult, summary="预检 CSV")
 async def preview_dataset(kind: str, request: Request):
     normalized = _kind(kind)

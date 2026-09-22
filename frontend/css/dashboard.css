@@ -347,6 +347,15 @@ select:focus-visible,
     background: rgba(13, 14, 44, 0.54);
 }
 
+.model-summary-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.model-summary-card p { margin-top: 6px; color: var(--text-dim); font-size: 12px; }
+
 .dataset-card h2 {
     color: var(--text);
     font-size: 16px;
@@ -437,6 +446,18 @@ select:focus-visible,
 
 .dataset-table th { color: var(--accent-cyan); font-weight: 600; }
 .dataset-table td:nth-child(2) { color: var(--text); }
+
+.dataset-table-action {
+    border: 1px solid var(--accent-cyan);
+    border-radius: 4px;
+    padding: 4px 8px;
+    color: var(--accent-cyan);
+    background: transparent;
+    cursor: pointer;
+    font: inherit;
+}
+
+.dataset-table-action:hover { background: rgba(0, 229, 255, 0.16); }
 
 .status-text.warning { color: var(--accent-yellow); }
 .status-text.error { color: var(--accent-red); }

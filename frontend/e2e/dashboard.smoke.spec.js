@@ -88,7 +88,7 @@ test("opens the data center and shows real CSV preflight errors", async ({ page 
     await page.locator('.app-nav [data-route="data"]').click();
     await expect(page.locator("#dataCenterPage")).toBeVisible();
     await expect(page.locator("#dataCenterStatus")).not.toHaveText("加载版本清单中");
-    await expect(page.locator(".dataset-table")).toBeVisible();
+    await expect(page.locator("#dataCenterPage .dataset-table")).toBeVisible();
 
     const invalidSales = [
         "date,product_id,store_id,product_name,store_name,category,sales,price",
@@ -102,4 +102,14 @@ test("opens the data center and shows real CSV preflight errors", async ({ page 
     await page.locator("#previewSalesDataset").click();
     await expect(page.locator("#salesDatasetPreview")).toContainText("第 2 行");
     await expect(page.locator("#uploadSalesDataset")).toBeDisabled();
+});
+
+test("opens the model center and shows the persistent training surface", async ({ page }) => {
+    await waitForDashboard(page);
+
+    await page.locator('.app-nav [data-route="models"]').click();
+    await expect(page.locator("#modelCenterPage")).toBeVisible();
+    await expect(page.locator("#startModelTraining")).toBeVisible();
+    await expect(page.locator("#modelVersionsBody")).toBeAttached();
+    await expect(page.locator("#modelCenterStatus")).not.toHaveText("加载模型清单中");
 });

@@ -6,7 +6,7 @@
 
 当前状态与未完成任务见 [`CONTEXT.md`](CONTEXT.md) 和 [`TODO.md`](TODO.md)；V1 验收结论见 [`docs/releases/v1-acceptance.md`](docs/releases/v1-acceptance.md)。
 
-当前正在推进**本地完整演示版 V2**：M1/T1 本地运行时、M1/T2 共享导航壳、M2/T3 持久化候选训练后端第一切片和 M2/T4 数据中心第一切片已完成。当前数据中心已支持 CSV 模板、上传预检、行级错误、候选版本清单和运行快照候选发布/激活；完整回滚验收与后续业务页面仍在路线中。功能边界、分阶段路线和验收标准见 [`docs/local-demo-plan.md`](docs/local-demo-plan.md)。
+当前正在推进**本地完整演示版 V2**：M1/T1 本地运行时、M1/T2 共享导航壳、M2/T3/T4 第一切片和 M2/T5 模型中心第一切片已完成。当前数据中心已支持 CSV 模板、上传预检、行级错误报告下载、候选版本清单、运行快照详情/发布/回滚；模型中心已支持候选模型清单、训练任务状态和兼容激活。训练并行验收、请求级一致性和后续业务页面仍在路线中。功能边界、分阶段路线和验收标准见 [`docs/local-demo-plan.md`](docs/local-demo-plan.md)。
 
 本地完整演示版的 Windows 入口已经开始实现：先准备一次隔离演示包，再启动服务。准备阶段可能运行 CPU 模型训练，面试现场直接启动已验证的演示包。
 
@@ -19,7 +19,7 @@ scripts\stop_demo.ps1 -Root .demo-runtime
 
 如果需要重新生成数据和模型，使用 `python scripts/prepare_demo.py --root .demo-runtime --force`；启动器会检查演示包、端口和服务健康状态，不会默认触发训练。
 
-候选训练通过后台任务运行，不会自动切换当前活动模型。提交后可查询任务状态，训练成功后再由后续模型中心流程发布候选包：
+候选训练通过后台任务运行，不会自动切换当前活动模型。提交后可在模型中心查询任务状态，训练成功后人工激活会先校验兼容性并发布候选包：
 
 ```powershell
 Invoke-RestMethod -Method Post http://127.0.0.1:8000/api/jobs/training `
@@ -55,6 +55,7 @@ Invoke-RestMethod http://127.0.0.1:8000/api/jobs
 - 补货草案：新鲜库存快照和完整预测覆盖满足条件后，可保存并导出带版本元数据的 CSV 草案。
 - 工程能力：FastAPI、Pydantic Settings、统一异常响应、结构化日志、可选 Token、Docker Compose、自动化测试。
 - 数据中心第一切片：销售/库存 CSV 模板、上传大小与行数限制、字段和重复键预检、行级错误反馈、候选版本保存，以及数据/模型/库存单指针运行快照。
+- 模型中心第一切片：候选模型指标、训练任务、checksum、策略信息和兼容人工激活。
 
 ## 架构
 
@@ -221,6 +222,11 @@ Docker、依赖扫描和 4 核/8GB 性能证据见 [`docs/deployment-performance
 | POST | `/api/datasets/{kind}` | 保存通过预检的候选版本，默认不切换活动版本 |
 | POST | `/api/datasets/runtime` | 校验并发布运行快照候选 |
 | POST | `/api/datasets/runtime/{snapshot_id}/activate` | 激活已校验的运行快照 |
+| POST | `/api/datasets/runtime/{snapshot_id}/rollback` | 原子回滚到已校验的运行快照 |
+| GET | `/api/datasets/runtime/{snapshot_id}` | 查看运行快照详情和组件引用 |
+| GET | `/api/models` | 查看候选模型、指标和训练任务 |
+| GET | `/api/models/{model_id}` | 查看模型 manifest 与兼容状态 |
+| POST | `/api/models/{model_id}/activate` | 校验并人工激活模型；已有运行快照时创建新快照 |
 
 ## 测试与质量门禁
 

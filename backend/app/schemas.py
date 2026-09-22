@@ -335,7 +335,9 @@ class RuntimeSnapshotResponse(BaseModel):
     inventory_version: str
     policy_version: str
     created_at_utc: str
+    components: Dict[str, Any] = Field(default_factory=dict)
     active: bool = False
+    rolled_back_from: Optional[str] = None
 
 
 class DatasetCatalog(BaseModel):

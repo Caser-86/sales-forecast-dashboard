@@ -6,7 +6,7 @@ const ROUTE_COPY = {
     forecast: { title: "预测分析", description: "商品与门店预测明细、基线对比和导出将在 M3 开放。" },
     inventory: { title: "库存决策", description: "库存风险清单和补货试算将在 M3 开放。" },
     plans: { title: "计划中心", description: "补货计划审批、版次和审计将在 M3 开放。" },
-    models: { title: "模型中心", description: "训练任务、评估、发布和回滚将在 M2 开放。" },
+    models: { title: "模型中心", description: "查看候选模型、训练状态和人工激活动作。" },
     system: { title: "演示系统", description: "场景切换、备份恢复和诊断将在 M4 开放。" }
 };
 
@@ -63,8 +63,13 @@ function setRoute(route = getRouteState().route) {
     });
     const dataCenter = document.getElementById("dataCenterPage");
     dataCenter?.classList.toggle("hidden", activeRoute !== "data");
+    const modelCenter = document.getElementById("modelCenterPage");
+    modelCenter?.classList.toggle("hidden", activeRoute !== "models");
     if (activeRoute === "data") {
         window.DataCenterPage?.load();
+    }
+    if (activeRoute === "models") {
+        window.ModelCenterPage?.load();
     }
     RoutePlaceholder.render(activeRoute, ROUTE_COPY[activeRoute]);
     RoutePlaceholder.setScope(state.scope);

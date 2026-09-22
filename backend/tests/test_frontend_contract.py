@@ -58,8 +58,23 @@ def test_frontend_has_real_data_center_contract():
     assert "previewDataset" in page
     assert "uploadDataset" in page
     assert "publishRuntimeSnapshot" in page
+    assert "rollbackRuntimeSnapshot" in page
+    assert "downloadErrors" in page
     assert "getDatasets" in api
     assert "postRaw" in api
+    assert "rollbackRuntimeSnapshot" in api
+
+
+def test_frontend_has_real_model_center_contract():
+    html = (PROJECT_ROOT / "frontend" / "index.html").read_text(encoding="utf-8")
+    page = (PROJECT_ROOT / "frontend" / "js" / "pages" / "model-center.js").read_text(encoding="utf-8")
+    api = (PROJECT_ROOT / "frontend" / "js" / "api.js").read_text(encoding="utf-8")
+
+    for element_id in ("modelCenterPage", "startModelTraining", "modelVersionsBody", "modelJobsBody"):
+        assert f'id="{element_id}"' in html
+    assert "activateModel" in page
+    assert "getModels" in api
+    assert "submitTraining" in api
 
 
 def test_frontend_has_shared_runtime_context_and_retry_contract():

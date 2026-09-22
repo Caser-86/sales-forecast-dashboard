@@ -194,6 +194,24 @@ def activate_runtime_snapshot(snapshot_id: str) -> dict[str, Any]:
     return {**manifest, "active": True}
 
 
+def rollback_runtime_snapshot(snapshot_id: str) -> dict[str, Any]:
+    """Switch back to a previously published snapshot without partial activation."""
+    current = get_active_runtime_snapshot()
+    if current is None:
+        raise RuntimeSnapshotError("当前没有活动运行快照，无法回滚")
+    if current.get("snapshot_id") == snapshot_id:
+        raise RuntimeSnapshotError("目标运行快照已经是当前活动版本")
+    activated = activate_runtime_snapshot(snapshot_id)
+    return {**activated, "rolled_back_from": current["snapshot_id"]}
+
+
+def get_runtime_snapshot_detail(snapshot_id: str) -> dict[str, Any]:
+    """Return a validated snapshot with its current pointer status."""
+    manifest = get_runtime_snapshot(snapshot_id)
+    active = get_active_runtime_snapshot()
+    return {**manifest, "active": active is not None and active.get("snapshot_id") == snapshot_id}
+
+
 def list_runtime_snapshots() -> list[dict[str, Any]]:
     root = Path(settings.RUNTIME_SNAPSHOT_DIR)
     snapshots: list[dict[str, Any]] = []

@@ -1,6 +1,6 @@
 # 本地完整演示版实施计划
 
-日期：2026-09-22。状态：执行中，M1/T1、M1/T2 共享壳、T3 任务后端第一切片和 T4 数据中心第一切片已完成。目标版本：Local Demo V2。
+日期：2026-09-22。状态：执行中，M1/T1、M1/T2 共享壳、T3/T4 第一切片和 T5 模型中心第一切片已完成。目标版本：Local Demo V2。
 
 **Goal:** 在 Windows 本机完成销售数据导入、质量检查、预测分析、库存决策、补货审批与导出、版本恢复的完整演示，关键业务步骤无需手工执行命令。
 
@@ -105,7 +105,7 @@
 
 ### T2. 统一导航与页面骨架
 
-- 共享壳已完成：现有总览保留为可用页面，模块页显示真实运行上下文和明确的规划状态；实际业务表格分页将在 T4/T6 的真实列表页面中验收。
+- 共享壳已完成：现有总览保留为可用页面，数据中心和模型中心已有真实首版；预测、库存、计划等业务表格分页将在 T6/T8 的真实列表页面中验收。
 - [x] 修改 `frontend/index.html`、`frontend/js/dashboard.js`、`frontend/css/dashboard.css`；新增 `frontend/js/app.js` 和 `frontend/js/pages/route-placeholder.js`。
 - [x] 建立总览、数据、预测、库存、计划、模型、系统导航；使用轻量 hash 路由，刷新和浏览器后退可恢复位置。
 - [ ] 统一业务日期、版本标签、加载/空态/失败/重试、表格分页和筛选；当前已完成运行上下文、重试和商品/门店筛选跨页传递，真实表格分页随 T4/T6 页面实现。
@@ -120,24 +120,24 @@
 - [x] 分离候选训练输出和激活，锁定输入数据与产物目录；使用 SQLite 事务保证同一时间只有一个训练写任务。
 - [x] 开放提交、查询、列表、失败重试 API；worker 日志写入候选目录，错误摘要脱敏和截断，前端关闭后任务仍可查询。
 - [x] 新增 `backend/tests/test_jobs.py`，覆盖重启中断、重复请求、训练失败边界和 worker 隔离；已完成一次真实 CPU 候选训练集成验证。
-- [ ] 验收：训练期间总览继续服务，状态与真实过程一致，成功训练仅产生候选包。
+- [ ] 验收：训练期间总览继续服务，状态与真实过程一致，成功训练仅产生候选包；已有真实 CPU 候选训练证据，尚缺训练期间并行请求的自动化验收。
 
 ### T4. 数据中心与运行快照发布
 
 - [x] 第一切片：销售/库存 CSV 模板、上传大小与行数限制、字段/重复键预检、行级错误反馈、候选版本清单，以及数据/模型/库存单指针运行快照发布/激活 API；已通过后端回归和真实浏览器预检流程。
-- [ ] 新增 `backend/app/api/datasets.py`、`backend/app/services/runtime_snapshot_service.py`、`frontend/js/pages/data-center.js`。
-- [ ] 修改 `dataset_service.py`、`inventory_dataset_service.py`、`data_service.py`、`forecast_service.py` 及相关激活脚本，统一运行快照读取与兼容校验。
-- [ ] 实现 CSV 模板、上传预检、错误行号与下载、版本列表、详情、候选发布和回滚；批量错误限制响应大小。
-- [ ] 构造包含销售/库存/模型/策略引用的 manifest，校验通过后原子切换；请求持有一致快照直至结束。
-- [ ] 扩展 `test_dataset_import.py`、`test_inventory_import.py`，新增 `test_runtime_snapshots.py`，覆盖坏 CSV、重复键、不兼容模型、切换中的请求和回滚失败。
-- [ ] 验收：坏文件不改变当前版本；好文件可预检、训练、发布；重启后同一快照仍有效。
+- [x] 新增 `backend/app/api/datasets.py`、`backend/app/services/runtime_snapshot_service.py`、`frontend/js/pages/data-center.js`。
+- [x] 修改 `dataset_service.py`、`inventory_dataset_service.py`、`data_service.py`、`forecast_service.py` 及相关激活脚本，统一运行快照读取与兼容校验。
+- [x] 实现 CSV 模板、上传预检、错误行号与浏览器端错误报告下载、版本列表、详情、候选发布和显式回滚；批量错误限制响应大小。
+- [x] 构造包含销售/库存/模型/策略引用的 manifest，校验通过后原子切换；请求级一致快照仍需补充切换中请求测试。
+- [x] 扩展 `test_runtime_snapshots.py`，覆盖坏 CSV、不兼容模型、重启后指针恢复和回滚失败；切换中的请求仍待补充。
+- [ ] 完整验收：坏文件不改变当前版本、好文件可预检/训练/发布、重启后同一快照仍有效已具备证据；尚缺切换中请求的一致性验收。
 
 ### T5. 模型中心
 
-- [ ] 新增 `backend/app/api/models.py`、`frontend/js/pages/model-center.js`；复用 `backend/ml/artifacts.py`、`scripts/activate_model.py` 和现有质量接口。
-- [ ] 展示候选模型、同口径验证/测试指标、训练任务、数据版本、checksum 和策略选择理由。
-- [ ] 训练调用 T3，发布/回滚调用 T4；候选包不完整时禁用发布并显示原因。
-- [ ] 新增模型管理 API 测试及 `frontend/e2e/model-center.spec.js`，覆盖基线胜出、训练失败、版本不匹配、回滚恢复。
+- [x] 新增 `backend/app/api/models.py`、`frontend/js/pages/model-center.js`；复用 `backend/ml/artifacts.py`、T3 任务接口和 T4 运行快照。
+- [x] 展示候选模型、同口径评估指标、训练任务、数据版本、package checksum 和策略选择理由。
+- [x] 训练调用 T3，人工激活先晋级候选包，再通过 T4 创建/切换运行快照；无效候选包不会进入可发布清单。
+- [x] 新增模型管理 API/服务测试及模型中心浏览器入口验收；完整训练失败、人工发布和回滚浏览器 E2E 仍待补充。
 - [ ] 验收：从页面发起训练并查看结果，人工发布后所有关联页面展示一致版本。
 
 ### T6. 预测分析与主数据查询

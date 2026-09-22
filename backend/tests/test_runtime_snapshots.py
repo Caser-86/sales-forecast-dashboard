@@ -62,7 +62,7 @@ def test_inventory_preview_accepts_valid_payload_and_returns_summary():
 
 def test_runtime_snapshot_validates_components_and_becomes_single_active_source(tmp_path, monkeypatch):
     from app.core.config import settings
-    from app.services.dataset_service import import_sales_dataset
+    from app.services.dataset_service import get_active_dataset_id, import_sales_dataset
     from app.services.inventory_dataset_service import import_inventory_snapshot
     from app.services.runtime_snapshot_service import publish_runtime_snapshot
     from app.services.runtime_state import get_active_runtime_snapshot
@@ -104,12 +104,79 @@ def test_runtime_snapshot_validates_components_and_becomes_single_active_source(
 
     assert snapshot["active"] is True
     assert get_active_runtime_snapshot()["snapshot_id"] == snapshot["snapshot_id"]
-    from app.services.dataset_service import get_active_dataset_id
     from app.services.inventory_dataset_service import get_active_inventory_id
 
     assert get_active_dataset_id() == imported_sales["dataset_id"]
     assert get_active_inventory_id() == imported_inventory["inventory_id"]
     assert (runtime_versions / snapshot["snapshot_id"] / "manifest.json").is_file()
+
+    # A fresh import of the read-only resolver models the next process after restart.
+    import importlib
+
+    from app.services import data_service, runtime_state
+
+    importlib.reload(runtime_state)
+    data_service.clear_data_caches()
+    assert runtime_state.get_active_runtime_snapshot()["snapshot_id"] == snapshot["snapshot_id"]
+    assert get_active_dataset_id() == imported_sales["dataset_id"]
+
+
+def test_runtime_snapshot_rollback_is_atomic_and_rejects_invalid_target(tmp_path, monkeypatch):
+    from app.core.config import settings
+    from app.core.exceptions import RuntimeSnapshotError
+    from app.services import runtime_snapshot_service
+    from app.services.dataset_service import import_sales_dataset
+    from app.services.runtime_state import get_active_runtime_snapshot
+
+    raw_dir = tmp_path / "raw"
+    raw_dir.mkdir()
+    _sales_frame().to_csv(raw_dir / "sales_data.csv", index=False)
+    first_source = tmp_path / "first.csv"
+    second_source = tmp_path / "second.csv"
+    _sales_frame().to_csv(first_source, index=False)
+    second = _sales_frame()
+    second.loc[0, "sales"] = 20
+    second.to_csv(second_source, index=False)
+    sales_versions = tmp_path / "sales-versions"
+    first = import_sales_dataset(first_source, versions_dir=sales_versions, activate=False)
+    second = import_sales_dataset(second_source, versions_dir=sales_versions, activate=False)
+
+    runtime_versions = tmp_path / "runtime-versions"
+    runtime_active = tmp_path / "active-runtime.json"
+    monkeypatch.setattr(settings, "DATA_RAW_DIR", str(raw_dir))
+    monkeypatch.setattr(settings, "DATASET_VERSIONS_DIR", str(sales_versions))
+    monkeypatch.setattr(settings, "RUNTIME_SNAPSHOT_DIR", str(runtime_versions))
+    monkeypatch.setattr(settings, "ACTIVE_RUNTIME_SNAPSHOT_FILE", str(runtime_active))
+
+    first_snapshot = runtime_snapshot_service.publish_runtime_snapshot(
+        data_version=first["dataset_id"],
+        model_version="legacy",
+        inventory_version="legacy",
+        snapshots_dir=runtime_versions,
+        active_file=runtime_active,
+        data_versions_dir=sales_versions,
+        activate=True,
+    )
+    second_snapshot = runtime_snapshot_service.publish_runtime_snapshot(
+        data_version=second["dataset_id"],
+        model_version="legacy",
+        inventory_version="legacy",
+        snapshots_dir=runtime_versions,
+        active_file=runtime_active,
+        data_versions_dir=sales_versions,
+        activate=False,
+    )
+
+    rolled_back = runtime_snapshot_service.rollback_runtime_snapshot(second_snapshot["snapshot_id"])
+    assert rolled_back["rolled_back_from"] == first_snapshot["snapshot_id"]
+    assert get_active_runtime_snapshot()["snapshot_id"] == second_snapshot["snapshot_id"]
+
+    manifest_path = runtime_versions / first_snapshot["snapshot_id"] / "manifest.json"
+    manifest = manifest_path.read_text(encoding="utf-8")
+    manifest_path.write_text(manifest.replace(first["dataset_id"], "sales-missing"), encoding="utf-8")
+    with pytest.raises(RuntimeSnapshotError):
+        runtime_snapshot_service.rollback_runtime_snapshot(first_snapshot["snapshot_id"])
+    assert get_active_runtime_snapshot()["snapshot_id"] == second_snapshot["snapshot_id"]
 
 
 def test_runtime_snapshot_rejects_model_built_for_other_data(tmp_path, monkeypatch):
@@ -216,6 +283,8 @@ def test_runtime_snapshot_api_keeps_publish_and_activate_as_separate_steps(clien
     }
     monkeypatch.setattr(datasets.runtime_snapshot_service, "publish_runtime_snapshot", lambda **_: payload)
     monkeypatch.setattr(datasets.runtime_snapshot_service, "activate_runtime_snapshot", lambda _: {**payload, "active": True})
+    monkeypatch.setattr(datasets.runtime_snapshot_service, "rollback_runtime_snapshot", lambda _: {**payload, "active": True, "rolled_back_from": "runtime-fedcba9876543210"})
+    monkeypatch.setattr(datasets.runtime_snapshot_service, "get_runtime_snapshot_detail", lambda _: payload)
 
     published = client.post("/api/datasets/runtime", json={
         "data_version": "legacy",
@@ -228,3 +297,11 @@ def test_runtime_snapshot_api_keeps_publish_and_activate_as_separate_steps(clien
     assert published.json()["active"] is False
     assert activated.status_code == 200
     assert activated.json()["active"] is True
+
+    rolled_back = client.post("/api/datasets/runtime/runtime-0123456789abcdef/rollback")
+    detail = client.get("/api/datasets/runtime/runtime-0123456789abcdef")
+
+    assert rolled_back.status_code == 200
+    assert rolled_back.json()["rolled_back_from"] == "runtime-fedcba9876543210"
+    assert detail.status_code == 200
+    assert detail.json()["snapshot_id"] == payload["snapshot_id"]

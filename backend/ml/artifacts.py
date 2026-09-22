@@ -110,6 +110,14 @@ def _validate_package(model_dir: Path) -> dict[str, Any]:
     return manifest
 
 
+def _read_optional_json(path: Path) -> dict[str, Any]:
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {}
+    return value if isinstance(value, dict) else {}
+
+
 def publish_model_package(
     source_dir: Path,
     *,
@@ -253,9 +261,27 @@ def list_model_versions(*, versions_dir: Path | None = None) -> list[dict[str, A
             manifest = _validate_package(directory)
         except ModelArtifactError:
             continue
+        evaluation = _read_optional_json(directory / "evaluation_report.json")
+        selection = _read_optional_json(directory / "model_selection.json")
+        metrics = {
+            name: {
+                "mape": value.get("mape"),
+                "rmse": value.get("rmse"),
+            }
+            for name, value in evaluation.items()
+            if isinstance(value, dict) and "mape" in value and "rmse" in value
+        }
+        checksums = manifest.get("checksums", {})
+        package_checksum = hashlib.sha256(
+            "".join(str(checksums.get(name, "")) for name in manifest.get("files", [])).encode()
+        ).hexdigest()
         versions.append({
             "model_id": directory.name,
             "data_version": manifest.get("data_version", "legacy"),
             "created_at_utc": manifest.get("created_at_utc"),
+            "selected_strategy": selection.get("strategy"),
+            "metrics": metrics,
+            "package_checksum": package_checksum,
+            "artifact_count": len(manifest.get("files", [])),
         })
     return versions
