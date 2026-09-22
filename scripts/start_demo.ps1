@@ -4,7 +4,10 @@ param(
     [int]$BackendPort = 8000,
     [int]$FrontendPort = 3000,
     [switch]$Prepare,
-    [switch]$WithAuth
+    [switch]$WithAuth,
+    [switch]$Offline,
+    [ValidateRange(0, 32)]
+    [int]$CpuAffinityCores = 0
 )
 
 $ErrorActionPreference = "Stop"
@@ -62,16 +65,38 @@ $frontendProcess = $null
 $previousDemoRoot = $env:DEMO_ROOT
 $previousPythonUtf8 = $env:PYTHONUTF8
 $previousDemoAuth = $env:DEMO_AUTH_ENABLED
+$previousPythonPath = $env:PYTHONPATH
 try {
     $env:DEMO_ROOT = $runtimeRoot
     $env:PYTHONUTF8 = "1"
     if ($WithAuth) { $env:DEMO_AUTH_ENABLED = "true" }
-    $backendProcess = Start-Process -FilePath $python -ArgumentList @(
+    $backendArguments = @(
         "-m", "uvicorn", "app.main:app", "--host", "127.0.0.1", "--port", "$BackendPort"
-    ) -WorkingDirectory (Join-Path $projectRoot "backend") -RedirectStandardOutput $backendLog -RedirectStandardError $backendErrorLog -PassThru
+    )
+    if ($Offline) {
+        $offlineModulePath = Join-Path $projectRoot "scripts"
+        $env:PYTHONPATH = if ($previousPythonPath) {
+            "$offlineModulePath;$previousPythonPath"
+        } else {
+            $offlineModulePath
+        }
+        $offlineCode = "import offline_socket_guard, uvicorn; uvicorn.run('app.main:app', host='127.0.0.1', port=$BackendPort)"
+        $backendArguments = @("-c", "`"$offlineCode`"")
+    }
+    $backendProcess = Start-Process -FilePath $python -ArgumentList $backendArguments -WorkingDirectory (Join-Path $projectRoot "backend") -RedirectStandardOutput $backendLog -RedirectStandardError $backendErrorLog -PassThru
     $frontendProcess = Start-Process -FilePath $python -ArgumentList @(
         "-m", "http.server", "$FrontendPort", "--bind", "127.0.0.1"
     ) -WorkingDirectory (Join-Path $projectRoot "frontend") -RedirectStandardOutput $frontendLog -RedirectStandardError $frontendErrorLog -PassThru
+
+    if ($CpuAffinityCores -gt 0) {
+        $logicalProcessors = (Get-CimInstance Win32_Processor | Measure-Object -Property NumberOfLogicalProcessors -Sum).Sum
+        if (-not $logicalProcessors -or $CpuAffinityCores -gt $logicalProcessors) {
+            throw "CPU affinity $CpuAffinityCores exceeds the available logical processors ($logicalProcessors)."
+        }
+        $affinityMask = [IntPtr](([Int64]1 -shl $CpuAffinityCores) - 1)
+        $backendProcess.ProcessorAffinity = $affinityMask
+        $frontendProcess.ProcessorAffinity = $affinityMask
+    }
 
     $backendUrl = "http://127.0.0.1:$BackendPort"
     $frontendUrl = "http://127.0.0.1:$FrontendPort"
@@ -96,6 +121,8 @@ try {
         frontendPid = $frontendProcess.Id
         frontendStartTime = $frontendProcess.StartTime.ToUniversalTime().ToString("o")
         frontendPort = $FrontendPort
+        cpuAffinityCores = $CpuAffinityCores
+        offlineGuard = [bool]$Offline
         startedAt = (Get-Date).ToUniversalTime().ToString("o")
     }
     $state | ConvertTo-Json | Set-Content -LiteralPath $statePath -Encoding UTF8
@@ -111,4 +138,5 @@ try {
     if ($null -eq $previousDemoRoot) { Remove-Item Env:DEMO_ROOT -ErrorAction SilentlyContinue } else { $env:DEMO_ROOT = $previousDemoRoot }
     if ($null -eq $previousPythonUtf8) { Remove-Item Env:PYTHONUTF8 -ErrorAction SilentlyContinue } else { $env:PYTHONUTF8 = $previousPythonUtf8 }
     if ($null -eq $previousDemoAuth) { Remove-Item Env:DEMO_AUTH_ENABLED -ErrorAction SilentlyContinue } else { $env:DEMO_AUTH_ENABLED = $previousDemoAuth }
+    if ($null -eq $previousPythonPath) { Remove-Item Env:PYTHONPATH -ErrorAction SilentlyContinue } else { $env:PYTHONPATH = $previousPythonPath }
 }

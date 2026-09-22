@@ -7,7 +7,7 @@
 当前状态与未完成任务见 [`CONTEXT.md`](CONTEXT.md) 和 [`TODO.md`](TODO.md)；V1 验收结论见 [`docs/releases/v1-acceptance.md`](docs/releases/v1-acceptance.md)。
 Local Demo V2 本机验收记录见 [`docs/local-demo-v2-acceptance-2026-09-22.md`](docs/local-demo-v2-acceptance-2026-09-22.md)。
 
-当前正在推进**本地完整演示版 V2**：M1/T1 本地运行时、M1/T2 共享导航壳、M2/T3/T4/T5 第一切片、T6 预测分析第一切片、T7 库存试算第一切片、T8 本地角色审批第一切片和 T9 系统诊断第一切片已完成。当前数据中心已支持 CSV 模板、上传预检、行级错误报告下载、候选版本清单、运行快照详情/发布/回滚；模型中心已支持候选模型清单、训练任务状态和兼容激活；预测分析已支持商品/门店下钻、来源版本、历史/未来明细和 CSV 导出；库存决策已支持风险清单、筛选和服务端 what-if 试算；计划中心在显式鉴权模式下已支持分析员提交、审批员批准/驳回、拒绝后修订版、管理员审计和导出；系统页已支持运行版本与质量只读诊断。确定性场景、备份恢复、离线和完整性能验收仍在路线中。功能边界、分阶段路线和验收标准见 [`docs/local-demo-plan.md`](docs/local-demo-plan.md)。
+当前正在推进**本地完整演示版 V2**：M1/T1 本地运行时、M1/T2 共享导航壳、M2/T3/T4/T5 第一切片、T6 预测分析第一切片、T7 库存试算第一切片、T8 本地角色审批第一切片和 T9 系统诊断第一切片已完成。当前数据中心已支持 CSV 模板、上传预检、行级错误报告下载、候选版本清单、运行快照详情/发布/回滚；模型中心已支持候选模型清单、训练任务状态和兼容激活；预测分析已支持商品/门店下钻、来源版本、历史/未来明细和 CSV 导出；库存决策已支持风险清单、筛选和服务端 what-if 试算；计划中心在显式鉴权模式下已支持分析员提交、审批员批准/驳回、拒绝后修订版、管理员审计和导出；系统页已支持运行版本与质量只读诊断；T10 已增加 Windows CI、进程级离线冒烟和 4 核 affinity 性能基线。物理固定 4 核/8GB 和完全断网人工复演仍待最终验收。功能边界、分阶段路线和验收标准见 [`docs/local-demo-plan.md`](docs/local-demo-plan.md)。
 
 本地完整演示版的 Windows 入口已经开始实现：先准备一次隔离演示包，再启动服务。准备阶段可能运行 CPU 模型训练，面试现场直接启动已验证的演示包。
 
@@ -36,6 +36,10 @@ scripts\start_demo.ps1 -Root .demo-runtime -WithAuth
 ```powershell
 python scripts/package_demo.py --root .demo-runtime --output .demo-runtime/dist/local-demo.zip
 python scripts/verify_offline_demo.py --root .demo-runtime
+# 进程级离线运行时冒烟：会阻断后端非本机网络访问，并自动停止服务
+scripts\verify_offline_demo.ps1 -Root .demo-runtime
+# 4 核 affinity 性能基线，内存预算是进程工作集观测而非物理内存硬限制
+scripts\benchmark_demo.ps1 -Root .demo-runtime -CpuCores 4 -MemoryBudgetGB 8
 ```
 
 候选训练通过后台任务运行，不会自动切换当前活动模型。提交后可在模型中心查询任务状态，训练成功后人工激活会先校验兼容性并发布候选包：

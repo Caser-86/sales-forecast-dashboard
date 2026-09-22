@@ -16,6 +16,8 @@
 | 内存观测 | 同一运行进程工作集约 `386.7MB`；不是固定 4 核/8GB 容器结果 |
 | 离线资源 | `python scripts/verify_offline_demo.py --root .demo-runtime` 返回 `ready=true`、无非本机远程引用；资源包包含 15 个生成资源文件 |
 | Windows 启动 | GitHub Actions 新增 `Windows Demo Startup`：在 `windows-latest` 准备资源、启动 PowerShell 服务、探活 API/前端并停止 |
+| 离线运行时冒烟 | `scripts/verify_offline_demo.ps1` 在 Windows 本机通过；进程内外部 DNS 被守卫阻断，健康、商品、模型、库存和前端探活均通过 |
+| 4 核亲和性基线 | `scripts/benchmark_demo.ps1` 使用 4 核 CPU affinity：启动 `8.75s`，API `100/100`，p50 `23.96ms`，p95 `150.15ms`，工作集 `413.1MB`，低于 8GB 观测预算 |
 
 ## 面试现场入口
 
@@ -31,6 +33,6 @@ scripts\start_demo.ps1 -Root .demo-runtime -WithAuth
 
 ## 尚未宣称
 
-- 尚未在固定 4 核/8GB 参考机上重新跑完整容量和长期内存趋势。
-- 尚未在完全断开外网的机器上执行从首次启动到完整演示的人工复演；当前证据是静态离线依赖检查和无 CDN 资源检查。
+- 当前机器是 8 核/16 线程、23.29GB 内存；已完成 4 核 affinity 和 8GB 进程工作集预算观测，但尚未在物理固定 4 核/8GB 参考机上重新跑完整容量和长期内存趋势。
+- 已完成进程级离线网络守卫下的本地运行时冒烟；尚未在完全断开外网的机器上执行从首次启动到完整人工演示，首次安装依赖的完全离线分发也不在本轮范围。
 - 真实 ERP/WMS、生产身份、定时训练、漂移监控、多实例和队列仍不在 Local Demo V2 范围内。
