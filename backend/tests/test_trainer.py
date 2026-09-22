@@ -1,6 +1,8 @@
 """训练评估辅助函数测试。"""
 from __future__ import annotations
 
+import inspect
+
 import numpy as np
 import pandas as pd
 
@@ -58,3 +60,11 @@ def test_lightgbm_training_supports_current_sklearn_check_x_y_signature():
 
     predictions = model.predict(features[14:])
     assert len(predictions) == 6
+
+
+def test_train_all_can_leave_a_candidate_package_inactive():
+    from ml.trainer import train_all
+
+    parameters = inspect.signature(train_all).parameters
+    assert parameters["activate"].default is True
+    assert parameters["data_version"].default is None

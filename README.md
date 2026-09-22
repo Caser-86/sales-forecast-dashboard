@@ -6,7 +6,7 @@
 
 当前状态与未完成任务见 [`CONTEXT.md`](CONTEXT.md) 和 [`TODO.md`](TODO.md)；V1 验收结论见 [`docs/releases/v1-acceptance.md`](docs/releases/v1-acceptance.md)。
 
-下一阶段为**本地完整演示版 V2**，目前已规划、尚未实施。功能范围、分阶段路线和验收标准见 [`docs/local-demo-plan.md`](docs/local-demo-plan.md)。
+当前正在推进**本地完整演示版 V2**：M1/T1 本地运行时、M1/T2 共享导航壳和 M2/T3 持久化候选训练后端第一切片已完成。功能边界、分阶段路线和验收标准见 [`docs/local-demo-plan.md`](docs/local-demo-plan.md)。
 
 本地完整演示版的 Windows 入口已经开始实现：先准备一次隔离演示包，再启动服务。准备阶段可能运行 CPU 模型训练，面试现场直接启动已验证的演示包。
 
@@ -18,6 +18,15 @@ scripts\stop_demo.ps1 -Root .demo-runtime
 ```
 
 如果需要重新生成数据和模型，使用 `python scripts/prepare_demo.py --root .demo-runtime --force`；启动器会检查演示包、端口和服务健康状态，不会默认触发训练。
+
+候选训练通过后台任务运行，不会自动切换当前活动模型。提交后可查询任务状态，训练成功后再由后续模型中心流程发布候选包：
+
+```powershell
+Invoke-RestMethod -Method Post http://127.0.0.1:8000/api/jobs/training `
+  -Headers @{"Idempotency-Key" = "interview-training-001"} `
+  -ContentType "application/json" -Body '{}'
+Invoke-RestMethod http://127.0.0.1:8000/api/jobs
+```
 
 ## 一句话介绍
 
@@ -201,6 +210,10 @@ Docker、依赖扫描和 4 核/8GB 性能证据见 [`docs/deployment-performance
 | POST | `/api/plans` | 幂等保存补货草案（需要 `Idempotency-Key`） |
 | GET | `/api/plans/{plan_id}` | 查看不可变补货草案 |
 | GET | `/api/plans/{plan_id}/export` | 导出补货草案 CSV |
+| POST | `/api/jobs/training` | 提交候选训练任务（需要 `Idempotency-Key`） |
+| GET | `/api/jobs` | 查看训练任务列表与阶段 |
+| GET | `/api/jobs/{job_id}` | 查看单个训练任务 |
+| POST | `/api/jobs/{job_id}/retry` | 重试失败或中断任务 |
 
 ## 测试与质量门禁
 

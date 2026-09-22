@@ -381,7 +381,8 @@ def _select_test_result(selected: dict, lstm_result: dict, lgbm_result: dict) ->
     )
 
 
-def train_all() -> dict:
+def train_all(*, activate: bool = True, data_version: str | None = None) -> dict:
+    """Train a model package, optionally leaving it as an inactive candidate."""
     print("[1/6] 加载特征数据...")
     df = load_features()
     print(f"  数据形状: {df.shape}, 日期范围: {df['date'].min()} ~ {df['date'].max()}")
@@ -587,17 +588,20 @@ def train_all() -> dict:
         json.dumps(model_selection, ensure_ascii=False, indent=2),
         encoding="utf-8",
     )
-    data_version = _active_dataset_version()
+    data_version = data_version or _active_dataset_version()
     package = publish_model_package(
         Path(MODELS_DIR),
         data_version=data_version,
-        activate=True,
+        activate=activate,
     )
     report["metadata"]["model_id"] = package["model_id"]
     report["metadata"]["data_version"] = data_version
     with open(REPORT_PATH, "w", encoding="utf-8") as f:
         json.dump(report, f, ensure_ascii=False, indent=2)
-    print(f"  模型版本已发布并激活 → {package['model_id']}")
+    if activate:
+        print(f"  模型版本已发布并激活 → {package['model_id']}")
+    else:
+        print(f"  候选模型包已生成（未激活） → {package['model_id']}")
     print("训练完成。")
     return report
 

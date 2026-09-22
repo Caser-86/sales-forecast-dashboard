@@ -59,6 +59,7 @@ class Settings(BaseSettings):
     DATA_PROCESSED_DIR: str = str(BACKEND_DIR / "data" / "processed")
     MODELS_DIR: str = str(BACKEND_DIR / "ml" / "saved_models")
     MODEL_VERSIONS_DIR: str = str(BACKEND_DIR / "ml" / "saved_models" / "versions")
+    JOBS_DIR: str = str(BACKEND_DIR / "jobs")
     ACTIVE_MODEL_FILE: str = str(BACKEND_DIR / "ml" / "saved_models" / "active_model.json")
     DATASET_VERSIONS_DIR: str = str(BACKEND_DIR / "data" / "raw" / "versions")
     ACTIVE_DATASET_FILE: str = str(BACKEND_DIR / "data" / "raw" / "active_dataset.json")
@@ -126,6 +127,7 @@ class Settings(BaseSettings):
             "DATA_PROCESSED_DIR": root / "data" / "processed",
             "MODELS_DIR": root / "ml" / "saved_models",
             "MODEL_VERSIONS_DIR": root / "ml" / "saved_models" / "versions",
+            "JOBS_DIR": root / "jobs",
             "ACTIVE_MODEL_FILE": root / "ml" / "saved_models" / "active_model.json",
             "DATASET_VERSIONS_DIR": root / "data" / "raw" / "versions",
             "ACTIVE_DATASET_FILE": root / "data" / "raw" / "active_dataset.json",
@@ -144,6 +146,7 @@ class Settings(BaseSettings):
         Path(self.DATA_PROCESSED_DIR).mkdir(parents=True, exist_ok=True)
         Path(self.MODELS_DIR).mkdir(parents=True, exist_ok=True)
         Path(self.MODEL_VERSIONS_DIR).mkdir(parents=True, exist_ok=True)
+        Path(self.JOBS_DIR).mkdir(parents=True, exist_ok=True)
         Path(self.DATASET_VERSIONS_DIR).mkdir(parents=True, exist_ok=True)
         Path(self.INVENTORY_VERSIONS_DIR).mkdir(parents=True, exist_ok=True)
         if self.DATABASE_URL.startswith("sqlite:///"):

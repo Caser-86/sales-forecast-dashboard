@@ -16,13 +16,14 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import dashboard, forecast, plans, products, quality, sales, stores
+from app.api import dashboard, forecast, jobs, plans, products, quality, sales, stores
 from app.core.config import settings
 from app.core.health import router as health_router
 from app.core.logging import setup_logging
 from app.core.middleware import CatchAllMiddleware, RequestLogMiddleware
 from app.core.rate_limit import RateLimitMiddleware
 from app.core.security import TokenDependency
+from app.services.job_repository import JobRepository
 
 
 def validate_runtime_security() -> None:
@@ -37,6 +38,7 @@ async def lifespan(app: FastAPI):
     validate_runtime_security()
     setup_logging()
     settings.ensure_dirs()
+    JobRepository().recover_interrupted()
     yield
 
 
@@ -115,6 +117,12 @@ app.include_router(
     tags=["补货草案"],
     dependencies=[TokenDependency],
 )
+app.include_router(
+    jobs.router,
+    prefix=settings.API_PREFIX,
+    tags=["后台任务"],
+    dependencies=[TokenDependency],
+)
 
 
 @app.get("/", tags=["健康检查"])
@@ -140,6 +148,7 @@ def api_root():
             "/api/stores",
             "/api/metadata",
             "/api/plans",
+            "/api/jobs",
         ]
     }
 

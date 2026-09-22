@@ -264,3 +264,27 @@ class PlanSummary(BaseModel):
 
 class PlanDetail(PlanSummary):
     snapshot: PlanDraftCreate
+
+
+class JobSubmitRequest(BaseModel):
+    data_version: Optional[str] = Field(default=None, min_length=1, max_length=100)
+    model_version: Optional[str] = Field(default=None, min_length=1, max_length=100)
+
+
+class JobResponse(BaseModel):
+    job_id: str
+    kind: str
+    status: str
+    phase: str
+    input_data_version: str
+    input_model_version: str
+    attempt: int
+    created_at: str
+    started_at: Optional[str] = None
+    finished_at: Optional[str] = None
+    heartbeat_at: Optional[str] = None
+    result: Optional[Dict[str, Any]] = None
+    error_code: Optional[str] = None
+    error_message: Optional[str] = None
+    error_detail: Optional[str] = None
+    created: bool = True

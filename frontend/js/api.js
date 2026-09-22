@@ -162,5 +162,14 @@ const api = {
             headers: { ...(options.headers || {}), "Idempotency-Key": idempotencyKey }
         });
     },
+    submitTraining(payload, idempotencyKey, options = {}) {
+        return this.post("/jobs/training", payload, {
+            ...options,
+            headers: { ...(options.headers || {}), "Idempotency-Key": idempotencyKey }
+        });
+    },
+    getJobs(limit = 50, options) { return this.get(`/jobs?limit=${limit}`, options); },
+    getJob(jobId, options) { return this.get(`/jobs/${encodeURIComponent(jobId)}`, options); },
+    retryJob(jobId, options) { return this.post(`/jobs/${encodeURIComponent(jobId)}/retry`, {}, options); },
     planExportUrl(planId) { return `${BASE}/plans/${encodeURIComponent(planId)}/export`; },
 };

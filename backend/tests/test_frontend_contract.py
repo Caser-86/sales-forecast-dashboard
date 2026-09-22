@@ -62,6 +62,9 @@ def test_frontend_api_exposes_quality_endpoints():
     assert "getStores" in api
     assert "getMetadata" in api
     assert "createPlan" in api
+    assert "submitTraining" in api
+    assert "getJobs" in api
+    assert "retryJob" in api
     assert "Idempotency-Key" in api
     assert "product_id" in api
     assert "store_id" in api

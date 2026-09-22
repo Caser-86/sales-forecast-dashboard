@@ -115,11 +115,11 @@
 
 ### T3. 持久化任务与候选训练隔离
 
-- [ ] 新增 `backend/app/services/job_service.py`、`job_repository.py`、`backend/app/api/jobs.py`、`scripts/run_job.py`；修改 `scripts/train_models.py` 和 `backend/ml/trainer.py`。
-- [ ] 定义 queued/running/succeeded/failed/interrupted 状态、输入版本、阶段和错误码，复用现有 SQLite 配置并加入 schema 迁移。
-- [ ] 分离候选训练输出和激活，锁定输入数据与产物目录；使用进程锁与事务避免并发写任务。
-- [ ] 开放提交、查询、列表、失败重试 API；日志脱敏和截断，前端关闭后任务仍可查询。
-- [ ] 新增 `backend/tests/test_jobs.py`，覆盖重启中断、重复请求、并发写入、训练失败不污染当前模型；执行一次真实 CPU 训练集成验证。
+- [x] 新增 `backend/app/services/job_service.py`、`job_repository.py`、`backend/app/api/jobs.py`、`scripts/run_job.py`；修改 `scripts/train_models.py` 和 `backend/ml/trainer.py`。
+- [x] 定义 queued/running/succeeded/failed/interrupted 状态、输入版本、阶段和错误码，复用现有 SQLite 配置并加入 schema 迁移。
+- [x] 分离候选训练输出和激活，锁定输入数据与产物目录；使用 SQLite 事务保证同一时间只有一个训练写任务。
+- [x] 开放提交、查询、列表、失败重试 API；worker 日志写入候选目录，错误摘要脱敏和截断，前端关闭后任务仍可查询。
+- [x] 新增 `backend/tests/test_jobs.py`，覆盖重启中断、重复请求、训练失败边界和 worker 隔离；已完成一次真实 CPU 候选训练集成验证。
 - [ ] 验收：训练期间总览继续服务，状态与真实过程一致，成功训练仅产生候选包。
 
 ### T4. 数据中心与运行快照发布
