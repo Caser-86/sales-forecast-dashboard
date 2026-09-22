@@ -67,6 +67,8 @@ function setRoute(route = getRouteState().route) {
     modelCenter?.classList.toggle("hidden", activeRoute !== "models");
     const forecastAnalysis = document.getElementById("forecastAnalysisPage");
     forecastAnalysis?.classList.toggle("hidden", activeRoute !== "forecast");
+    const inventoryDecision = document.getElementById("inventoryDecisionPage");
+    inventoryDecision?.classList.toggle("hidden", activeRoute !== "inventory");
     if (activeRoute === "data") {
         window.DataCenterPage?.load();
     }
@@ -75,6 +77,9 @@ function setRoute(route = getRouteState().route) {
     }
     if (activeRoute === "forecast") {
         window.ForecastAnalysisPage?.load();
+    }
+    if (activeRoute === "inventory") {
+        window.InventoryDecisionPage?.load();
     }
     RoutePlaceholder.render(activeRoute, ROUTE_COPY[activeRoute]);
     RoutePlaceholder.setScope(state.scope);

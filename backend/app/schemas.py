@@ -142,6 +142,16 @@ class InventoryResult(BaseModel):
     coverage: ForecastCoverage
 
 
+class ReplenishmentPreviewRequest(BaseModel):
+    product_id: int = Field(ge=1)
+    store_id: int = Field(ge=1)
+    lead_time_days: Optional[int] = Field(default=None, ge=0)
+    review_period_days: Optional[int] = Field(default=None, ge=0)
+    safety_stock: Optional[float] = Field(default=None, ge=0)
+    pack_size: Optional[int] = Field(default=None, gt=0)
+    minimum_order_quantity: Optional[int] = Field(default=None, ge=0)
+
+
 class KpiResult(BaseModel):
     total_sales: int
     total_predicted: int

@@ -203,6 +203,44 @@
             </div>
         </section>
 
+        <section id="inventoryDecisionPage" class="module-page hidden" aria-label="库存决策">
+            <div class="module-page-header">
+                <div>
+                    <span class="route-kicker">INVENTORY DECISION / WHAT-IF</span>
+                    <h1>库存决策</h1>
+                    <p>风险清单来自活动库存和未来预测；调整参数只做服务端试算，不直接修改库存或草案。</p>
+                </div>
+                <span id="inventoryDecisionStatus" class="module-status" aria-live="polite">加载库存清单中</span>
+            </div>
+
+            <div class="dataset-card forecast-controls-card">
+                <label class="forecast-search-label">搜索商品/门店
+                    <input id="replenishmentSearch" type="search" placeholder="名称、ID 或风险等级">
+                </label>
+                <label>风险<select id="replenishmentRiskFilter"><option value="">全部风险</option><option value="high">高风险</option><option value="medium">中风险</option><option value="low">低风险</option></select></label>
+                <button id="refreshReplenishment" class="refresh-button" type="button">刷新清单</button>
+            </div>
+
+            <div class="dataset-card">
+                <div class="dataset-card-header"><h2>库存风险清单</h2><span id="replenishmentCoverage" class="module-status">覆盖率：--</span></div>
+                <div class="dataset-table-wrap">
+                    <table class="dataset-table"><thead><tr><th>商品</th><th>门店</th><th>ABC</th><th>风险</th><th>窗口需求</th><th>净可用</th><th>建议采购</th></tr></thead><tbody id="replenishmentBody"></tbody></table>
+                </div>
+            </div>
+
+            <div id="replenishmentForm" class="dataset-card hidden">
+                <div class="dataset-card-header"><div><h2 id="replenishmentSelectionTitle">补货试算</h2><p>服务端复算窗口需求、目标库存、MOQ 和包装取整。</p></div><button id="runReplenishmentPreview" class="refresh-button dataset-primary" type="button">重新试算</button></div>
+                <div class="replenishment-input-grid">
+                    <label>Lead time<input id="replenishmentLeadTime" type="number" min="0"></label>
+                    <label>Review period<input id="replenishmentReviewPeriod" type="number" min="0"></label>
+                    <label>Safety stock<input id="replenishmentSafetyStock" type="number" min="0" step="0.1"></label>
+                    <label>Pack size<input id="replenishmentPackSize" type="number" min="1"></label>
+                    <label>MOQ<input id="replenishmentMoq" type="number" min="0"></label>
+                </div>
+                <div id="replenishmentPreview" class="dataset-preview" role="status"></div>
+            </div>
+        </section>
+
         <!-- Dashboard 作用域与运行状态 -->
         <section class="dashboard-toolbar" data-overview-only="true" aria-label="大屏筛选与状态">
             <div class="toolbar-group">
@@ -314,6 +352,7 @@
         <script src="js/pages/model-center.js?v=1"></script>
         <script src="js/pages/catalog.js?v=1"></script>
         <script src="js/pages/forecast-analysis.js?v=1"></script>
+        <script src="js/pages/replenishment.js?v=1"></script>
     <script src="js/app.js?v=1"></script>
     <script src="js/safe-text.js?v=1"></script>
     <script src="js/charts/kpi-cards.js?v=2"></script>

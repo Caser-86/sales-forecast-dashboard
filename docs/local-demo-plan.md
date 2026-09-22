@@ -1,6 +1,6 @@
 # 本地完整演示版实施计划
 
-日期：2026-09-22。状态：执行中，M1/T1、M1/T2 共享壳、T3/T4/T5 第一切片和 T6 预测分析第一切片已完成。目标版本：Local Demo V2。
+日期：2026-09-22。状态：执行中，M1/T1、M1/T2 共享壳、T3/T4/T5 第一切片、T6 预测分析第一切片和 T7 库存试算第一切片已完成。目标版本：Local Demo V2。
 
 **Goal:** 在 Windows 本机完成销售数据导入、质量检查、预测分析、库存决策、补货审批与导出、版本恢复的完整演示，关键业务步骤无需手工执行命令。
 
@@ -151,7 +151,8 @@
 
 ### T7. 库存风险与补货试算
 
-- [ ] 新增 `backend/app/api/replenishment.py`、`frontend/js/pages/replenishment.js`；复用 `backend/common/replenishment.py`、现有库存服务与预测服务。
+- [x] 第一切片：库存风险清单、风险/名称筛选、lead time/review period/safety stock/pack size/MOQ 调整和服务端公式试算；已通过后端回归与真实本地浏览器流程。
+- [x] 新增 `backend/app/api/replenishment.py`、`backend/app/services/replenishment_service.py`、`frontend/js/pages/replenishment.js`；复用 `backend/common/replenishment.py`、现有库存服务与预测服务。
 - [ ] 风险清单支持门店/商品/ABC/风险筛选；明确 ABC 优先级与缺货风险的区别。
 - [ ] 在界面调整 lead time、review period、safety stock、pack size、MOQ，服务端统一计算并返回公式各项；试算不直接修改原库存。
 - [ ] 记录策略版次、原建议、人工调整和原因；支持选中明细生成计划。超出 30 天窗口、不新鲜或预测不完整时拒绝提交。

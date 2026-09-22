@@ -16,7 +16,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import dashboard, datasets, forecast, jobs, models, plans, products, quality, sales, stores
+from app.api import dashboard, datasets, forecast, jobs, models, plans, products, quality, replenishment, sales, stores
 from app.core.config import settings
 from app.core.health import router as health_router
 from app.core.logging import setup_logging
@@ -135,6 +135,12 @@ app.include_router(
     tags=["模型中心"],
     dependencies=[TokenDependency],
 )
+app.include_router(
+    replenishment.router,
+    prefix=settings.API_PREFIX,
+    tags=["补货试算"],
+    dependencies=[TokenDependency],
+)
 
 
 @app.get("/", tags=["健康检查"])
@@ -163,6 +169,7 @@ def api_root():
             "/api/jobs",
             "/api/datasets",
             "/api/models",
+            "/api/replenishment/preview",
         ]
     }
 

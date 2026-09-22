@@ -98,6 +98,24 @@ def test_frontend_has_forecast_analysis_contract():
     assert "filterAndPage" in catalog
 
 
+def test_frontend_has_inventory_decision_contract():
+    html = (PROJECT_ROOT / "frontend" / "index.html").read_text(encoding="utf-8")
+    page = (PROJECT_ROOT / "frontend" / "js" / "pages" / "replenishment.js").read_text(encoding="utf-8")
+    api = (PROJECT_ROOT / "frontend" / "js" / "api.js").read_text(encoding="utf-8")
+
+    for element_id in (
+        "inventoryDecisionPage",
+        "replenishmentRiskFilter",
+        "replenishmentBody",
+        "replenishmentForm",
+        "runReplenishmentPreview",
+    ):
+        assert f'id="{element_id}"' in html
+    assert "getInventory" in page
+    assert "previewReplenishment" in page
+    assert "previewReplenishment" in api
+
+
 def test_frontend_has_shared_runtime_context_and_retry_contract():
     html = (PROJECT_ROOT / "frontend" / "index.html").read_text(encoding="utf-8")
     ui = (PROJECT_ROOT / "frontend" / "js" / "ui.js").read_text(encoding="utf-8")

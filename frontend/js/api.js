@@ -219,6 +219,7 @@ const api = {
     activateModel(modelId, options) {
         return this.post(`/models/${encodeURIComponent(modelId)}/activate`, {}, options);
     },
+    previewReplenishment(payload, options) { return this.post("/replenishment/preview", payload, options); },
     getDatasets(options) { return this.get("/datasets", options); },
     datasetTemplateUrl(kind) { return `${BASE}/datasets/templates/${encodeURIComponent(kind)}`; },
     previewDataset(kind, text, filename, options = {}) {

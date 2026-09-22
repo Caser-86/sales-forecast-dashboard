@@ -123,3 +123,13 @@ test("opens forecast analysis and exposes source-traceable detail", async ({ pag
     await expect(page.locator("#forecastSourceSummary")).toContainText("有效历史样本");
     await expect(page.locator("#exportForecastCsv")).toBeEnabled();
 });
+
+test("opens inventory decision and exposes server-side what-if controls", async ({ page }) => {
+    await waitForDashboard(page);
+
+    await page.locator('.app-nav [data-route="inventory"]').click();
+    await expect(page.locator("#inventoryDecisionPage")).toBeVisible();
+    await expect(page.locator("#inventoryDecisionStatus")).not.toHaveText("加载库存清单中");
+    await expect(page.locator("#replenishmentBody")).toBeAttached();
+    await expect(page.locator("#replenishmentRiskFilter")).toBeVisible();
+});

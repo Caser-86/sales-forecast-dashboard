@@ -232,3 +232,72 @@ def test_inventory_service_rejects_missing_snapshot_key(monkeypatch):
 
     with pytest.raises(InventoryUnavailableError, match="product_id=1, store_id=1"):
         inventory_service.get_inventory()
+
+
+def test_replenishment_preview_applies_client_overrides(monkeypatch):
+    from app.services import replenishment_service
+
+    monkeypatch.setattr(replenishment_service.data_service, "get_products", lambda: [
+        {"product_id": 1, "product_name": "P1", "category": "食品"},
+    ])
+    monkeypatch.setattr(replenishment_service.data_service, "get_stores", lambda: [
+        {"store_id": 1, "store_name": "S1"},
+    ])
+    monkeypatch.setattr(replenishment_service.inventory_service, "load_active_inventory_snapshot", lambda: pd.DataFrame([{
+        "as_of_date": pd.Timestamp("2026-09-20"),
+        "product_id": 1,
+        "store_id": 1,
+        "on_hand": 40,
+        "confirmed_inbound": 0,
+        "reserved": 0,
+        "lead_time_days": 2,
+        "review_period_days": 2,
+        "safety_stock": 10,
+        "pack_size": 12,
+        "minimum_order_quantity": 24,
+    }]))
+    monkeypatch.setattr(replenishment_service.inventory_service, "_validate_snapshot_freshness", lambda _: None)
+    monkeypatch.setattr(replenishment_service, "get_active_inventory_id", lambda: "inventory-v1")
+    monkeypatch.setattr(replenishment_service.forecast_service, "get_forecast", lambda *_: {
+        "forecast": [{"predicted_sales": 25}] * 30,
+    })
+
+    result = replenishment_service.preview_replenishment(
+        product_id=1,
+        store_id=1,
+        lead_time_days=3,
+        review_period_days=2,
+        safety_stock=20,
+        pack_size=10,
+        minimum_order_quantity=30,
+    )
+
+    assert result["window_days"] == 5
+    assert result["window_demand"] == 125.0
+    assert result["target_stock"] == 145.0
+    assert result["suggested_quantity"] == 110
+    assert result["inventory_version"] == "inventory-v1"
+
+
+def test_replenishment_preview_api_returns_formula_contract(client, monkeypatch):
+    from app.api import replenishment
+
+    payload = {
+        "product_id": 1,
+        "store_id": 1,
+        "window_days": 4,
+        "window_demand": 100.0,
+        "net_available": 30.0,
+        "target_stock": 110.0,
+        "raw_replenishment": 80.0,
+        "suggested_quantity": 84,
+        "risk_level": "high",
+        "inventory_version": "inventory-v1",
+    }
+    monkeypatch.setattr(replenishment.replenishment_service, "preview_replenishment", lambda **_: payload)
+
+    response = client.post("/api/replenishment/preview", json={"product_id": 1, "store_id": 1})
+
+    assert response.status_code == 200
+    assert response.json()["suggested_quantity"] == 84
+    assert response.json()["risk_level"] == "high"
