@@ -81,3 +81,11 @@ def test_windows_demo_scripts_use_loopback_and_scoped_pid_state():
     assert "DateTimeOffset" in stop_script
     assert "[object]$ExpectedStartTime" in stop_script
     assert "Get-NetTCPConnection" not in stop_script
+
+
+def test_offline_demo_verifier_checks_bundled_assets_and_remote_references():
+    script = (PROJECT_ROOT / "scripts" / "verify_offline_demo.py").read_text(encoding="utf-8")
+
+    assert "remote_references" in script
+    assert "echarts.min.js" in script
+    assert "local-demo.zip" in script
