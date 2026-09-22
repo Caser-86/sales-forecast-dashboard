@@ -6,11 +6,12 @@ param(
     [switch]$RunBrowserE2E,
     [switch]$RunModelRecoveryE2E,
     [switch]$RunModelConsistencyE2E,
+    [switch]$RunModelStabilityE2E,
     [switch]$RunRuntimeRollbackE2E
 )
 
 $ErrorActionPreference = "Stop"
-$selectedModes = @($RunBrowserE2E, $RunModelRecoveryE2E, $RunModelConsistencyE2E, $RunRuntimeRollbackE2E) | Where-Object { $_ }
+$selectedModes = @($RunBrowserE2E, $RunModelRecoveryE2E, $RunModelConsistencyE2E, $RunModelStabilityE2E, $RunRuntimeRollbackE2E) | Where-Object { $_ }
 if ($selectedModes.Count -gt 1) {
     throw "Choose only one browser E2E mode."
 }
@@ -55,7 +56,7 @@ try {
     if ($LASTEXITCODE -eq 0) { throw "Offline socket guard did not block the external connection." }
 
     $env:CORS_ORIGINS = "http://127.0.0.1:$FrontendPort"
-    if ($RunBrowserE2E -or $RunModelRecoveryE2E -or $RunModelConsistencyE2E -or $RunRuntimeRollbackE2E) { $env:RATE_LIMIT_REQUESTS = "1000" }
+    if ($RunBrowserE2E -or $RunModelRecoveryE2E -or $RunModelConsistencyE2E -or $RunModelStabilityE2E -or $RunRuntimeRollbackE2E) { $env:RATE_LIMIT_REQUESTS = "1000" }
     if ($RunModelRecoveryE2E) {
         Remove-Item -LiteralPath $trainingFailureMarker -Force -ErrorAction SilentlyContinue
         $env:DEMO_TRAINING_FAILURE_MODE = "fail_once"
@@ -63,6 +64,11 @@ try {
         $env:DEMO_TRAINING_PROFILE = "smoke"
     }
     if ($RunModelConsistencyE2E) {
+        Remove-Item Env:DEMO_TRAINING_FAILURE_MODE -ErrorAction SilentlyContinue
+        Remove-Item Env:DEMO_TRAINING_FAILURE_MARKER -ErrorAction SilentlyContinue
+        $env:DEMO_TRAINING_PROFILE = "full"
+    }
+    if ($RunModelStabilityE2E) {
         Remove-Item Env:DEMO_TRAINING_FAILURE_MODE -ErrorAction SilentlyContinue
         Remove-Item Env:DEMO_TRAINING_FAILURE_MARKER -ErrorAction SilentlyContinue
         $env:DEMO_TRAINING_PROFILE = "full"
@@ -87,7 +93,7 @@ try {
     if ($model.status -ne "ready") { throw "Offline demo model status was $($model.status)." }
     if (-not $inventory.cells) { throw "Offline demo returned no inventory cells." }
 
-    if ($RunBrowserE2E -or $RunModelRecoveryE2E -or $RunModelConsistencyE2E -or $RunRuntimeRollbackE2E) {
+    if ($RunBrowserE2E -or $RunModelRecoveryE2E -or $RunModelConsistencyE2E -or $RunModelStabilityE2E -or $RunRuntimeRollbackE2E) {
         $env:BASE_URL = $frontendUrl
         $env:API_BASE_URL = "$baseUrl/api"
         Push-Location (Join-Path $projectRoot "frontend")
@@ -98,6 +104,9 @@ try {
             } elseif ($RunModelConsistencyE2E) {
                 & npm.cmd run test:e2e -- model.consistency.spec.js
                 if ($LASTEXITCODE -ne 0) { throw "Offline model consistency E2E failed with exit code $LASTEXITCODE." }
+            } elseif ($RunModelStabilityE2E) {
+                & npm.cmd run test:e2e -- model.stability.spec.js
+                if ($LASTEXITCODE -ne 0) { throw "Offline model stability E2E failed with exit code $LASTEXITCODE." }
             } elseif ($RunRuntimeRollbackE2E) {
                 & npm.cmd run test:e2e -- runtime.rollback.spec.js
                 if ($LASTEXITCODE -ne 0) { throw "Offline runtime rollback E2E failed with exit code $LASTEXITCODE." }
@@ -121,6 +130,7 @@ try {
         browser_e2e = [bool]$RunBrowserE2E
         model_recovery_e2e = [bool]$RunModelRecoveryE2E
         model_consistency_e2e = [bool]$RunModelConsistencyE2E
+        model_stability_e2e = [bool]$RunModelStabilityE2E
         runtime_rollback_e2e = [bool]$RunRuntimeRollbackE2E
     } | ConvertTo-Json
 } finally {

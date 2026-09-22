@@ -23,6 +23,7 @@
 | 离线运行时冒烟 | `scripts/verify_offline_demo.ps1` 在 Windows 本机通过；进程内外部 DNS 被守卫阻断，健康、商品、模型、库存和前端探活均通过；追加 `-RunBrowserE2E` 后浏览器回归 `13 passed, 5 skipped` |
 | 训练恢复浏览器回归 | `scripts/verify_offline_demo.ps1 -RunModelRecoveryE2E` 在进程级离线守卫下通过 `1 passed (58.1s)`；真实 worker 首次失败、第二次进入候选训练并完成候选模型人工激活；使用显式非生产 `smoke` 训练档案 |
 | 普通完整训练版本一致性 | `scripts/verify_offline_demo.ps1 -RunModelConsistencyE2E` 通过 `1 passed (3.6m)`；页面真实完成完整 CPU 训练、候选激活后，总览、数据、预测、库存和系统页展示同一模型版本 |
+| 普通完整训练稳定性 | `scripts/verify_offline_demo.ps1 -RunModelStabilityE2E` 通过 `1 passed (3.7m)`；训练期间持续探测健康、模型、商品、库存和元数据接口，活动模型版本保持不变 |
 | 运行快照发布/回滚 | `scripts/verify_offline_demo.ps1 -RunRuntimeRollbackE2E` 通过 `1 passed (12.1s)`；候选发布/激活、回滚和回滚后跨页面活动版本一致性均通过 |
 | T8 持久化与来源保护 | `test_persistence_migration.py`、`test_plan_workflow.py` 通过；旧版 `plan_drafts` 迁移前生成 `.migration.bak`，工作流/会话可在服务重载后恢复，过期库存或版本漂移审批返回 `409 CONFLICT` |
 | 4 核亲和性基线 | `scripts/benchmark_demo.ps1` 使用 4 核 CPU affinity：启动 `8.75s`，API `100/100`，p50 `23.96ms`，p95 `150.15ms`，工作集 `413.1MB`，低于 8GB 观测预算 |
