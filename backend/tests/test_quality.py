@@ -15,6 +15,9 @@ class TestQualityEndpoints:
         assert "backtest" in body
         assert body["selected_model"] in {"lstm", "lightgbm", "ensemble", "seasonal_naive_7d"}
         assert "model_selection" in body
+        selected_metrics = body["metrics"]["ensemble"]
+        backtest_metrics = body["backtest"].get("selected", {}).get("metrics", {})
+        assert selected_metrics.get("samples", backtest_metrics.get("samples", 0)) > 0
         if body["backtest"]:
             backtest = body["backtest"]
             assert backtest["protocol"]["horizon_days"] == 30

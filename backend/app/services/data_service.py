@@ -122,6 +122,11 @@ def get_model_info() -> Dict[str, Any]:
         name: {
             "mape": float(report[name]["mape"]),
             "rmse": float(report[name]["rmse"]),
+            **{
+                field: int(report[name][field])
+                for field in ("samples", "mape_samples")
+                if field in report[name]
+            },
         }
         for name in metric_keys
         if isinstance(report.get(name), dict)

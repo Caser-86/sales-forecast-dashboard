@@ -67,7 +67,7 @@
         if (!jobs.length) {
             const row = document.createElement("tr");
             const cell = document.createElement("td");
-            cell.colSpan = 6;
+            cell.colSpan = 7;
             cell.textContent = "暂无训练任务。";
             row.appendChild(cell);
             body.appendChild(row);
@@ -87,6 +87,20 @@
                 cell.textContent = value;
                 row.appendChild(cell);
             });
+            const action = document.createElement("td");
+            if (["failed", "interrupted"].includes(job.status)) {
+                const button = document.createElement("button");
+                button.type = "button";
+                button.className = "dataset-table-action model-job-retry";
+                button.dataset.jobId = job.job_id;
+                button.textContent = "重试任务";
+                action.appendChild(button);
+            } else if (["queued", "running"].includes(job.status)) {
+                action.textContent = "处理中";
+            } else {
+                action.textContent = job.status === "succeeded" ? "已完成" : "--";
+            }
+            row.appendChild(action);
             body.appendChild(row);
         });
     }
@@ -148,12 +162,31 @@
         }
     }
 
+    async function retryJob(jobId) {
+        if (!window.confirm(`确认重试任务 ${jobId} 吗？本次重试会使用新的候选目录，不会覆盖活动模型。`)) return;
+        setStatus(`正在重试 ${jobId}`);
+        try {
+            const job = await api.retryJob(jobId);
+            byId("modelTrainingStatus").textContent = `任务 ${job.job_id} 已重新排队，第 ${job.attempt} 次尝试。`;
+            byId("modelTrainingStatus").className = "dataset-preview success";
+            await load(true);
+        } catch (error) {
+            byId("modelTrainingStatus").textContent = error.message;
+            byId("modelTrainingStatus").className = "dataset-preview error";
+            setStatus(error.message, "error");
+        }
+    }
+
     function init() {
         byId("startModelTraining").addEventListener("click", startTraining);
         byId("refreshModelCatalog").addEventListener("click", () => load(true));
         byId("modelVersionsBody").addEventListener("click", event => {
             const button = event.target.closest(".model-activate");
             if (button) activateModel(button.dataset.modelId);
+        });
+        byId("modelJobsBody").addEventListener("click", event => {
+            const button = event.target.closest(".model-job-retry");
+            if (button) retryJob(button.dataset.jobId);
         });
     }
 

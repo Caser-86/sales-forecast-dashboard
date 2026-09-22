@@ -89,8 +89,12 @@
         const forecast = detail.forecast.forecast || [];
         const baseline = model.metrics?.seasonal_naive_7d;
         const selected = model.metrics?.ensemble;
+        const metricSamples = selected?.samples
+            ?? selected?.mape_samples
+            ?? model.backtest?.selected?.metrics?.samples
+            ?? "--";
         byId("forecastSourceSummary").textContent = `来源：数据 ${metadata.data_version} · 模型 ${metadata.model_version} · 商品 #${detail.sales.product_id} · 门店 #${detail.sales.store_id} · 有效历史样本 ${history.length}，未来预测 ${forecast.length} 天。`;
-        byId("forecastMetricSummary").textContent = `评估窗口：${model.split?.validation_days || "--"} 天验证；当前策略 ${model.selected_model || "ensemble"}；基线 MAPE ${baseline?.mape?.toFixed(2) || "--"}%；当前模型 MAPE ${selected?.mape?.toFixed(2) || "--"}%。`;
+        byId("forecastMetricSummary").textContent = `评估窗口：${model.split?.validation_days || "--"} 天验证；有效回测样本 ${metricSamples}；MAPE 只统计实际销量大于 0 的样本；当前策略 ${model.selected_model || "ensemble"}；基线 MAPE ${baseline?.mape?.toFixed(2) || "--"}%；当前模型 MAPE ${selected?.mape?.toFixed(2) || "--"}%。`;
         renderHistory(history);
         renderForecast(forecast);
         renderChart(history, forecast);

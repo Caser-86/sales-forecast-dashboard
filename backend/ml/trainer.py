@@ -462,6 +462,7 @@ def train_all(*, activate: bool = True, data_version: str | None = None) -> dict
         if selected["strategy"] == "ensemble" else 0.0,
         "rmse": _rmse(align["y"].values, ensemble_arr)
         if selected["strategy"] == "ensemble" else 0.0,
+        "samples": int(len(align)),
     }
     if selected["strategy"] == "lstm":
         ensemble_metrics = lstm_metrics

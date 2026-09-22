@@ -73,6 +73,8 @@ def test_frontend_has_real_model_center_contract():
     for element_id in ("modelCenterPage", "startModelTraining", "modelVersionsBody", "modelJobsBody"):
         assert f'id="{element_id}"' in html
     assert "activateModel" in page
+    assert "model-job-retry" in page
+    assert "retryJob" in page
     assert "getModels" in api
     assert "submitTraining" in api
 
@@ -96,6 +98,8 @@ def test_frontend_has_forecast_analysis_contract():
     assert "getForecast" in page
     assert "downloadForecastCsv" in page
     assert "filterAndPage" in catalog
+    assert "有效回测样本" in page
+    assert "实际销量大于 0" in page
 
 
 def test_frontend_has_inventory_decision_contract():

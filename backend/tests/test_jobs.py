@@ -134,6 +134,42 @@ def test_training_job_api_returns_accepted_job(monkeypatch, client):
     assert response.json()["status"] == "queued"
 
 
+def test_retry_job_api_returns_new_attempt(monkeypatch, client):
+    record = JobRecord(
+        job_id="job-failed",
+        kind="training",
+        status="queued",
+        phase="queued",
+        input_data_version="data-v1",
+        input_model_version="model-v1",
+        candidate_root="C:/demo/jobs/candidate-retry",
+        idempotency_key="key",
+        attempt=2,
+        created_at="2026-09-22T00:00:00+00:00",
+        started_at=None,
+        finished_at=None,
+        heartbeat_at=None,
+        pid=None,
+        result=None,
+        error_code=None,
+        error_message=None,
+        error_detail=None,
+    )
+
+    class FakeService:
+        def retry_training(self, job_id):
+            assert job_id == "job-failed"
+            return record
+
+    monkeypatch.setattr("app.api.jobs.get_service", lambda: FakeService())
+    response = client.post("/api/jobs/job-failed/retry")
+
+    assert response.status_code == 200
+    assert response.json()["job_id"] == "job-failed"
+    assert response.json()["attempt"] == 2
+    assert response.json()["status"] == "queued"
+
+
 def test_job_service_starts_worker_with_isolated_candidate_environment(tmp_path, monkeypatch):
     from app.core.config import settings
     from app.services.job_service import JobService
