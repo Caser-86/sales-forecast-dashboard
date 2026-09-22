@@ -23,6 +23,7 @@
                 <a href="#system" data-route="system">系统</a>
             </nav>
             <div class="header-info">
+                <span id="businessDate">业务日期：--</span>
                 <span id="currentDate"></span>
                 <span id="currentTime"></span>
                 <span class="status-dot"></span>
@@ -34,6 +35,11 @@
             <span class="route-kicker">LOCAL DEMO V2 / 规划中</span>
             <h1 id="routePlaceholderTitle">模块规划中</h1>
             <p id="routePlaceholderDescription">该模块将在本地完整演示版后续阶段开放。</p>
+            <div class="route-context" aria-label="当前运行上下文">
+                <span id="routeBusinessDate">业务日期：--</span>
+                <span id="routeVersion">数据版本：--</span>
+                <span id="routeScopeSummary">筛选范围：全部商品 · 全部门店</span>
+            </div>
             <p class="route-placeholder-note">当前版本保留总览闭环，未开放模块不会展示伪造数据或不可用操作。</p>
         </section>
 
@@ -142,6 +148,7 @@
     <div id="errorBanner" class="error-banner hidden" role="alert" aria-live="assertive"></div>
 
     <script src="js/api.js?v=2"></script>
+    <script src="js/ui.js?v=1"></script>
     <script src="js/pages/route-placeholder.js?v=1"></script>
     <script src="js/app.js?v=1"></script>
     <script src="js/safe-text.js?v=1"></script>

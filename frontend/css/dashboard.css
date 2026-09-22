@@ -271,6 +271,15 @@ select:focus-visible,
     line-height: 1.7;
 }
 
+.route-context {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 8px 18px;
+    color: var(--accent-cyan);
+    font-size: 12px;
+}
+
 .route-placeholder-note {
     padding-top: 12px;
     border-top: 1px solid rgba(74, 77, 196, 0.55);
@@ -421,6 +430,7 @@ select:focus-visible,
 }
 
 .loading.hidden {
+    display: none;
     opacity: 0;
     pointer-events: none;
 }
@@ -511,6 +521,22 @@ select:focus-visible,
 }
 .error-banner.hidden { display: none; }
 
+.error-retry {
+    margin-left: 12px;
+    padding: 4px 10px;
+    border: 1px solid rgba(255, 255, 255, 0.75);
+    border-radius: 4px;
+    background: transparent;
+    color: #fff;
+    cursor: pointer;
+    font-size: 12px;
+}
+
+.error-retry:hover,
+.error-retry:focus-visible {
+    background: rgba(255, 255, 255, 0.16);
+}
+
 @media screen and (max-width: 1100px) {
     .dashboard-toolbar { flex-wrap: wrap; }
     .scope-label { margin-left: 0; }
@@ -566,6 +592,11 @@ select:focus-visible,
     .route-placeholder {
         min-height: 60vh;
         padding: 28px 18px;
+    }
+
+    .route-context {
+        align-items: center;
+        flex-direction: column;
     }
 
     .dashboard-toolbar {
@@ -650,5 +681,10 @@ select:focus-visible,
         width: calc(100% - 20px);
         max-width: none;
         top: 72px;
+    }
+
+    .error-retry {
+        display: block;
+        margin: 10px auto 0;
     }
 }

@@ -5,5 +5,12 @@ window.RoutePlaceholder = {
         placeholder.classList.toggle("hidden", activeRoute === "overview");
         document.getElementById("routePlaceholderTitle").textContent = copy.title;
         document.getElementById("routePlaceholderDescription").textContent = copy.description;
+    },
+
+    setScope(scope) {
+        const product = scope.productId ? `#${scope.productId}` : "全部商品";
+        const store = scope.storeId ? `#${scope.storeId}` : "全部门店";
+        document.getElementById("routeScopeSummary").textContent =
+            `筛选范围：${product} · ${store}`;
     }
 };

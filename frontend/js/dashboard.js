@@ -11,6 +11,7 @@ let planRequestKey = null;
 
 async function init() {
     initNavigation();
+    DemoUI.setLoading(true, "正在加载演示数据...");
     updateClock();
     setInterval(updateClock, 1000);
 
@@ -24,7 +25,7 @@ async function init() {
     } catch (e) {
         showDashboardError(`初始化失败: ${e.message}`);
     } finally {
-        document.getElementById("loading").classList.add("hidden");
+        DemoUI.setLoading(false);
     }
 
     setInterval(loadDashboard, 5 * 60 * 1000);
@@ -34,7 +35,7 @@ function updateClock() {
     const now = new Date();
     const pad = (n) => String(n).padStart(2, "0");
     document.getElementById("currentDate").textContent =
-        `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+        `本地日期：${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
     document.getElementById("currentTime").textContent =
         `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
 }
@@ -81,10 +82,19 @@ async function loadSelectors() {
         "全部门店"
     );
 
+    const routeScope = AppNavigation.getRouteState().scope;
+    document.getElementById("scopeProductSelect").value = routeScope.productId || "";
+    document.getElementById("scopeStoreSelect").value = routeScope.storeId || "";
+    RoutePlaceholder.setScope(routeScope);
+
     document.getElementById("productSelect").addEventListener("change", loadTrend);
     document.getElementById("storeSelect").addEventListener("change", loadTrend);
-    document.getElementById("scopeProductSelect").addEventListener("change", loadDashboard);
-    document.getElementById("scopeStoreSelect").addEventListener("change", loadDashboard);
+    const handleScopeChange = () => {
+        AppNavigation.syncScopeToRoute(currentScope());
+        loadDashboard();
+    };
+    document.getElementById("scopeProductSelect").addEventListener("change", handleScopeChange);
+    document.getElementById("scopeStoreSelect").addEventListener("change", handleScopeChange);
     document.getElementById("refreshDashboard").addEventListener("click", refreshAll);
     document.getElementById("savePlan").addEventListener("click", savePlanDraft);
 }
@@ -125,19 +135,22 @@ function setBusy(isBusy) {
 }
 
 function showDashboardError(message) {
-    const errorBanner = document.getElementById("errorBanner");
-    errorBanner.textContent = `${message}。请检查后端服务 (http://localhost:8000/health)`;
-    errorBanner.classList.remove("hidden");
+    DemoUI.showError(
+        `${message}。请检查后端服务 (http://localhost:8000/health)`,
+        { retry: refreshAll }
+    );
 }
 
 function clearDashboardError() {
-    document.getElementById("errorBanner").classList.add("hidden");
+    DemoUI.clearError();
 }
 
 function showEmptyState(message = "") {
-    const emptyState = document.getElementById("emptyState");
-    emptyState.textContent = message || "当前筛选范围暂无可展示数据";
-    emptyState.classList.toggle("hidden", !message);
+    if (message) {
+        DemoUI.showEmpty(message);
+    } else {
+        DemoUI.clearEmpty();
+    }
 }
 
 async function loadDashboard() {
@@ -201,6 +214,13 @@ async function loadSystemStatus() {
             api.getMetadata()
         ]);
         lastMetadata = metadata;
+        DemoUI.setRuntimeContext({
+            asOfDate: metadata.as_of_date,
+            dataVersion: metadata.data_version,
+            modelVersion: metadata.model_version,
+            inventoryVersion: metadata.inventory_version,
+            inventoryStatus: metadata.inventory_status
+        });
         updatePlanAvailability();
         const healthy = model.status === "ready" && quality.status === "healthy" &&
             metadata.inventory_status === "fresh";

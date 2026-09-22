@@ -31,7 +31,7 @@ function Assert-PortFree([int]$Port, [string]$Label) {
     $listener = Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue
     if ($listener) {
         $owner = ($listener | Select-Object -First 1).OwningProcess
-        throw "$Label 端口 $Port 已被占用（PID $owner），请更换端口或先停止占用进程"
+        throw "$Label port $Port is already in use (PID $owner). Choose another port or stop the owning process."
     }
 }
 
@@ -40,7 +40,7 @@ if (Test-Path -LiteralPath $statePath) {
     $oldBackend = Get-ExistingProcess ([int]$oldState.backendPid)
     $oldFrontend = Get-ExistingProcess ([int]$oldState.frontendPid)
     if ($oldBackend -or $oldFrontend) {
-        throw "演示服务已在运行，先执行 scripts/stop_demo.ps1 -Root '$runtimeRoot'"
+        throw "Demo services are already running. Run scripts/stop_demo.ps1 -Root '$runtimeRoot' first."
     }
     Remove-Item -LiteralPath $statePath -Force
 }
@@ -51,9 +51,9 @@ Assert-PortFree $FrontendPort "前端"
 $python = (Get-Command python -ErrorAction Stop).Source
 if ($Prepare) {
     & $python (Join-Path $projectRoot "scripts\prepare_demo.py") --root $runtimeRoot
-    if ($LASTEXITCODE -ne 0) { throw "演示资源准备失败，退出码: $LASTEXITCODE" }
+    if ($LASTEXITCODE -ne 0) { throw "Demo asset preparation failed with exit code: $LASTEXITCODE" }
 } elseif (-not (Test-Path -LiteralPath (Join-Path $runtimeRoot "demo-manifest.json"))) {
-    throw "没有找到已验证的演示包，请先执行 python scripts/prepare_demo.py --root '$runtimeRoot'，或启动时附加 -Prepare"
+    throw "No verified demo manifest was found. Run python scripts/prepare_demo.py --root '$runtimeRoot', or add -Prepare."
 }
 
 $backendProcess = $null
@@ -74,7 +74,7 @@ try {
     $frontendUrl = "http://127.0.0.1:$FrontendPort"
     $ready = $false
     for ($attempt = 0; $attempt -lt 60; $attempt++) {
-        if ($backendProcess.HasExited -or $frontendProcess.HasExited) { throw "演示进程提前退出，请查看 $runtimeRoot\logs" }
+        if ($backendProcess.HasExited -or $frontendProcess.HasExited) { throw "A demo process exited early. Check $runtimeRoot\logs" }
         try {
             $health = Invoke-WebRequest -Uri "$backendUrl/health" -UseBasicParsing -TimeoutSec 2
             $frontend = Invoke-WebRequest -Uri $frontendUrl -UseBasicParsing -TimeoutSec 2
@@ -82,7 +82,7 @@ try {
         } catch { }
         Start-Sleep -Seconds 1
     }
-    if (-not $ready) { throw "演示服务未在 60 秒内就绪，请查看 $runtimeRoot\logs" }
+    if (-not $ready) { throw "Demo services did not become ready within 60 seconds. Check $runtimeRoot\logs" }
 
     $state = [ordered]@{
         version = 1
@@ -96,9 +96,9 @@ try {
         startedAt = (Get-Date).ToUniversalTime().ToString("o")
     }
     $state | ConvertTo-Json | Set-Content -LiteralPath $statePath -Encoding UTF8
-    Write-Output "本地演示已启动: $frontendUrl"
-    Write-Output "后端健康检查: $backendUrl/health"
-    Write-Output "运行状态: $statePath"
+    Write-Output "Local demo started: $frontendUrl"
+    Write-Output "Backend health: $backendUrl/health"
+    Write-Output "Runtime state: $statePath"
 } catch {
     foreach ($process in @($frontendProcess, $backendProcess)) {
         if ($process -and -not $process.HasExited) { Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue }

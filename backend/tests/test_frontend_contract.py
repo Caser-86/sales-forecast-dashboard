@@ -35,6 +35,23 @@ def test_frontend_has_v2_navigation_contract_and_explicit_unavailable_state():
     assert 'src="js/app.js?v=1"' in html
     assert "hashchange" in app_script
     assert "ROUTE_ORDER" in app_script
+    assert 'src="js/ui.js?v=1"' in html
+    assert "syncScopeToRoute" in app_script
+    assert "routeScopeSummary" in html
+
+
+def test_frontend_has_shared_runtime_context_and_retry_contract():
+    html = (PROJECT_ROOT / "frontend" / "index.html").read_text(encoding="utf-8")
+    ui = (PROJECT_ROOT / "frontend" / "js" / "ui.js").read_text(encoding="utf-8")
+    dashboard = (PROJECT_ROOT / "frontend" / "js" / "dashboard.js").read_text(encoding="utf-8")
+
+    for element_id in ("businessDate", "routeBusinessDate", "routeVersion", "routeScopeSummary"):
+        assert f'id="{element_id}"' in html
+    assert "showError" in ui
+    assert "retry" in ui
+    assert "setLoading" in ui
+    assert "DemoUI.showError" in dashboard
+    assert "DemoUI.setRuntimeContext" in dashboard
 
 
 def test_frontend_api_exposes_quality_endpoints():
