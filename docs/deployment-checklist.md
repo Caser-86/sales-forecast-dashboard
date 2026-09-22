@@ -120,3 +120,28 @@ docker compose up -d --force-recreate backend
 ```bash
 docker compose down
 ```
+
+## 7. Local Demo V2 最终门禁
+
+Local Demo V2 使用独立的 `.demo-runtime`，不依赖 Docker Desktop。以下命令需要按顺序单独执行，每条命令都会启动并停止自己的服务；完整训练回归会占用 CPU 数分钟。
+
+```powershell
+python scripts/prepare_demo.py --root .demo-runtime
+scripts\verify_offline_demo.ps1 -Root .demo-runtime -RunBrowserE2E
+scripts\verify_offline_demo.ps1 -Root .demo-runtime -RunModelRecoveryE2E
+scripts\verify_offline_demo.ps1 -Root .demo-runtime -RunModelStabilityE2E
+scripts\verify_offline_demo.ps1 -Root .demo-runtime -RunModelConsistencyE2E
+scripts\verify_offline_demo.ps1 -Root .demo-runtime -RunRuntimeRollbackE2E
+scripts\benchmark_demo.ps1 -Root .demo-runtime -CpuCores 4 -MemoryBudgetGB 8
+```
+
+预期证据：默认浏览器回归、失败重试、完整训练期间服务稳定性、候选激活后的跨页面版本一致性和运行快照回滚分别输出明确的 Playwright `passed`；静态离线检查输出 `ready=true` 且 `remote_references=[]`；性能基线输出 `under_memory_budget=true`。这些命令不能替代固定 4 核/8GB 机器和完全断网人工演示。
+
+## 8. T10 现场门禁
+
+在与目标参考机一致的 Windows 环境执行：
+
+1. 断开外网并确认浏览器、Python 和本地依赖仍可启动。
+2. 从干净的 `.demo-runtime` 执行 `prepare_demo.py`，再执行 `start_demo.ps1`，完成总览、导入错误 CSV、预测下钻、库存试算、计划审批和场景恢复全链路。
+3. 在固定 4 核/8GB 约束下重复 `benchmark_demo.ps1`，记录启动时间、API p50/p95、工作集峰值和长时间内存趋势。
+4. 保存命令输出、机器配置和人工复演结果到验收记录；未完成上述证据前，不将 T10 标记为完成。
