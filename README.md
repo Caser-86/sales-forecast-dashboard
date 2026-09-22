@@ -48,7 +48,11 @@ scripts\verify_offline_demo.ps1 -Root .demo-runtime -RunModelStabilityE2E
 scripts\verify_offline_demo.ps1 -Root .demo-runtime -RunModelConsistencyE2E
 # 4 核 affinity 性能基线，内存预算是进程工作集观测而非物理内存硬限制
 scripts\benchmark_demo.ps1 -Root .demo-runtime -CpuCores 4 -MemoryBudgetGB 8
+# 参考机长期趋势：显式关闭限流，采集持续 300 秒的请求和进程工作集样本
+scripts\benchmark_demo.ps1 -Root .demo-runtime -CpuCores 4 -MemoryBudgetGB 8 -DurationSeconds 300 -DisableRateLimit
 ```
+
+长期基线输出中的 `working_set_samples` 是观测证据，不自动等同于“无持续内存增长”；T10 仍要求在物理固定 4 核/8GB 机器和完全断网环境人工复演。
 
 候选训练通过后台任务运行，不会自动切换当前活动模型。提交后可在模型中心查询任务状态，训练成功后人工激活会先校验兼容性并发布候选包：
 

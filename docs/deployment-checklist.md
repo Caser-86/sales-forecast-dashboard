@@ -133,9 +133,11 @@ scripts\verify_offline_demo.ps1 -Root .demo-runtime -RunModelStabilityE2E
 scripts\verify_offline_demo.ps1 -Root .demo-runtime -RunModelConsistencyE2E
 scripts\verify_offline_demo.ps1 -Root .demo-runtime -RunRuntimeRollbackE2E
 scripts\benchmark_demo.ps1 -Root .demo-runtime -CpuCores 4 -MemoryBudgetGB 8
+# 参考机长期容量/内存趋势（显式关闭限流，输出 working_set_samples）
+scripts\benchmark_demo.ps1 -Root .demo-runtime -CpuCores 4 -MemoryBudgetGB 8 -DurationSeconds 300 -DisableRateLimit
 ```
 
-预期证据：默认浏览器回归、失败重试、完整训练期间服务稳定性、候选激活后的跨页面版本一致性和运行快照回滚分别输出明确的 Playwright `passed`；静态离线检查输出 `ready=true` 且 `remote_references=[]`；性能基线输出 `under_memory_budget=true`。这些命令不能替代固定 4 核/8GB 机器和完全断网人工演示。
+预期证据：默认浏览器回归、失败重试、完整训练期间服务稳定性、候选激活后的跨页面版本一致性和运行快照回滚分别输出明确的 Playwright `passed`；静态离线检查输出 `ready=true` 且 `remote_references=[]`；性能基线输出 `under_memory_budget=true`，长期模式另输出请求持续时间和 `working_set_samples`。这些命令不能替代固定 4 核/8GB 机器和完全断网人工演示。
 
 ## 8. T10 现场门禁
 
@@ -143,7 +145,7 @@ scripts\benchmark_demo.ps1 -Root .demo-runtime -CpuCores 4 -MemoryBudgetGB 8
 
 1. 断开外网并确认浏览器、Python 和本地依赖仍可启动。
 2. 从干净的 `.demo-runtime` 执行 `prepare_demo.py`，再执行 `start_demo.ps1`，完成总览、导入错误 CSV、预测下钻、库存试算、计划审批和场景恢复全链路。
-3. 在固定 4 核/8GB 约束下重复 `benchmark_demo.ps1`，记录启动时间、API p50/p95、工作集峰值和长时间内存趋势。
+3. 在固定 4 核/8GB 机器上先执行 `check_reference_machine.ps1 -Strict`，再用 `benchmark_demo.ps1 -DurationSeconds 300 -DisableRateLimit` 记录启动时间、API p50/p95、工作集峰值和长期采样趋势。
 4. 保存命令输出、机器配置和人工复演结果到验收记录；未完成上述证据前，不将 T10 标记为完成。
 
 参考机开始前先执行严格硬件检查：
