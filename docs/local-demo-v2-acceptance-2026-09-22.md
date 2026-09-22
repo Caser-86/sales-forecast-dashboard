@@ -15,6 +15,7 @@
 | 导出基线 | 现有草案 CSV 导出实测 `0.03s` |
 | 内存观测 | 同一运行进程工作集约 `386.7MB`；不是固定 4 核/8GB 容器结果 |
 | 离线资源 | `python scripts/verify_offline_demo.py --root .demo-runtime` 返回 `ready=true`、无非本机远程引用；资源包包含 15 个生成资源文件 |
+| Windows 启动 | GitHub Actions 新增 `Windows Demo Startup`：在 `windows-latest` 准备资源、启动 PowerShell 服务、探活 API/前端并停止 |
 
 ## 面试现场入口
 
@@ -32,5 +33,4 @@ scripts\start_demo.ps1 -Root .demo-runtime -WithAuth
 
 - 尚未在固定 4 核/8GB 参考机上重新跑完整容量和长期内存趋势。
 - 尚未在完全断开外网的机器上执行从首次启动到完整演示的人工复演；当前证据是静态离线依赖检查和无 CDN 资源检查。
-- CI 的 Windows 启动器尚未接入 Windows runner；Windows 启动证据来自本机 PowerShell。
 - 真实 ERP/WMS、生产身份、定时训练、漂移监控、多实例和队列仍不在 Local Demo V2 范围内。

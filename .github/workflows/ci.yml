@@ -159,3 +159,39 @@ jobs:
             --index-url https://pypi.org/simple \
             --extra-index-url https://download.pytorch.org/whl/cpu \
             --strict --progress-spinner off
+
+  windows-demo:
+    name: Windows Demo Startup
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Python dependencies
+        shell: pwsh
+        run: python -m pip install -r backend/requirements-dev.txt
+
+      - name: Prepare isolated demo runtime
+        shell: pwsh
+        run: python scripts/prepare_demo.py --root .demo-runtime
+
+      - name: Start, probe, and stop Windows demo
+        shell: pwsh
+        run: |
+          $env:CORS_ORIGINS = "http://127.0.0.1:13000"
+          .\scripts\start_demo.ps1 -Root .demo-runtime -BackendPort 18000 -FrontendPort 13000
+          try {
+            $health = Invoke-RestMethod http://127.0.0.1:18000/health
+            if ($health.status -ne "healthy") { throw "Windows demo health was $($health.status)" }
+            $products = Invoke-RestMethod http://127.0.0.1:18000/api/products
+            if (-not $products.products) { throw "Windows demo returned no products" }
+            Invoke-WebRequest http://127.0.0.1:13000 -UseBasicParsing | Out-Null
+          } finally {
+            .\scripts\stop_demo.ps1 -Root .demo-runtime
+          }
