@@ -6,8 +6,9 @@
 
 | 范围 | 实际证据 |
 | --- | --- |
-| 后端质量门禁 | `224 passed`，覆盖率 `85.94%`，Ruff 通过 |
+| 后端质量门禁 | `225 passed`，覆盖率 `85.94%`，Ruff 通过 |
 | 默认浏览器回归 | `13 passed, 4 skipped`；跳过项是显式鉴权审批、模型恢复、普通完整训练一致性和运行快照回滚 E2E |
+| T6/T7 页面回归 | 默认离线浏览器回归中的预测/库存用例通过：商品目录分页、30 天历史与预测、MAPE 口径、安全 CSV、风险筛选和服务端包装/MOQ 试算均有真实页面断言 |
 | 本地角色审批 | Playwright 鉴权用例 `1 passed`：分析员创建/提交，审批员批准，管理员查看 `submit`/`approve` 审计 |
 | 场景与恢复 | 缺货场景可切换；库存过期场景的 `/api/inventory` 返回 `503`；恢复备份后场景回到 `standard` |
 | 本地启动 | `scripts/start_demo.ps1 -Root .demo-runtime -BackendPort 18005 -FrontendPort 13005`，启动到 `/health=healthy` 为 `8.40s` |

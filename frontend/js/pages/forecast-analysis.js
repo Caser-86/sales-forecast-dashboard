@@ -7,6 +7,8 @@
         chart: null,
         loaded: false,
         loading: false,
+        productPage: 1,
+        productPageSize: 10,
     };
 
     function byId(id) { return document.getElementById(id); }
@@ -29,12 +31,34 @@
     }
 
     function renderProducts() {
-        const page = CatalogUtils.filterAndPage(state.products, byId("forecastCatalogSearch").value, 1, 1000);
+        const page = CatalogUtils.filterAndPage(
+            state.products,
+            byId("forecastCatalogSearch").value,
+            state.productPage,
+            state.productPageSize,
+        );
+        const pageCount = Math.max(1, Math.ceil(page.total / page.pageSize));
+        if (state.productPage > pageCount) {
+            state.productPage = pageCount;
+            return renderProducts();
+        }
         fillSelect("forecastProductSelect", page.items, "product_id", item => `#${item.product_id} ${item.product_name}`);
         const routeProduct = AppNavigation.getRouteState().scope.productId;
         if (routeProduct && page.items.some(item => item.product_id === routeProduct)) {
             byId("forecastProductSelect").value = String(routeProduct);
         }
+        const start = page.total ? (state.productPage - 1) * state.productPageSize + 1 : 0;
+        const end = Math.min(state.productPage * state.productPageSize, page.total);
+        byId("forecastCatalogSummary").textContent =
+            `商品 ${start}-${end}/${page.total} · 第 ${state.productPage}/${pageCount} 页`;
+        byId("forecastCatalogPrev").disabled = state.productPage <= 1;
+        byId("forecastCatalogNext").disabled = state.productPage >= pageCount;
+    }
+
+    function changeProductPage(delta) {
+        state.productPage += delta;
+        renderProducts();
+        if (byId("forecastProductSelect").value && byId("forecastStoreSelect").value) loadDetail();
     }
 
     function renderHistory(points) {
@@ -166,7 +190,12 @@
     }
 
     function init() {
-        byId("forecastCatalogSearch").addEventListener("input", renderProducts);
+        byId("forecastCatalogSearch").addEventListener("input", () => {
+            state.productPage = 1;
+            renderProducts();
+        });
+        byId("forecastCatalogPrev").addEventListener("click", () => changeProductPage(-1));
+        byId("forecastCatalogNext").addEventListener("click", () => changeProductPage(1));
         byId("loadForecastDetail").addEventListener("click", loadDetail);
         byId("exportForecastCsv").addEventListener("click", downloadForecastCsv);
         window.addEventListener("resize", () => state.chart?.resize());

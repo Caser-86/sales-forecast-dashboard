@@ -3,11 +3,11 @@ const ROUTE_ORDER = ["overview", "data", "forecast", "inventory", "plans", "mode
 const ROUTE_COPY = {
     overview: { title: "经营总览", description: "查看当前演示数据的销量、预测、优先级和补货建议。" },
     data: { title: "数据中心", description: "销售与库存 CSV 预检、候选版本和运行快照管理。" },
-    forecast: { title: "预测分析", description: "商品与门店预测明细、基线对比和导出将在 M3 开放。" },
-    inventory: { title: "库存决策", description: "库存风险清单和补货试算将在 M3 开放。" },
-    plans: { title: "计划中心", description: "补货计划审批、版次和审计将在 M3 开放。" },
+    forecast: { title: "预测分析", description: "查看商品与门店历史样本、未来 30 天预测、基线指标和 CSV 导出。" },
+    inventory: { title: "库存决策", description: "筛选库存风险并通过服务端公式试算补货参数，保存可审计草案。" },
+    plans: { title: "计划中心", description: "查看计划来源和版次，按本地角色提交、审批、驳回、修订并审计。" },
     models: { title: "模型中心", description: "查看候选模型、训练状态和人工激活动作。" },
-    system: { title: "演示系统", description: "场景切换、备份恢复和诊断将在 M4 开放。" }
+    system: { title: "演示系统", description: "切换确定性演示场景，查看健康、版本、备份恢复和脱敏诊断。" }
 };
 
 function parsePositiveId(value) {

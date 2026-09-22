@@ -34,7 +34,7 @@
         </header>
 
         <section id="routePlaceholder" class="route-placeholder hidden" aria-live="polite">
-            <span class="route-kicker">LOCAL DEMO V2 / 规划中</span>
+            <span class="route-kicker">LOCAL DEMO V2 / MODULE STATUS</span>
             <h1 id="routePlaceholderTitle">模块规划中</h1>
             <p id="routePlaceholderDescription">该模块将在本地完整演示版后续阶段开放。</p>
             <div class="route-context" aria-label="当前运行上下文">
@@ -180,6 +180,11 @@
                 <label>门店<select id="forecastStoreSelect"></select></label>
                 <button id="loadForecastDetail" class="refresh-button dataset-primary" type="button">加载明细</button>
                 <button id="exportForecastCsv" class="refresh-button" type="button" disabled>导出 CSV</button>
+                <div class="forecast-pagination" aria-label="商品目录分页">
+                    <span id="forecastCatalogSummary" class="module-status">商品 0/0</span>
+                    <button id="forecastCatalogPrev" class="refresh-button" type="button" disabled>上一页</button>
+                    <button id="forecastCatalogNext" class="refresh-button" type="button" disabled>下一页</button>
+                </div>
             </div>
 
             <div id="forecastSourceSummary" class="dataset-preview" role="status"></div>
@@ -254,7 +259,7 @@
                 <div>
                     <span class="route-kicker">PLAN CENTER / IMMUTABLE DRAFTS</span>
                     <h1>计划中心</h1>
-                    <p>查看已保存的补货草案、来源版本和明细；当前版本提供不可变快照与导出，审批流将在后续阶段接入。</p>
+                    <p>查看已保存的补货草案、来源版本和明细；支持本地角色提交、审批、驳回、修订、审计与导出。</p>
                 </div>
                 <span id="planCenterStatus" class="module-status" aria-live="polite">加载草案中</span>
             </div>
@@ -353,8 +358,8 @@
                 <div class="kpi-value" id="kpiGrowth">0%</div>
             </div>
             <div class="kpi-card">
-                <div class="kpi-label">预测准确率</div>
-                <div class="kpi-value" id="kpiAccuracy">0%</div>
+                <div class="kpi-label">MAPE（越低越好）</div>
+                <div class="kpi-value" id="kpiMape">0%</div>
             </div>
             <div class="kpi-card">
                 <div class="kpi-label">预警商品数</div>

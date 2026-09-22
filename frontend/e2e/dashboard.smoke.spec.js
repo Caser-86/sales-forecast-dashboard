@@ -19,6 +19,7 @@ test("loads live dashboard data and saves an exportable draft", async ({ page })
     await expect(page.locator("#errorBanner")).toBeHidden();
     await expect(page.locator("#lastUpdated")).not.toHaveText("数据更新时间：--");
     await expect(page.locator("#scopeProductSelect option")).not.toHaveCount(1);
+    await expect(page.locator(".kpi-label").filter({ hasText: "MAPE（越低越好）" })).toBeVisible();
     await expect(page.locator("#refreshDashboard")).toBeEnabled();
 
     await page.locator("#scopeProductSelect").selectOption("1");
@@ -132,6 +133,12 @@ test("shows complete forecast detail and downloads a safe CSV", async ({ page })
     await expect(page.locator("#forecastHistoryBody tr")).toHaveCount(30);
     await expect(page.locator("#forecastFutureBody tr")).toHaveCount(30);
     await expect(page.locator("#forecastMetricSummary")).toContainText("MAPE");
+    await expect(page.locator("#forecastCatalogNext")).toBeEnabled();
+    await page.locator("#forecastCatalogNext").click();
+    await expect(page.locator("#forecastCatalogSummary")).toContainText("第 2/2 页");
+    await expect(page.locator("#forecastAnalysisStatus")).toHaveText("明细已更新");
+    await page.locator("#forecastCatalogPrev").click();
+    await expect(page.locator("#forecastCatalogSummary")).toContainText("第 1/2 页");
 
     const download = page.waitForEvent("download");
     await page.locator("#exportForecastCsv").click();

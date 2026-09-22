@@ -87,6 +87,9 @@ def test_frontend_has_forecast_analysis_contract():
     for element_id in (
         "forecastAnalysisPage",
         "forecastCatalogSearch",
+        "forecastCatalogSummary",
+        "forecastCatalogPrev",
+        "forecastCatalogNext",
         "forecastProductSelect",
         "forecastStoreSelect",
         "forecastHistoryBody",
@@ -98,6 +101,8 @@ def test_frontend_has_forecast_analysis_contract():
     assert "getForecast" in page
     assert "downloadForecastCsv" in page
     assert "filterAndPage" in catalog
+    assert "productPage" in page
+    assert "forecastCatalogNext" in page
     assert "有效回测样本" in page
     assert "实际销量大于 0" in page
 
@@ -240,6 +245,16 @@ def test_dashboard_labels_quantity_metrics_without_revenue_claim():
     assert "品类销量占比" in html
     assert "总销量" in pie
     assert "总销售额" not in pie
+
+
+def test_dashboard_labels_mape_with_directional_metric_name():
+    html = (PROJECT_ROOT / "frontend" / "index.html").read_text(encoding="utf-8")
+    cards = (PROJECT_ROOT / "frontend" / "js" / "charts" / "kpi-cards.js").read_text(encoding="utf-8")
+
+    assert "MAPE（越低越好）" in html
+    assert 'id="kpiMape"' in html
+    assert 'this.animate("kpiMape", kpi.mape' in cards
+    assert "预测准确率" not in html
 
 
 def test_top_products_chart_uses_dashboard_contract_field_names():
