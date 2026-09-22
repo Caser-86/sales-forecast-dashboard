@@ -115,6 +115,25 @@ def test_plan_repository_rejects_partial_forecast(tmp_path):
         PlanRepository(tmp_path / "plans.db").save("request-001", _payload(status="partial"))
 
 
+def test_plan_repository_requires_reason_and_non_negative_final_quantity(tmp_path):
+    from app.core.exceptions import PlanValidationError
+    from app.services.plan_repository import PlanRepository
+
+    payload = _payload()
+    payload["items"][0]["original_suggested_purchase"] = 72
+    payload["items"][0]["adjustment_quantity"] = 2
+    with pytest.raises(PlanValidationError, match="原因"):
+        PlanRepository(tmp_path / "plans.db").save("request-001", payload)
+
+    payload["items"][0]["adjustment_reason"] = "促销备货"
+    saved = PlanRepository(tmp_path / "plans.db").save("request-002", payload)
+    assert saved.snapshot["items"][0]["original_suggested_purchase"] == 72
+
+    payload["items"][0]["adjustment_quantity"] = -73
+    with pytest.raises(PlanValidationError, match="不能为负数"):
+        PlanRepository(tmp_path / "plans.db").save("request-003", payload)
+
+
 def test_plan_csv_export_prefixes_formula_cells(tmp_path):
     from app.services.plan_repository import PlanRepository
 

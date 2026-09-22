@@ -86,6 +86,13 @@ class PlanRepository:
             raise PlanValidationError("预测覆盖数量不一致，不能保存补货草案")
         if not snapshot.get("items"):
             raise PlanValidationError("补货草案至少需要一条明细")
+        for item in snapshot["items"]:
+            suggested = int(item.get("suggested_purchase", 0))
+            adjustment = int(item.get("adjustment_quantity", 0))
+            if suggested + adjustment < 0:
+                raise PlanValidationError("人工调整后数量不能为负数")
+            if adjustment and not str(item.get("adjustment_reason", "")).strip():
+                raise PlanValidationError("存在人工调整时必须填写原因")
 
     def save(self, idempotency_key: str, snapshot: dict[str, Any]) -> SavedPlan:
         key = idempotency_key.strip()
@@ -164,7 +171,7 @@ class PlanRepository:
             "plan_id", "created_at", "name", "as_of_date", "inventory_as_of_date",
             "data_version", "model_version", "inventory_version", "policy_version",
             "product_id", "store_id", "product_name", "store_name", "predicted_sales",
-            "suggested_purchase", "adjustment_quantity", "adjustment_reason", "risk_level",
+            "suggested_purchase", "original_suggested_purchase", "adjustment_quantity", "adjustment_reason", "risk_level",
             "on_hand", "confirmed_inbound", "reserved", "lead_time_days", "review_period_days",
             "safety_stock", "pack_size", "minimum_order_quantity",
         ]

@@ -109,15 +109,19 @@ def test_frontend_has_inventory_decision_contract():
 
     for element_id in (
         "inventoryDecisionPage",
+        "replenishmentAbcFilter",
         "replenishmentRiskFilter",
         "replenishmentBody",
         "replenishmentForm",
         "runReplenishmentPreview",
+        "addReplenishmentPlan",
     ):
         assert f'id="{element_id}"' in html
     assert "getInventory" in page
     assert "previewReplenishment" in page
     assert "previewReplenishment" in api
+    assert "selectedKeys" in page
+    assert "createPlan" in page
 
 
 def test_frontend_has_plan_center_contract():

@@ -57,8 +57,10 @@
                 `#${item.store_id} ${item.store_name}`,
                 item.risk_level,
                 item.predicted_sales,
+                item.original_suggested_purchase ?? item.suggested_purchase,
                 item.suggested_purchase,
                 item.adjustment_quantity,
+                item.adjustment_reason || "--",
             ].forEach(value => {
                 const cell = document.createElement("td");
                 cell.textContent = value ?? "--";

@@ -411,6 +411,13 @@ select:focus-visible,
     color: var(--text);
 }
 
+.dataset-card-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 12px;
+}
+
 .system-summary-grid {
     display: grid;
     grid-template-columns: repeat(5, minmax(0, 1fr));

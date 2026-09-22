@@ -155,7 +155,7 @@
 - [x] 新增 `backend/app/api/replenishment.py`、`backend/app/services/replenishment_service.py`、`frontend/js/pages/replenishment.js`；复用 `backend/common/replenishment.py`、现有库存服务与预测服务。
 - [ ] 风险清单支持门店/商品/ABC/风险筛选；明确 ABC 优先级与缺货风险的区别。
 - [ ] 在界面调整 lead time、review period、safety stock、pack size、MOQ，服务端统一计算并返回公式各项；试算不直接修改原库存。
-- [ ] 记录策略版次、原建议、人工调整和原因；支持选中明细生成计划。超出 30 天窗口、不新鲜或预测不完整时拒绝提交。
+- [x] 记录策略版次、原建议、人工调整和原因；支持批量勾选明细生成不可变草案。服务端拒绝负数最终数量和缺少原因的人工调整；库存不新鲜或预测不完整时页面阻止提交，草案仓储继续做服务端覆盖校验。
 - [ ] 扩展 `test_replenishment.py`、新增页面 E2E，覆盖包装取整、MOQ、零库存、过期库存、非法参数和部分预测失败。
 - [ ] 验收：界面、API、草案与导出使用一致数量和来源版本。
 

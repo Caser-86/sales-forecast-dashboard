@@ -134,6 +134,22 @@ test("opens inventory decision and exposes server-side what-if controls", async 
     await expect(page.locator("#replenishmentRiskFilter")).toBeVisible();
 });
 
+test("creates a batch replenishment draft from selected inventory rows", async ({ page }) => {
+    await waitForDashboard(page);
+
+    await page.locator('.app-nav [data-route="inventory"]').click();
+    await expect(page.locator("#inventoryDecisionPage")).toBeVisible();
+    const firstRow = page.locator("#replenishmentBody tr[data-key]").first();
+    await expect(firstRow).toBeVisible();
+    await firstRow.locator(".replenishment-select").check();
+    await expect(page.locator("#createReplenishmentPlan")).toBeEnabled();
+
+    await page.locator("#replenishmentAdjustmentQuantity").fill("1");
+    await page.locator("#replenishmentAdjustmentReason").fill("面试演示调整");
+    await page.locator("#createReplenishmentPlan").click();
+    await expect(page.locator("#replenishmentPreview")).toContainText("草案");
+});
+
 test("opens plan center with immutable draft history surface", async ({ page }) => {
     await waitForDashboard(page);
 

@@ -223,6 +223,7 @@ class PlanItem(BaseModel):
     store_name: str
     predicted_sales: int = Field(ge=0)
     suggested_purchase: int = Field(ge=0)
+    original_suggested_purchase: Optional[int] = Field(default=None, ge=0)
     risk_level: str
     on_hand: float = Field(ge=0)
     confirmed_inbound: float = Field(ge=0)

@@ -291,6 +291,7 @@ function makePlanPayload() {
             store_name: cell.store_name,
             predicted_sales: cell.predicted_sales,
             suggested_purchase: cell.suggested_purchase,
+            original_suggested_purchase: cell.suggested_purchase,
             risk_level: cell.risk_level,
             on_hand: cell.on_hand,
             confirmed_inbound: cell.confirmed_inbound,
