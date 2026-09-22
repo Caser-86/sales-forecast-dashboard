@@ -64,6 +64,25 @@ try {
     }
     if ($guardExitCode -eq 0) { throw "Offline socket guard did not block the external connection." }
 
+    if ($RunFullReplayE2E) {
+        $resetDemoRoot = $env:DEMO_ROOT
+        $resetPythonPath = $env:PYTHONPATH
+        try {
+            $env:DEMO_ROOT = $runtimeRoot
+            $env:PYTHONPATH = if ($previousPythonPath) {
+                "$(Join-Path $projectRoot 'backend');$previousPythonPath"
+            } else {
+                (Join-Path $projectRoot "backend")
+            }
+            & $python -c "from app.services import demo_service; demo_service.switch_scenario('standard', confirm=True)"
+            $resetExitCode = $LASTEXITCODE
+        } finally {
+            if ($null -eq $resetDemoRoot) { Remove-Item Env:DEMO_ROOT -ErrorAction SilentlyContinue } else { $env:DEMO_ROOT = $resetDemoRoot }
+            if ($null -eq $resetPythonPath) { Remove-Item Env:PYTHONPATH -ErrorAction SilentlyContinue } else { $env:PYTHONPATH = $resetPythonPath }
+        }
+        if ($resetExitCode -ne 0) { throw "Full replay could not reset the demo scenario to standard (exit code $resetExitCode)." }
+    }
+
     $env:CORS_ORIGINS = "http://127.0.0.1:$FrontendPort"
     if ($RunBrowserE2E -or $RunModelRecoveryE2E -or $RunModelConsistencyE2E -or $RunModelStabilityE2E -or $RunRuntimeRollbackE2E -or $RunFullReplayE2E) { $env:RATE_LIMIT_REQUESTS = "1000" }
     if ($RunModelRecoveryE2E) {

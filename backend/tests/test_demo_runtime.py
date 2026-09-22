@@ -115,6 +115,7 @@ def test_windows_demo_supports_offline_guard_and_reference_cpu_affinity():
     assert "full.replay.spec.js" in offline_script
     assert "DEMO_AUTH_ENABLED" in offline_script
     assert "-WithAuth" in offline_script
+    assert "switch_scenario('standard', confirm=True)" in offline_script
     assert '$ErrorActionPreference = "Continue"' in offline_script
     assert "$guardExitCode = $LASTEXITCODE" in offline_script
     assert "DEMO_TRAINING_FAILURE_MODE" in offline_script

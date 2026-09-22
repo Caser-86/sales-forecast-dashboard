@@ -56,6 +56,8 @@ scripts\benchmark_demo.ps1 -Root .demo-runtime -CpuCores 4 -MemoryBudgetGB 8 -Du
 
 长期基线输出中的 `working_set_samples` 是观测证据，不自动等同于“无持续内存增长”；T10 仍要求在物理固定 4 核/8GB 机器和完全断网环境人工复演。
 
+`-RunFullReplayE2E` 每次执行前会把独立演示目录恢复到 `standard` 场景，因此上次回放中断后可以直接重跑，不需要手工清理场景状态。
+
 候选训练通过后台任务运行，不会自动切换当前活动模型。提交后可在模型中心查询任务状态，训练成功后人工激活会先校验兼容性并发布候选包：
 
 ```powershell
