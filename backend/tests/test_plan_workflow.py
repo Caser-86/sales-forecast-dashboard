@@ -71,7 +71,16 @@ def test_plan_workflow_enforces_roles_versions_and_audit(tmp_path, monkeypatch):
     )
     approved = workflow.transition(saved.plan_id, "approve", approver, expected_version=2)
     assert approved["status"] == "approved"
+    events = workflow.events(saved.plan_id)
+    assert len(events) == 2
+    assert {event["policy_version"] for event in events} == {"policy-v1"}
+
+    repeated = workflow.transition(saved.plan_id, "approve", approver, expected_version=2)
+    assert repeated["status"] == "approved"
+    assert repeated["version"] == approved["version"]
     assert len(workflow.events(saved.plan_id)) == 2
+    with pytest.raises(UnauthorizedError):
+        workflow.transition(saved.plan_id, "approve", analyst, expected_version=2)
 
 
 def test_rejected_plan_can_create_a_new_draft_revision(tmp_path):

@@ -53,6 +53,9 @@ def test_frontend_has_real_data_center_contract():
         "uploadSalesDataset",
         "runtimeDataVersion",
         "datasetVersionsBody",
+        "datasetVersionSummary",
+        "datasetVersionPrev",
+        "datasetVersionNext",
     ):
         assert f'id="{element_id}"' in html
     assert "previewDataset" in page
@@ -63,6 +66,7 @@ def test_frontend_has_real_data_center_contract():
     assert "getDatasets" in api
     assert "postRaw" in api
     assert "rollbackRuntimeSnapshot" in api
+    assert "versionPage" in page
 
 
 def test_frontend_has_real_model_center_contract():

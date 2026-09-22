@@ -4,6 +4,7 @@ from __future__ import annotations
 import importlib
 import json
 import sqlite3
+from contextlib import closing
 
 
 def _snapshot() -> dict:
@@ -45,7 +46,8 @@ def test_legacy_plan_database_migrates_and_survives_service_restart(tmp_path):
 
     database = tmp_path / "legacy.db"
     snapshot = _snapshot()
-    with sqlite3.connect(database) as connection:
+    with closing(sqlite3.connect(database)) as connection:
+        connection.execute("BEGIN")
         connection.execute(
             "CREATE TABLE plan_drafts (plan_id TEXT PRIMARY KEY, snapshot_json TEXT NOT NULL, created_at TEXT NOT NULL)"
         )
@@ -53,6 +55,7 @@ def test_legacy_plan_database_migrates_and_survives_service_restart(tmp_path):
             "INSERT INTO plan_drafts(plan_id, snapshot_json, created_at) VALUES (?, ?, ?)",
             ("plan-legacy", json.dumps(snapshot, ensure_ascii=False), "2026-09-15T00:00:00+00:00"),
         )
+        connection.commit()
 
     restarted = PlanRepository(database)
     assert database.with_name("legacy.db.migration.bak").exists()
@@ -60,8 +63,33 @@ def test_legacy_plan_database_migrates_and_survives_service_restart(tmp_path):
     assert loaded is not None
     assert loaded.snapshot["name"] == "旧版补货草案"
 
+    with closing(sqlite3.connect(database)) as connection:
+        connection.execute("BEGIN")
+        connection.execute(
+            """
+            CREATE TABLE plan_events (
+                event_id TEXT PRIMARY KEY,
+                plan_id TEXT NOT NULL,
+                action TEXT NOT NULL,
+                from_status TEXT NOT NULL,
+                to_status TEXT NOT NULL,
+                version INTEGER NOT NULL,
+                actor_username TEXT NOT NULL,
+                actor_role TEXT NOT NULL,
+                reason TEXT NOT NULL,
+                created_at TEXT NOT NULL
+            )
+            """
+        )
+        connection.execute(
+            "INSERT INTO plan_events VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            ("event-legacy", "plan-legacy", "submit", "draft", "submitted", 2, "analyst", "analyst", "", "2026-09-15T00:00:00+00:00"),
+        )
+        connection.commit()
+
     workflow = PlanWorkflowService(database)
     assert workflow.get("plan-legacy")["status"] == "draft"
+    assert workflow.events("plan-legacy")[0]["policy_version"] == "replenishment-v1"
     created = restarted.save("request-new", snapshot | {"name": "新版本补货草案"})
     assert created.created is True
     assert len(PlanRepository(database).list()) == 2

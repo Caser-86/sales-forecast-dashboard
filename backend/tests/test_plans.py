@@ -230,6 +230,12 @@ def test_plan_api_workflow_enforces_server_side_roles(monkeypatch, client, tmp_p
     assert approved.status_code == 200
     assert approved.json()["status"] == "approved"
     assert approved.json()["version"] == 3
+    repeated_approved = client.post(
+        f"/api/plans/{plan_id}/transition",
+        json={"action": "approve", "expected_version": 2},
+    )
+    assert repeated_approved.status_code == 200
+    assert repeated_approved.json()["version"] == 3
 
     client.post("/api/auth/logout")
     client.post("/api/auth/login", json={"username": "admin", "password": "demo-admin"})

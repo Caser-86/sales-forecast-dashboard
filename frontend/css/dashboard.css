@@ -576,6 +576,19 @@ select:focus-visible,
 
 .dataset-table-wrap { overflow: auto; }
 
+.forecast-pagination,
+.dataset-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    grid-column: 1 / -1;
+    flex-wrap: wrap;
+}
+
+.forecast-pagination .module-status,
+.dataset-pagination .module-status { margin-right: auto; }
+
 .dataset-table {
     width: 100%;
     border-collapse: collapse;

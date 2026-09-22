@@ -6,6 +6,8 @@
         catalog: null,
         loaded: false,
         loading: false,
+        versionPage: 1,
+        versionPageSize: 10,
     };
 
     function byId(id) { return document.getElementById(id); }
@@ -129,6 +131,17 @@
             ...(catalog.models || []).map(item => ({ type: "模型", id: item.model_id, range: `数据 ${item.data_version}`, created: item.created_at_utc, active: item.model_id === active.model_version })),
             ...(catalog.runtime_snapshots || []).map(item => ({ type: "运行快照", id: item.snapshot_id, range: `${item.data_version} / ${item.model_version} / ${item.inventory_version}`, created: item.created_at_utc, active: item.active, snapshotId: item.snapshot_id })),
         ];
+        const pageCount = Math.max(1, Math.ceil(rows.length / state.versionPageSize));
+        if (state.versionPage > pageCount) {
+            state.versionPage = pageCount;
+            return renderVersions(catalog);
+        }
+        const start = rows.length ? (state.versionPage - 1) * state.versionPageSize + 1 : 0;
+        const end = Math.min(state.versionPage * state.versionPageSize, rows.length);
+        byId("datasetVersionSummary").textContent =
+            `版本 ${start}-${end}/${rows.length} · 第 ${state.versionPage}/${pageCount} 页`;
+        byId("datasetVersionPrev").disabled = state.versionPage <= 1;
+        byId("datasetVersionNext").disabled = state.versionPage >= pageCount;
         if (!rows.length) {
             const empty = document.createElement("tr");
             const cell = document.createElement("td");
@@ -138,7 +151,7 @@
             body.appendChild(empty);
             return;
         }
-        rows.forEach(row => {
+        rows.slice(start - 1, end).forEach(row => {
             const tr = document.createElement("tr");
             [row.type, row.id, row.range, row.created || "--", row.active ? "活动" : "候选"].forEach(value => {
                 const td = document.createElement("td");
@@ -205,6 +218,7 @@
     async function load(force = false) {
         if (state.loading || (state.loaded && !force)) return;
         state.loading = true;
+        if (force) state.versionPage = 1;
         try {
             state.catalog = await api.getDatasets();
             state.loaded = true;
@@ -235,6 +249,14 @@
         });
         byId("publishRuntimeSnapshot").addEventListener("click", publishSnapshot);
         byId("refreshDatasetCatalog").addEventListener("click", () => load(true));
+        byId("datasetVersionPrev").addEventListener("click", () => {
+            state.versionPage = Math.max(1, state.versionPage - 1);
+            renderVersions(state.catalog);
+        });
+        byId("datasetVersionNext").addEventListener("click", () => {
+            state.versionPage += 1;
+            renderVersions(state.catalog);
+        });
         byId("datasetVersionsBody").addEventListener("click", event => {
             const button = event.target.closest(".snapshot-rollback");
             if (button) rollbackSnapshot(button.dataset.snapshotId);

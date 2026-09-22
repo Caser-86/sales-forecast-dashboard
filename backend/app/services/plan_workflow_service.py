@@ -14,6 +14,12 @@ from app.services.auth_service import DemoUser
 from app.services.plan_repository import PlanRepository
 
 PLAN_STATUSES = {"draft", "submitted", "approved", "rejected", "cancelled"}
+_ACTION_ROLES = {
+    "submit": {"analyst", "admin"},
+    "approve": {"approver", "admin"},
+    "reject": {"approver", "admin"},
+    "cancel": {"analyst", "admin"},
+}
 
 
 class PlanWorkflowService:
@@ -59,12 +65,37 @@ class PlanWorkflowService:
                     actor_username TEXT NOT NULL,
                     actor_role TEXT NOT NULL,
                     reason TEXT NOT NULL,
+                    policy_version TEXT NOT NULL,
                     created_at TEXT NOT NULL
                 )
                 """
             )
+            columns = {
+                row[1]
+                for row in connection.execute("PRAGMA table_info(plan_events)").fetchall()
+            }
+            if "policy_version" not in columns:
+                connection.execute("ALTER TABLE plan_events ADD COLUMN policy_version TEXT")
+            missing_policy = connection.execute(
+                "SELECT event_id, plan_id FROM plan_events WHERE policy_version IS NULL"
+            ).fetchall()
+            for row in missing_policy:
+                plan = self.repository.get(row["plan_id"])
+                policy_version = (plan.snapshot.get("policy_version") if plan else None) or "unknown"
+                connection.execute(
+                    "UPDATE plan_events SET policy_version = ? WHERE event_id = ?",
+                    (policy_version, row["event_id"]),
+                )
             connection.execute(
                 "CREATE INDEX IF NOT EXISTS idx_plan_events_plan_created ON plan_events(plan_id, created_at DESC)"
+            )
+            connection.execute(
+                "CREATE TABLE IF NOT EXISTS app_schema_migrations "
+                "(version INTEGER PRIMARY KEY, applied_at TEXT NOT NULL)"
+            )
+            connection.execute(
+                "INSERT OR IGNORE INTO app_schema_migrations(version, applied_at) VALUES (?, ?)",
+                (3, self._now()),
             )
             connection.commit()
 
@@ -133,6 +164,16 @@ class PlanWorkflowService:
         if action not in {"submit", "approve", "reject", "cancel"}:
             raise ConflictError("不支持的计划状态操作")
         state = self.get(plan_id)
+        idempotent_status = {
+            "submit": "submitted",
+            "approve": "approved",
+            "reject": "rejected",
+            "cancel": "cancelled",
+        }[action]
+        if state["status"] == idempotent_status:
+            if actor.role not in _ACTION_ROLES[action]:
+                raise UnauthorizedError("当前角色不能执行此计划操作，或计划状态已变化")
+            return state
         if int(state["version"]) != expected_version:
             raise ConflictError("计划已被其他操作更新，请刷新后重试")
         next_status, allowed = self._allowed(state["status"], action, actor.role)
@@ -140,6 +181,8 @@ class PlanWorkflowService:
             raise UnauthorizedError("当前角色不能执行此计划操作，或计划状态已变化")
         if action == "approve":
             self._validate_approval_sources(plan_id)
+        plan = self.repository.get(plan_id)
+        policy_version = (plan.snapshot.get("policy_version") if plan else None) or "unknown"
         reason = str(reason or "").strip()[:500]
         if action == "reject" and not reason:
             raise ConflictError("驳回计划必须填写原因")
@@ -162,11 +205,11 @@ class PlanWorkflowService:
                 """
                 INSERT INTO plan_events(
                     event_id, plan_id, action, from_status, to_status, version,
-                    actor_username, actor_role, reason, created_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    actor_username, actor_role, reason, policy_version, created_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (f"event-{uuid.uuid4().hex}", plan_id, action, state["status"], next_status,
-                 next_version, actor.username, actor.role, reason, now),
+                 next_version, actor.username, actor.role, reason, policy_version, now),
             )
             connection.commit()
         return self.get(plan_id)
