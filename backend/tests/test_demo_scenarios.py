@@ -200,3 +200,29 @@ def test_diagnostic_and_demo_package_exclude_sensitive_runtime_files(monkeypatch
         assert "passwords" in content
         if "logs/app.log" in names:
             assert "secret" not in archive.read("logs/app.log").decode("utf-8")
+
+
+def test_default_backup_and_diagnostic_names_match_safe_artifact_pattern(monkeypatch, tmp_path):
+    from app.services import demo_service
+
+    _configure_demo_settings(monkeypatch, tmp_path)
+    backup = demo_service.create_backup()
+    diagnostic = demo_service.create_diagnostic_package()
+
+    assert backup["artifact_name"].startswith("demo-backup-")
+    assert backup["artifact_name"].endswith(".zip")
+    assert diagnostic["artifact_name"].startswith("diagnostic-")
+    assert diagnostic["artifact_name"].endswith(".zip")
+
+
+def test_restore_file_comparison_skips_identical_targets(tmp_path):
+    from app.services import demo_service
+
+    source = tmp_path / "source.bin"
+    target = tmp_path / "target.bin"
+    source.write_bytes(b"same content")
+    target.write_bytes(b"same content")
+
+    assert demo_service._files_identical(source, target) is True
+    target.write_bytes(b"different content")
+    assert demo_service._files_identical(source, target) is False

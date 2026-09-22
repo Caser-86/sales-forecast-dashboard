@@ -46,6 +46,8 @@ scripts\verify_offline_demo.ps1 -Root .demo-runtime -RunModelRecoveryE2E
 scripts\verify_offline_demo.ps1 -Root .demo-runtime -RunModelStabilityE2E
 # 普通完整训练后候选激活与总览/数据/预测/库存/系统版本一致性
 scripts\verify_offline_demo.ps1 -Root .demo-runtime -RunModelConsistencyE2E
+# 鉴权完整业务回放：错误/有效 CSV、预测、补货、审批、场景、备份恢复和诊断
+scripts\verify_offline_demo.ps1 -Root .demo-runtime -RunFullReplayE2E
 # 4 核 affinity 性能基线，内存预算是进程工作集观测而非物理内存硬限制
 scripts\benchmark_demo.ps1 -Root .demo-runtime -CpuCores 4 -MemoryBudgetGB 8
 # 参考机长期趋势：显式关闭限流，采集持续 300 秒的请求和进程工作集样本

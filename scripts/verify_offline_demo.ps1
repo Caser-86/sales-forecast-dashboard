@@ -7,11 +7,12 @@ param(
     [switch]$RunModelRecoveryE2E,
     [switch]$RunModelConsistencyE2E,
     [switch]$RunModelStabilityE2E,
-    [switch]$RunRuntimeRollbackE2E
+    [switch]$RunRuntimeRollbackE2E,
+    [switch]$RunFullReplayE2E
 )
 
 $ErrorActionPreference = "Stop"
-$selectedModes = @($RunBrowserE2E, $RunModelRecoveryE2E, $RunModelConsistencyE2E, $RunModelStabilityE2E, $RunRuntimeRollbackE2E) | Where-Object { $_ }
+$selectedModes = @($RunBrowserE2E, $RunModelRecoveryE2E, $RunModelConsistencyE2E, $RunModelStabilityE2E, $RunRuntimeRollbackE2E, $RunFullReplayE2E) | Where-Object { $_ }
 if ($selectedModes.Count -gt 1) {
     throw "Choose only one browser E2E mode."
 }
@@ -31,6 +32,7 @@ $previousTrainingFailureMode = $env:DEMO_TRAINING_FAILURE_MODE
 $previousTrainingFailureMarker = $env:DEMO_TRAINING_FAILURE_MARKER
 $previousTrainingProfile = $env:DEMO_TRAINING_PROFILE
 $previousRuntimeRollbackE2E = $env:DEMO_RUNTIME_ROLLBACK_E2E
+$previousDemoAuth = $env:DEMO_AUTH_ENABLED
 $statePath = Join-Path $runtimeRoot "demo-process.json"
 $trainingFailureMarker = Join-Path $runtimeRoot ".training-failure.marker"
 $startedByScript = $false
@@ -52,11 +54,18 @@ try {
     } else {
         (Join-Path $projectRoot "scripts")
     }
-    & $python -c "import offline_socket_guard, socket; socket.create_connection(('example.com', 80), 1); raise SystemExit('external socket was not blocked')" 2>$null
-    if ($LASTEXITCODE -eq 0) { throw "Offline socket guard did not block the external connection." }
+    $guardErrorAction = $ErrorActionPreference
+    try {
+        $ErrorActionPreference = "Continue"
+        & $python -c "import offline_socket_guard, socket; socket.create_connection(('example.com', 80), 1); raise SystemExit('external socket was not blocked')" 2>$null
+        $guardExitCode = $LASTEXITCODE
+    } finally {
+        $ErrorActionPreference = $guardErrorAction
+    }
+    if ($guardExitCode -eq 0) { throw "Offline socket guard did not block the external connection." }
 
     $env:CORS_ORIGINS = "http://127.0.0.1:$FrontendPort"
-    if ($RunBrowserE2E -or $RunModelRecoveryE2E -or $RunModelConsistencyE2E -or $RunModelStabilityE2E -or $RunRuntimeRollbackE2E) { $env:RATE_LIMIT_REQUESTS = "1000" }
+    if ($RunBrowserE2E -or $RunModelRecoveryE2E -or $RunModelConsistencyE2E -or $RunModelStabilityE2E -or $RunRuntimeRollbackE2E -or $RunFullReplayE2E) { $env:RATE_LIMIT_REQUESTS = "1000" }
     if ($RunModelRecoveryE2E) {
         Remove-Item -LiteralPath $trainingFailureMarker -Force -ErrorAction SilentlyContinue
         $env:DEMO_TRAINING_FAILURE_MODE = "fail_once"
@@ -79,7 +88,17 @@ try {
         Remove-Item Env:DEMO_TRAINING_PROFILE -ErrorAction SilentlyContinue
         $env:DEMO_RUNTIME_ROLLBACK_E2E = "true"
     }
-    & (Join-Path $projectRoot "scripts\start_demo.ps1") -Root $runtimeRoot -BackendPort $BackendPort -FrontendPort $FrontendPort -Offline
+    if ($RunFullReplayE2E) {
+        Remove-Item Env:DEMO_TRAINING_FAILURE_MODE -ErrorAction SilentlyContinue
+        Remove-Item Env:DEMO_TRAINING_FAILURE_MARKER -ErrorAction SilentlyContinue
+        Remove-Item Env:DEMO_TRAINING_PROFILE -ErrorAction SilentlyContinue
+        $env:DEMO_AUTH_ENABLED = "true"
+    }
+    if ($RunFullReplayE2E) {
+        & (Join-Path $projectRoot "scripts\start_demo.ps1") -Root $runtimeRoot -BackendPort $BackendPort -FrontendPort $FrontendPort -Offline -WithAuth
+    } else {
+        & (Join-Path $projectRoot "scripts\start_demo.ps1") -Root $runtimeRoot -BackendPort $BackendPort -FrontendPort $FrontendPort -Offline
+    }
     $startedByScript = $true
     $baseUrl = "http://127.0.0.1:$BackendPort"
     $frontendUrl = "http://127.0.0.1:$FrontendPort"
@@ -93,12 +112,15 @@ try {
     if ($model.status -ne "ready") { throw "Offline demo model status was $($model.status)." }
     if (-not $inventory.cells) { throw "Offline demo returned no inventory cells." }
 
-    if ($RunBrowserE2E -or $RunModelRecoveryE2E -or $RunModelConsistencyE2E -or $RunModelStabilityE2E -or $RunRuntimeRollbackE2E) {
+    if ($RunBrowserE2E -or $RunModelRecoveryE2E -or $RunModelConsistencyE2E -or $RunModelStabilityE2E -or $RunRuntimeRollbackE2E -or $RunFullReplayE2E) {
         $env:BASE_URL = $frontendUrl
         $env:API_BASE_URL = "$baseUrl/api"
         Push-Location (Join-Path $projectRoot "frontend")
         try {
-            if ($RunModelRecoveryE2E) {
+            if ($RunFullReplayE2E) {
+                & npm.cmd run test:e2e -- full.replay.spec.js
+                if ($LASTEXITCODE -ne 0) { throw "Offline full replay E2E failed with exit code $LASTEXITCODE." }
+            } elseif ($RunModelRecoveryE2E) {
                 & npm.cmd run test:e2e -- model.recovery.spec.js
                 if ($LASTEXITCODE -ne 0) { throw "Offline model recovery E2E failed with exit code $LASTEXITCODE." }
             } elseif ($RunModelConsistencyE2E) {
@@ -132,6 +154,7 @@ try {
         model_consistency_e2e = [bool]$RunModelConsistencyE2E
         model_stability_e2e = [bool]$RunModelStabilityE2E
         runtime_rollback_e2e = [bool]$RunRuntimeRollbackE2E
+        full_replay_e2e = [bool]$RunFullReplayE2E
     } | ConvertTo-Json
 } finally {
     if ($startedByScript -and (Test-Path -LiteralPath $statePath)) {
@@ -146,5 +169,6 @@ try {
     if ($null -eq $previousTrainingFailureMarker) { Remove-Item Env:DEMO_TRAINING_FAILURE_MARKER -ErrorAction SilentlyContinue } else { $env:DEMO_TRAINING_FAILURE_MARKER = $previousTrainingFailureMarker }
     if ($null -eq $previousTrainingProfile) { Remove-Item Env:DEMO_TRAINING_PROFILE -ErrorAction SilentlyContinue } else { $env:DEMO_TRAINING_PROFILE = $previousTrainingProfile }
     if ($null -eq $previousRuntimeRollbackE2E) { Remove-Item Env:DEMO_RUNTIME_ROLLBACK_E2E -ErrorAction SilentlyContinue } else { $env:DEMO_RUNTIME_ROLLBACK_E2E = $previousRuntimeRollbackE2E }
+    if ($null -eq $previousDemoAuth) { Remove-Item Env:DEMO_AUTH_ENABLED -ErrorAction SilentlyContinue } else { $env:DEMO_AUTH_ENABLED = $previousDemoAuth }
     Remove-Item -LiteralPath $trainingFailureMarker -Force -ErrorAction SilentlyContinue
 }

@@ -132,12 +132,14 @@ scripts\verify_offline_demo.ps1 -Root .demo-runtime -RunModelRecoveryE2E
 scripts\verify_offline_demo.ps1 -Root .demo-runtime -RunModelStabilityE2E
 scripts\verify_offline_demo.ps1 -Root .demo-runtime -RunModelConsistencyE2E
 scripts\verify_offline_demo.ps1 -Root .demo-runtime -RunRuntimeRollbackE2E
+# 鉴权完整业务回放：错误/有效 CSV、预测、补货、审批、场景、备份恢复和诊断
+scripts\verify_offline_demo.ps1 -Root .demo-runtime -RunFullReplayE2E
 scripts\benchmark_demo.ps1 -Root .demo-runtime -CpuCores 4 -MemoryBudgetGB 8
 # 参考机长期容量/内存趋势（显式关闭限流，输出 working_set_samples）
 scripts\benchmark_demo.ps1 -Root .demo-runtime -CpuCores 4 -MemoryBudgetGB 8 -DurationSeconds 300 -DisableRateLimit
 ```
 
-预期证据：默认浏览器回归、失败重试、完整训练期间服务稳定性、候选激活后的跨页面版本一致性和运行快照回滚分别输出明确的 Playwright `passed`；静态离线检查输出 `ready=true` 且 `remote_references=[]`；性能基线输出 `under_memory_budget=true`，长期模式另输出请求持续时间和 `working_set_samples`。这些命令不能替代固定 4 核/8GB 机器和完全断网人工演示。
+预期证据：默认浏览器回归、完整业务回放、失败重试、完整训练期间服务稳定性、候选激活后的跨页面版本一致性和运行快照回滚分别输出明确的 Playwright `passed`；静态离线检查输出 `ready=true` 且 `remote_references=[]`；性能基线输出 `under_memory_budget=true`，长期模式另输出请求持续时间和 `working_set_samples`。这些命令不能替代固定 4 核/8GB 机器和完全断网人工演示。
 
 ## 8. T10 现场门禁
 

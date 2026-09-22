@@ -1,6 +1,7 @@
 """Deterministic local-demo scenarios, backups, diagnostics, and packaging."""
 from __future__ import annotations
 
+import gc
 import hashlib
 import json
 import os
@@ -92,6 +93,14 @@ def _sha256(path: Path) -> str:
         for chunk in iter(lambda: source.read(1024 * 1024), b""):
             digest.update(chunk)
     return digest.hexdigest()
+
+
+def _files_identical(source: Path, target: Path) -> bool:
+    """Avoid replacing an unchanged file, which matters for Windows file locks."""
+    try:
+        return target.is_file() and source.stat().st_size == target.stat().st_size and _sha256(source) == _sha256(target)
+    except OSError:
+        return False
 
 
 def _safe_relpath(root: Path, relative: str) -> Path:
@@ -342,7 +351,7 @@ def create_backup(*, artifact_name: str | None = None) -> dict[str, Any]:
             "files": entries,
         }
         (stage / "backup-manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
-        name = artifact_name or f"demo-backup-{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}.zip"
+        name = artifact_name or f"demo-backup-{datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')}.zip"
         if not _ARTIFACT_PATTERN.fullmatch(name):
             raise ValidationError("备份文件名无效")
         output = _backups_dir() / name
@@ -402,6 +411,8 @@ def restore_backup(artifact_name: str) -> dict[str, Any]:
     _, stage, manifest = _extract_backup(artifact_name)
     targets: list[tuple[Path, Path, bytes | None]] = []
     try:
+        runtime_snapshot_service._clear_runtime_caches()
+        gc.collect()
         manifest_paths = {entry["path"] for entry in manifest["files"]}
         for entry in manifest["files"]:
             relative = entry["path"]
@@ -423,6 +434,8 @@ def restore_backup(artifact_name: str) -> dict[str, Any]:
             for source, target, _ in targets:
                 if source == Path():
                     target.unlink(missing_ok=True)
+                elif _files_identical(source, target):
+                    continue
                 else:
                     target.parent.mkdir(parents=True, exist_ok=True)
                     temporary = target.with_name(f".{target.name}.restore.tmp")
@@ -453,7 +466,7 @@ def _tail_redacted(path: Path, limit: int = 200) -> str:
 
 def create_diagnostic_package(*, artifact_name: str | None = None) -> dict[str, Any]:
     _root()
-    name = artifact_name or f"diagnostic-{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}.zip"
+    name = artifact_name or f"diagnostic-{datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')}.zip"
     if not _ARTIFACT_PATTERN.fullmatch(name):
         raise ValidationError("诊断包文件名无效")
     state = list_scenarios()
