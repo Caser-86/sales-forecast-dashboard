@@ -49,7 +49,8 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         path = request.url.path
         is_api_request = path == settings.API_PREFIX or path.startswith(f"{settings.API_PREFIX}/")
-        if not settings.RATE_LIMIT_ENABLED or not is_api_request:
+        # CORS preflight is a browser negotiation, not a business request.
+        if request.method == "OPTIONS" or not settings.RATE_LIMIT_ENABLED or not is_api_request:
             return await call_next(request)
 
         client_host = request.client.host if request.client else "unknown"

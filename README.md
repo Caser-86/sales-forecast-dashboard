@@ -6,7 +6,7 @@
 
 当前状态与未完成任务见 [`CONTEXT.md`](CONTEXT.md) 和 [`TODO.md`](TODO.md)；V1 验收结论见 [`docs/releases/v1-acceptance.md`](docs/releases/v1-acceptance.md)。
 
-当前正在推进**本地完整演示版 V2**：M1/T1 本地运行时、M1/T2 共享导航壳和 M2/T3 持久化候选训练后端第一切片已完成。功能边界、分阶段路线和验收标准见 [`docs/local-demo-plan.md`](docs/local-demo-plan.md)。
+当前正在推进**本地完整演示版 V2**：M1/T1 本地运行时、M1/T2 共享导航壳、M2/T3 持久化候选训练后端第一切片和 M2/T4 数据中心第一切片已完成。当前数据中心已支持 CSV 模板、上传预检、行级错误、候选版本清单和运行快照候选发布/激活；完整回滚验收与后续业务页面仍在路线中。功能边界、分阶段路线和验收标准见 [`docs/local-demo-plan.md`](docs/local-demo-plan.md)。
 
 本地完整演示版的 Windows 入口已经开始实现：先准备一次隔离演示包，再启动服务。准备阶段可能运行 CPU 模型训练，面试现场直接启动已验证的演示包。
 
@@ -54,6 +54,7 @@ Invoke-RestMethod http://127.0.0.1:8000/api/jobs
 - 经营视图：KPI、品类销售占比、Top 商品、ABC 库存风险热力图。
 - 补货草案：新鲜库存快照和完整预测覆盖满足条件后，可保存并导出带版本元数据的 CSV 草案。
 - 工程能力：FastAPI、Pydantic Settings、统一异常响应、结构化日志、可选 Token、Docker Compose、自动化测试。
+- 数据中心第一切片：销售/库存 CSV 模板、上传大小与行数限制、字段和重复键预检、行级错误反馈、候选版本保存，以及数据/模型/库存单指针运行快照。
 
 ## 架构
 
@@ -214,6 +215,12 @@ Docker、依赖扫描和 4 核/8GB 性能证据见 [`docs/deployment-performance
 | GET | `/api/jobs` | 查看训练任务列表与阶段 |
 | GET | `/api/jobs/{job_id}` | 查看单个训练任务 |
 | POST | `/api/jobs/{job_id}/retry` | 重试失败或中断任务 |
+| GET | `/api/datasets` | 数据、库存、模型和运行快照版本清单 |
+| GET | `/api/datasets/templates/{kind}` | 下载 `sales` 或 `inventory` CSV 模板 |
+| POST | `/api/datasets/{kind}/preview` | 预检原始 CSV，返回行级错误 |
+| POST | `/api/datasets/{kind}` | 保存通过预检的候选版本，默认不切换活动版本 |
+| POST | `/api/datasets/runtime` | 校验并发布运行快照候选 |
+| POST | `/api/datasets/runtime/{snapshot_id}/activate` | 激活已校验的运行快照 |
 
 ## 测试与质量门禁
 

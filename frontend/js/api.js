@@ -132,6 +132,49 @@ const api = {
         }
     },
 
+    async postRaw(path, body, { signal, timeoutMs = 15000, headers = {} } = {}) {
+        const controller = new AbortController();
+        let timedOut = false;
+        const timeout = setTimeout(() => {
+            timedOut = true;
+            controller.abort();
+        }, timeoutMs);
+        const abortFromCaller = () => controller.abort();
+        if (signal) {
+            if (signal.aborted) controller.abort();
+            signal.addEventListener("abort", abortFromCaller, { once: true });
+        }
+        try {
+            const resp = await fetch(BASE + path, {
+                method: "POST",
+                headers,
+                body,
+                signal: controller.signal
+            });
+            if (!resp.ok) {
+                let message = `API ${path} 失败: ${resp.status}`;
+                try {
+                    const responseBody = await resp.json();
+                    if (responseBody.error && responseBody.error.message) message = responseBody.error.message;
+                } catch (_) {
+                    // 非 JSON 错误体，保留默认 message
+                }
+                throw new Error(message);
+            }
+            return resp.json();
+        } catch (e) {
+            if (e.name === "AbortError" && timedOut) {
+                const timeoutError = new Error(`请求超时: ${path}`);
+                timeoutError.name = "TimeoutError";
+                throw timeoutError;
+            }
+            throw e;
+        } finally {
+            clearTimeout(timeout);
+            signal?.removeEventListener("abort", abortFromCaller);
+        }
+    },
+
     getProducts(options) { return this.get("/products", options); },
     getStores(options) { return this.get("/stores", options); },
     getSales(productId, storeId, days = 90, options) {
@@ -171,5 +214,23 @@ const api = {
     getJobs(limit = 50, options) { return this.get(`/jobs?limit=${limit}`, options); },
     getJob(jobId, options) { return this.get(`/jobs/${encodeURIComponent(jobId)}`, options); },
     retryJob(jobId, options) { return this.post(`/jobs/${encodeURIComponent(jobId)}/retry`, {}, options); },
+    getDatasets(options) { return this.get("/datasets", options); },
+    datasetTemplateUrl(kind) { return `${BASE}/datasets/templates/${encodeURIComponent(kind)}`; },
+    previewDataset(kind, text, filename, options = {}) {
+        return this.postRaw(`/datasets/${kind}/preview`, text, {
+            ...options,
+            headers: { "Content-Type": "text/csv", "X-Filename": filename, ...(options.headers || {}) }
+        });
+    },
+    uploadDataset(kind, text, filename, options = {}) {
+        return this.postRaw(`/datasets/${kind}`, text, {
+            ...options,
+            headers: { "Content-Type": "text/csv", "X-Filename": filename, ...(options.headers || {}) }
+        });
+    },
+    publishRuntimeSnapshot(payload, options) { return this.post("/datasets/runtime", payload, options); },
+    activateRuntimeSnapshot(snapshotId, options) {
+        return this.post(`/datasets/runtime/${encodeURIComponent(snapshotId)}/activate`, {}, options);
+    },
     planExportUrl(planId) { return `${BASE}/plans/${encodeURIComponent(planId)}/export`; },
 };

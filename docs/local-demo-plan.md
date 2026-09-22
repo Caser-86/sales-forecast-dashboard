@@ -1,6 +1,6 @@
 # 本地完整演示版实施计划
 
-日期：2026-09-22。状态：执行中，M1/T1 已完成，M1/T2 共享壳已完成，T3 开始。目标版本：Local Demo V2。
+日期：2026-09-22。状态：执行中，M1/T1、M1/T2 共享壳、T3 任务后端第一切片和 T4 数据中心第一切片已完成。目标版本：Local Demo V2。
 
 **Goal:** 在 Windows 本机完成销售数据导入、质量检查、预测分析、库存决策、补货审批与导出、版本恢复的完整演示，关键业务步骤无需手工执行命令。
 
@@ -124,6 +124,7 @@
 
 ### T4. 数据中心与运行快照发布
 
+- [x] 第一切片：销售/库存 CSV 模板、上传大小与行数限制、字段/重复键预检、行级错误反馈、候选版本清单，以及数据/模型/库存单指针运行快照发布/激活 API；已通过后端回归和真实浏览器预检流程。
 - [ ] 新增 `backend/app/api/datasets.py`、`backend/app/services/runtime_snapshot_service.py`、`frontend/js/pages/data-center.js`。
 - [ ] 修改 `dataset_service.py`、`inventory_dataset_service.py`、`data_service.py`、`forecast_service.py` 及相关激活脚本，统一运行快照读取与兼容校验。
 - [ ] 实现 CSV 模板、上传预检、错误行号与下载、版本列表、详情、候选发布和回滚；批量错误限制响应大小。

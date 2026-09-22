@@ -40,6 +40,28 @@ def test_frontend_has_v2_navigation_contract_and_explicit_unavailable_state():
     assert "routeScopeSummary" in html
 
 
+def test_frontend_has_real_data_center_contract():
+    html = (PROJECT_ROOT / "frontend" / "index.html").read_text(encoding="utf-8")
+    page = (PROJECT_ROOT / "frontend" / "js" / "pages" / "data-center.js").read_text(encoding="utf-8")
+    api = (PROJECT_ROOT / "frontend" / "js" / "api.js").read_text(encoding="utf-8")
+
+    for element_id in (
+        "dataCenterPage",
+        "salesDatasetFile",
+        "inventoryDatasetFile",
+        "previewSalesDataset",
+        "uploadSalesDataset",
+        "runtimeDataVersion",
+        "datasetVersionsBody",
+    ):
+        assert f'id="{element_id}"' in html
+    assert "previewDataset" in page
+    assert "uploadDataset" in page
+    assert "publishRuntimeSnapshot" in page
+    assert "getDatasets" in api
+    assert "postRaw" in api
+
+
 def test_frontend_has_shared_runtime_context_and_retry_contract():
     html = (PROJECT_ROOT / "frontend" / "index.html").read_text(encoding="utf-8")
     ui = (PROJECT_ROOT / "frontend" / "js" / "ui.js").read_text(encoding="utf-8")

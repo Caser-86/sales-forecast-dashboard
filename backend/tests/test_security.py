@@ -83,6 +83,25 @@ class TestApiProtection:
 
         assert client.get("/api/products").status_code == 429
 
+    def test_rate_limit_does_not_count_cors_preflight(self, client, monkeypatch):
+        from app.core.rate_limit import rate_limiter
+
+        rate_limiter.reset()
+        monkeypatch.setattr(settings, "RATE_LIMIT_ENABLED", True)
+        monkeypatch.setattr(settings, "RATE_LIMIT_REQUESTS", 1)
+        monkeypatch.setattr(settings, "RATE_LIMIT_WINDOW_SECONDS", 60)
+
+        response = client.options(
+            "/api/datasets/sales/preview",
+            headers={
+                "Origin": "http://localhost:3000",
+                "Access-Control-Request-Method": "POST",
+                "Access-Control-Request-Headers": "content-type,x-filename",
+            },
+        )
+
+        assert response.status_code in (200, 204)
+
     def test_production_requires_api_token(self, monkeypatch):
         """生产环境未配置 API Token 时拒绝启动。"""
         from app import main

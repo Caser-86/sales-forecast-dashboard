@@ -6,6 +6,7 @@ import json
 import os
 import re
 from datetime import timezone
+from io import BytesIO
 from pathlib import Path
 from typing import Any
 
@@ -14,6 +15,7 @@ import pandas as pd
 
 from app.core.config import settings
 from app.core.exceptions import InventoryValidationError
+from app.services.runtime_state import get_active_runtime_component
 
 REQUIRED_INVENTORY_COLUMNS = {
     "as_of_date",
@@ -69,7 +71,79 @@ def validate_inventory_frame(frame: pd.DataFrame) -> pd.DataFrame:
     return normalized.sort_values(["as_of_date", "product_id", "store_id"]).reset_index(drop=True)
 
 
+def preview_inventory_frame(frame: pd.DataFrame) -> dict[str, Any]:
+    """Return bounded row-level validation feedback for an inventory CSV."""
+    errors: list[dict[str, Any]] = []
+
+    def add(row: int, column: str, message: str) -> None:
+        if len(errors) < settings.DATASET_MAX_ERRORS:
+            errors.append({"row": row, "column": column, "message": message})
+
+    missing = sorted(REQUIRED_INVENTORY_COLUMNS - set(frame.columns))
+    for column in missing:
+        add(1, column, f"缺少必需列: {column}")
+    if not missing and frame.empty:
+        add(1, "", "库存快照为空")
+    if not missing and not frame.empty:
+        dates = pd.to_datetime(frame["as_of_date"], errors="coerce")
+        for index in frame.index[dates.isna()]:
+            add(int(index) + 2, "as_of_date", "存在非法 as_of_date")
+        for column in ("product_id", "store_id"):
+            values = pd.to_numeric(frame[column], errors="coerce")
+            invalid = values.isna() | ~np.isfinite(values) | (values <= 0) | (values % 1 != 0)
+            for index in frame.index[invalid]:
+                add(int(index) + 2, column, f"{column} 必须是正整数")
+        for column in ("on_hand", "confirmed_inbound", "reserved", "safety_stock"):
+            values = pd.to_numeric(frame[column], errors="coerce")
+            invalid = values.isna() | ~np.isfinite(values) | (values < 0)
+            for index in frame.index[invalid]:
+                add(int(index) + 2, column, f"{column} 必须是大于等于 0 的有限数值")
+        for column in ("lead_time_days", "review_period_days", "pack_size", "minimum_order_quantity"):
+            values = pd.to_numeric(frame[column], errors="coerce")
+            invalid = values.isna() | ~np.isfinite(values) | (values < 0) | (values % 1 != 0)
+            if column == "pack_size":
+                invalid |= values <= 0
+            for index in frame.index[invalid]:
+                add(int(index) + 2, column, f"{column} 必须是合法的非负整数")
+        duplicate = frame.duplicated(subset=["as_of_date", "product_id", "store_id"], keep=False)
+        for index in frame.index[duplicate]:
+            add(int(index) + 2, "as_of_date/product_id/store_id", "存在重复记录")
+    return {
+        "valid": not errors and not missing,
+        "row_count": int(len(frame)),
+        "errors": errors,
+        "error_count": len(errors),
+        "truncated": len(errors) >= settings.DATASET_MAX_ERRORS,
+    }
+
+
+def preview_inventory_bytes(raw_bytes: bytes) -> dict[str, Any]:
+    try:
+        frame = pd.read_csv(BytesIO(raw_bytes))
+    except (ValueError, pd.errors.ParserError) as exc:
+        return {
+            "valid": False,
+            "row_count": 0,
+            "errors": [{"row": 1, "column": "", "message": f"无法读取库存 CSV: {exc}"}],
+            "error_count": 1,
+            "truncated": False,
+        }
+    result = preview_inventory_frame(frame)
+    if result["valid"]:
+        normalized = validate_inventory_frame(frame)
+        result["summary"] = {
+            "as_of_date": normalized["as_of_date"].max().date().isoformat(),
+            "product_count": int(normalized["product_id"].nunique()),
+            "store_count": int(normalized["store_id"].nunique()),
+        }
+    return result
+
+
 def get_active_inventory_id(*, active_file: Path | None = None) -> str:
+    if active_file is None:
+        runtime_inventory = get_active_runtime_component("inventory_version")
+        if runtime_inventory is not None:
+            return runtime_inventory
     active_path = Path(active_file) if active_file is not None else Path(settings.ACTIVE_INVENTORY_FILE)
     if not active_path.exists():
         return "legacy"
@@ -89,7 +163,7 @@ def get_active_inventory_path(
 ) -> Path | None:
     """Resolve the active snapshot, returning ``None`` before first import."""
     active_path = Path(active_file) if active_file is not None else Path(settings.ACTIVE_INVENTORY_FILE)
-    inventory_id = get_active_inventory_id(active_file=active_path)
+    inventory_id = get_active_inventory_id(active_file=active_file)
     if inventory_id == "legacy":
         return None
     root = Path(versions_dir) if versions_dir is not None else active_path.parent / "versions"
@@ -108,6 +182,77 @@ def load_active_inventory_snapshot() -> pd.DataFrame | None:
     if path is None:
         return None
     return validate_inventory_frame(pd.read_csv(path))
+
+
+def validate_inventory_version(
+    inventory_id: str,
+    *,
+    versions_dir: Path | None = None,
+) -> dict[str, Any]:
+    """Validate an immutable inventory version without activating it."""
+    if not isinstance(inventory_id, str) or not _INVENTORY_ID_PATTERN.fullmatch(inventory_id):
+        raise InventoryValidationError("库存 ID 无效")
+    root = Path(versions_dir) if versions_dir is not None else Path(settings.INVENTORY_VERSIONS_DIR)
+    version_dir = (root / inventory_id).resolve()
+    try:
+        version_dir.relative_to(root.resolve())
+    except ValueError as exc:
+        raise InventoryValidationError("库存版本路径无效") from exc
+    snapshot_path = version_dir / "inventory.csv"
+    manifest_path = version_dir / "manifest.json"
+    if not snapshot_path.is_file() or not manifest_path.is_file():
+        raise InventoryValidationError("库存版本缺少 inventory.csv 或 manifest.json")
+    try:
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        frame = validate_inventory_frame(pd.read_csv(snapshot_path))
+    except InventoryValidationError:
+        raise
+    except (OSError, json.JSONDecodeError, ValueError, pd.errors.ParserError) as exc:
+        raise InventoryValidationError("库存版本内容无效") from exc
+    if not isinstance(manifest, dict) or manifest.get("inventory_id") != inventory_id:
+        raise InventoryValidationError("库存 manifest 与目录版本不匹配")
+    expected = {
+        "rows": len(frame),
+        "product_count": frame["product_id"].nunique(),
+        "store_count": frame["store_id"].nunique(),
+        "as_of_date": frame["as_of_date"].max().date().isoformat(),
+    }
+    if any(manifest.get(key) != value for key, value in expected.items()):
+        raise InventoryValidationError("库存 manifest 与内容校验不一致")
+    return manifest
+
+
+def list_inventory_versions(*, versions_dir: Path | None = None) -> list[dict[str, Any]]:
+    """List valid inventory versions, newest manifests first."""
+    root = Path(versions_dir) if versions_dir is not None else Path(settings.INVENTORY_VERSIONS_DIR)
+    versions: list[dict[str, Any]] = []
+    if not root.is_dir():
+        return versions
+    for directory in sorted(root.iterdir(), reverse=True):
+        if not directory.is_dir() or not _INVENTORY_ID_PATTERN.fullmatch(directory.name):
+            continue
+        try:
+            manifest = validate_inventory_version(directory.name, versions_dir=root)
+        except InventoryValidationError:
+            continue
+        versions.append(manifest)
+    return versions
+
+
+def activate_inventory_snapshot(
+    inventory_id: str,
+    *,
+    versions_dir: Path | None = None,
+    active_file: Path | None = None,
+) -> dict[str, Any]:
+    """Validate a version and atomically switch the legacy inventory pointer."""
+    manifest = validate_inventory_version(inventory_id, versions_dir=versions_dir)
+    pointer_path = Path(active_file) if active_file is not None else Path(settings.ACTIVE_INVENTORY_FILE)
+    pointer_path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = pointer_path.with_name(f".{pointer_path.name}.tmp")
+    temporary.write_text(json.dumps({"inventory_id": inventory_id}), encoding="utf-8")
+    os.replace(temporary, pointer_path)
+    return {"inventory_id": inventory_id, "manifest": manifest, "active": True}
 
 
 def import_inventory_snapshot(

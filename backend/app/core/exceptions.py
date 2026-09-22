@@ -109,6 +109,11 @@ class ModelArtifactError(ServiceUnavailableError):
     code = "MODEL_ARTIFACT_INVALID"
 
 
+class RuntimeSnapshotError(ServiceUnavailableError):
+    """运行快照缺失、损坏或引用了不兼容的版本。"""
+    code = "RUNTIME_SNAPSHOT_INVALID"
+
+
 class ForecastUnavailableError(ServiceUnavailableError):
     """预测服务无法为请求范围提供可用结果。"""
     code = "FORECAST_UNAVAILABLE"

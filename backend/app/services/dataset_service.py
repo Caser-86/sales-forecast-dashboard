@@ -7,6 +7,7 @@ import os
 import re
 import tempfile
 from datetime import timezone
+from io import BytesIO
 from pathlib import Path
 from typing import Any
 
@@ -15,6 +16,7 @@ import pandas as pd
 
 from app.core.config import settings
 from app.core.exceptions import DatasetValidationError
+from app.services.runtime_state import get_active_runtime_component
 
 REQUIRED_SALES_COLUMNS = {
     "date",
@@ -73,6 +75,77 @@ def validate_sales_frame(frame: pd.DataFrame) -> pd.DataFrame:
     return normalized.sort_values(key_columns).reset_index(drop=True)
 
 
+def _add_error(errors: list[dict[str, Any]], row: int, column: str, message: str) -> None:
+    if len(errors) < settings.DATASET_MAX_ERRORS:
+        errors.append({"row": row, "column": column, "message": message})
+
+
+def preview_sales_frame(frame: pd.DataFrame) -> dict[str, Any]:
+    """Return bounded, row-addressable validation feedback without writing files."""
+    errors: list[dict[str, Any]] = []
+    missing = sorted(REQUIRED_SALES_COLUMNS - set(frame.columns))
+    for column in missing:
+        _add_error(errors, 1, column, f"缺少必需列: {column}")
+    if not missing and frame.empty:
+        _add_error(errors, 1, "", "销售数据为空")
+    if not missing and not frame.empty:
+        dates = pd.to_datetime(frame["date"], errors="coerce")
+        for index in frame.index[dates.isna()]:
+            _add_error(errors, int(index) + 2, "date", "存在非法日期")
+        for column in ("product_id", "store_id"):
+            values = pd.to_numeric(frame[column], errors="coerce")
+            invalid = values.isna() | ~np.isfinite(values) | (values <= 0) | (values % 1 != 0)
+            for index in frame.index[invalid]:
+                _add_error(errors, int(index) + 2, column, f"{column} 必须是正整数")
+        for column in ("sales", "price"):
+            values = pd.to_numeric(frame[column], errors="coerce")
+            invalid = values.isna() | ~np.isfinite(values)
+            if column == "sales":
+                invalid |= values < 0
+            else:
+                invalid |= values <= 0
+            for index in frame.index[invalid]:
+                _add_error(errors, int(index) + 2, column, f"{column} 数值无效")
+        for column in ("product_name", "store_name", "category"):
+            invalid = frame[column].isna() | frame[column].astype(str).str.strip().eq("")
+            for index in frame.index[invalid]:
+                _add_error(errors, int(index) + 2, column, f"{column} 不能为空")
+        duplicate = frame.duplicated(subset=["date", "product_id", "store_id"], keep=False)
+        for index in frame.index[duplicate]:
+            _add_error(errors, int(index) + 2, "date/product_id/store_id", "存在重复记录")
+    result: dict[str, Any] = {
+        "valid": not errors and not missing,
+        "row_count": int(len(frame)),
+        "errors": errors,
+        "error_count": len(errors),
+        "truncated": len(errors) >= settings.DATASET_MAX_ERRORS,
+    }
+    if result["valid"]:
+        normalized = validate_sales_frame(frame)
+        result["summary"] = {
+            "date_start": normalized["date"].min().date().isoformat(),
+            "date_end": normalized["date"].max().date().isoformat(),
+            "product_count": int(normalized["product_id"].nunique()),
+            "store_count": int(normalized["store_id"].nunique()),
+        }
+    return result
+
+
+def preview_sales_bytes(raw_bytes: bytes) -> dict[str, Any]:
+    """Parse a CSV payload for the upload preflight endpoint."""
+    try:
+        frame = pd.read_csv(BytesIO(raw_bytes))
+    except (ValueError, pd.errors.ParserError) as exc:
+        return {
+            "valid": False,
+            "row_count": 0,
+            "errors": [{"row": 1, "column": "", "message": f"无法读取销售 CSV: {exc}"}],
+            "error_count": 1,
+            "truncated": False,
+        }
+    return preview_sales_frame(frame)
+
+
 def _default_versions_dir() -> Path:
     return Path(settings.DATASET_VERSIONS_DIR)
 
@@ -103,6 +176,10 @@ def _write_active_pointer(pointer_path: Path, dataset_id: str) -> None:
 
 def get_active_dataset_id(*, active_file: Path | None = None) -> str:
     """Return the active dataset ID, or the legacy ID before imports exist."""
+    if active_file is None:
+        runtime_data = get_active_runtime_component("data_version")
+        if runtime_data is not None:
+            return runtime_data
     active_path = Path(active_file) if active_file is not None else _default_active_file()
     if not active_path.exists():
         return "legacy"
@@ -129,12 +206,14 @@ def get_active_sales_path(
         return fallback_path
 
     try:
-        dataset_id = get_active_dataset_id(active_file=active_path)
+        dataset_id = get_active_dataset_id(active_file=active_file)
     except DatasetValidationError:
         raise
     except (OSError, json.JSONDecodeError, KeyError, TypeError):
         _fail("active 数据集指针无效")
 
+    if dataset_id == "legacy":
+        return fallback_path
     if not isinstance(dataset_id, str) or not _DATASET_ID_PATTERN.fullmatch(dataset_id):
         _fail("active 数据集 ID 无效")
     root = Path(versions_dir) if versions_dir is not None else active_path.parent / "versions"
@@ -146,6 +225,62 @@ def get_active_sales_path(
     if not candidate.is_file():
         _fail("active 数据集文件不存在")
     return candidate
+
+
+def validate_dataset_version(
+    dataset_id: str,
+    *,
+    versions_dir: Path | None = None,
+) -> dict[str, Any]:
+    """Validate an immutable sales version without switching the active pointer."""
+    if not isinstance(dataset_id, str) or not _DATASET_ID_PATTERN.fullmatch(dataset_id):
+        raise DatasetValidationError("数据集 ID 无效")
+    root = Path(versions_dir) if versions_dir is not None else _default_versions_dir()
+    version_dir = (root / dataset_id).resolve()
+    try:
+        version_dir.relative_to(root.resolve())
+    except ValueError as exc:
+        raise DatasetValidationError("数据集版本路径无效") from exc
+    sales_path = version_dir / "sales_data.csv"
+    manifest_path = version_dir / "manifest.json"
+    if not sales_path.is_file() or not manifest_path.is_file():
+        raise DatasetValidationError("数据集版本缺少 sales_data.csv 或 manifest.json")
+    try:
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        frame = validate_sales_frame(pd.read_csv(sales_path))
+    except DatasetValidationError:
+        raise
+    except (OSError, json.JSONDecodeError, ValueError, pd.errors.ParserError) as exc:
+        raise DatasetValidationError("数据集版本内容无效") from exc
+    if not isinstance(manifest, dict) or manifest.get("dataset_id") != dataset_id:
+        raise DatasetValidationError("数据集 manifest 与目录版本不匹配")
+    expected = {
+        "rows": len(frame),
+        "product_count": frame["product_id"].nunique(),
+        "store_count": frame["store_id"].nunique(),
+        "date_start": frame["date"].min().date().isoformat(),
+        "date_end": frame["date"].max().date().isoformat(),
+    }
+    if any(manifest.get(key) != value for key, value in expected.items()):
+        raise DatasetValidationError("数据集 manifest 与内容校验不一致")
+    return manifest
+
+
+def list_dataset_versions(*, versions_dir: Path | None = None) -> list[dict[str, Any]]:
+    """List valid sales versions, newest manifests first."""
+    root = Path(versions_dir) if versions_dir is not None else _default_versions_dir()
+    versions: list[dict[str, Any]] = []
+    if not root.is_dir():
+        return versions
+    for directory in sorted(root.iterdir(), reverse=True):
+        if not directory.is_dir() or not _DATASET_ID_PATTERN.fullmatch(directory.name):
+            continue
+        try:
+            manifest = validate_dataset_version(directory.name, versions_dir=root)
+        except DatasetValidationError:
+            continue
+        versions.append(manifest)
+    return versions
 
 
 def import_sales_dataset(

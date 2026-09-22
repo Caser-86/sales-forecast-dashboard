@@ -288,3 +288,60 @@ class JobResponse(BaseModel):
     error_message: Optional[str] = None
     error_detail: Optional[str] = None
     created: bool = True
+
+
+class DatasetValidationIssue(BaseModel):
+    row: int = Field(ge=1)
+    column: str = ""
+    message: str
+
+
+class DatasetPreviewResult(BaseModel):
+    kind: str
+    source_name: str
+    valid: bool
+    row_count: int = Field(ge=0)
+    errors: List[DatasetValidationIssue] = Field(default_factory=list)
+    error_count: int = Field(ge=0)
+    truncated: bool = False
+    summary: Dict[str, Any] = Field(default_factory=dict)
+
+
+class DatasetVersionResult(BaseModel):
+    dataset_id: Optional[str] = None
+    inventory_id: Optional[str] = None
+    source_name: Optional[str] = None
+    rows: int = Field(ge=0)
+    created_at_utc: Optional[str] = None
+    date_start: Optional[str] = None
+    date_end: Optional[str] = None
+    as_of_date: Optional[str] = None
+    product_count: int = Field(ge=0)
+    store_count: int = Field(ge=0)
+
+
+class RuntimeSnapshotPublishRequest(BaseModel):
+    data_version: str = Field(min_length=1, max_length=100)
+    model_version: str = Field(min_length=1, max_length=100)
+    inventory_version: str = Field(min_length=1, max_length=100)
+    policy_version: str = Field(default="policy-v1", min_length=1, max_length=100)
+
+
+class RuntimeSnapshotResponse(BaseModel):
+    snapshot_id: str
+    schema_version: int
+    data_version: str
+    model_version: str
+    inventory_version: str
+    policy_version: str
+    created_at_utc: str
+    active: bool = False
+
+
+class DatasetCatalog(BaseModel):
+    active: Dict[str, str]
+    active_runtime: Optional[RuntimeSnapshotResponse] = None
+    sales: List[DatasetVersionResult] = Field(default_factory=list)
+    inventory: List[DatasetVersionResult] = Field(default_factory=list)
+    models: List[Dict[str, Any]] = Field(default_factory=list)
+    runtime_snapshots: List[RuntimeSnapshotResponse] = Field(default_factory=list)

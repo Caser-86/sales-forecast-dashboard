@@ -81,3 +81,25 @@ test("keeps the navigation shell usable at desktop acceptance widths", async ({ 
         expect(overflow.width).toBeLessThanOrEqual(overflow.viewportWidth);
     }
 });
+
+test("opens the data center and shows real CSV preflight errors", async ({ page }) => {
+    await waitForDashboard(page);
+
+    await page.locator('.app-nav [data-route="data"]').click();
+    await expect(page.locator("#dataCenterPage")).toBeVisible();
+    await expect(page.locator("#dataCenterStatus")).not.toHaveText("加载版本清单中");
+    await expect(page.locator(".dataset-table")).toBeVisible();
+
+    const invalidSales = [
+        "date,product_id,store_id,product_name,store_name,category,sales,price",
+        "2026-01-01,1,1,P1,S1,食品,-1,12.5",
+    ].join("\n");
+    await page.locator("#salesDatasetFile").setInputFiles({
+        name: "invalid-sales.csv",
+        mimeType: "text/csv",
+        buffer: Buffer.from(invalidSales, "utf8"),
+    });
+    await page.locator("#previewSalesDataset").click();
+    await expect(page.locator("#salesDatasetPreview")).toContainText("第 2 行");
+    await expect(page.locator("#uploadSalesDataset")).toBeDisabled();
+});

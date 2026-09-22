@@ -13,6 +13,7 @@ from typing import Any
 
 from app.core.config import settings
 from app.core.exceptions import ModelArtifactError
+from app.services.runtime_state import get_active_runtime_component
 
 CORE_MODEL_FILES = (
     "lstm_model.pth",
@@ -170,6 +171,10 @@ def publish_model_package(
 
 def get_active_model_id(*, active_file: Path | None = None) -> str:
     """Return the active model ID, or legacy when no version has been published."""
+    if active_file is None:
+        runtime_model = get_active_runtime_component("model_version")
+        if runtime_model is not None:
+            return runtime_model
     return _read_pointer(Path(active_file) if active_file is not None else _default_active_file()) or "legacy"
 
 
@@ -181,8 +186,8 @@ def get_active_model_dir(
 ) -> Path:
     """Resolve and verify the active package, falling back to legacy flat files."""
     pointer_path = Path(active_file) if active_file is not None else _default_active_file()
-    model_id = _read_pointer(pointer_path)
-    if model_id is None:
+    model_id = get_active_model_id() if active_file is None else _read_pointer(pointer_path)
+    if model_id in (None, "legacy"):
         return Path(fallback) if fallback is not None else Path(settings.MODELS_DIR)
     root = Path(versions_dir) if versions_dir is not None else _default_versions_dir()
     candidate = (root / model_id).resolve()
@@ -214,3 +219,43 @@ def activate_model(model_id: str, *, versions_dir: Path | None = None, active_fi
     pointer_path = Path(active_file) if active_file is not None else _default_active_file()
     _write_json_atomically(pointer_path, {"model_id": model_id, "manifest": "manifest.json"})
     return {"model_id": model_id, "model_dir": str(model_dir), "manifest": manifest, "active": True}
+
+
+def validate_model_package(
+    model_id: str,
+    *,
+    versions_dir: Path | None = None,
+) -> dict[str, Any]:
+    """Validate and return a published model manifest without changing pointers."""
+    if not isinstance(model_id, str) or not _MODEL_ID_PATTERN.fullmatch(model_id):
+        raise ModelArtifactError("模型 ID 无效")
+    root = Path(versions_dir) if versions_dir is not None else _default_versions_dir()
+    model_dir = (root / model_id).resolve()
+    try:
+        model_dir.relative_to(root.resolve())
+    except ValueError as exc:
+        raise ModelArtifactError("模型版本路径无效") from exc
+    if not model_dir.is_dir():
+        raise ModelArtifactError("模型版本不存在")
+    return _validate_package(model_dir)
+
+
+def list_model_versions(*, versions_dir: Path | None = None) -> list[dict[str, Any]]:
+    """List valid published model packages for the model center and snapshots."""
+    root = Path(versions_dir) if versions_dir is not None else _default_versions_dir()
+    versions: list[dict[str, Any]] = []
+    if not root.is_dir():
+        return versions
+    for directory in sorted(root.iterdir(), reverse=True):
+        if not directory.is_dir() or not _MODEL_ID_PATTERN.fullmatch(directory.name):
+            continue
+        try:
+            manifest = _validate_package(directory)
+        except ModelArtifactError:
+            continue
+        versions.append({
+            "model_id": directory.name,
+            "data_version": manifest.get("data_version", "legacy"),
+            "created_at_utc": manifest.get("created_at_utc"),
+        })
+    return versions

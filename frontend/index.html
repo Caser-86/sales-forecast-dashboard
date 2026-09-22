@@ -43,6 +43,75 @@
             <p class="route-placeholder-note">当前版本保留总览闭环，未开放模块不会展示伪造数据或不可用操作。</p>
         </section>
 
+        <section id="dataCenterPage" class="module-page hidden" aria-label="数据中心">
+            <div class="module-page-header">
+                <div>
+                    <span class="route-kicker">DATA CONTROL / CANDIDATE FIRST</span>
+                    <h1>数据中心</h1>
+                    <p>先预检、再保存候选版本，最后以运行快照统一切换。当前活动数据不会被坏文件覆盖。</p>
+                </div>
+                <span id="dataCenterStatus" class="module-status" aria-live="polite">加载版本清单中</span>
+            </div>
+
+            <div class="dataset-upload-grid">
+                <article class="dataset-card">
+                    <div class="dataset-card-header">
+                        <h2>销售数据</h2>
+                        <a class="text-link" data-template-kind="sales" href="#">下载 CSV 模板</a>
+                    </div>
+                    <input id="salesDatasetFile" type="file" accept=".csv,text/csv">
+                    <div id="salesDatasetFileName" class="dataset-file-name">尚未选择文件</div>
+                    <div class="dataset-actions">
+                        <button id="previewSalesDataset" class="refresh-button" type="button">预检</button>
+                        <button id="uploadSalesDataset" class="refresh-button dataset-primary" type="button" disabled>保存候选</button>
+                    </div>
+                    <div id="salesDatasetPreview" class="dataset-preview" role="status"></div>
+                </article>
+                <article class="dataset-card">
+                    <div class="dataset-card-header">
+                        <h2>库存快照</h2>
+                        <a class="text-link" data-template-kind="inventory" href="#">下载 CSV 模板</a>
+                    </div>
+                    <input id="inventoryDatasetFile" type="file" accept=".csv,text/csv">
+                    <div id="inventoryDatasetFileName" class="dataset-file-name">尚未选择文件</div>
+                    <div class="dataset-actions">
+                        <button id="previewInventoryDataset" class="refresh-button" type="button">预检</button>
+                        <button id="uploadInventoryDataset" class="refresh-button dataset-primary" type="button" disabled>保存候选</button>
+                    </div>
+                    <div id="inventoryDatasetPreview" class="dataset-preview" role="status"></div>
+                </article>
+            </div>
+
+            <div class="dataset-card runtime-card">
+                <div class="dataset-card-header">
+                    <div>
+                        <h2>运行快照</h2>
+                        <p>选择已经通过校验的数据、模型和库存版本，生成候选快照后再激活。</p>
+                    </div>
+                    <button id="publishRuntimeSnapshot" class="refresh-button dataset-primary" type="button">发布候选快照</button>
+                </div>
+                <div class="runtime-select-grid">
+                    <label>销售版本<select id="runtimeDataVersion"></select></label>
+                    <label>模型版本<select id="runtimeModelVersion"></select></label>
+                    <label>库存版本<select id="runtimeInventoryVersion"></select></label>
+                </div>
+                <div id="runtimeSnapshotPreview" class="dataset-preview" role="status"></div>
+            </div>
+
+            <div class="dataset-card">
+                <div class="dataset-card-header">
+                    <h2>版本清单</h2>
+                    <button id="refreshDatasetCatalog" class="refresh-button" type="button">刷新清单</button>
+                </div>
+                <div class="dataset-table-wrap">
+                    <table class="dataset-table">
+                        <thead><tr><th>类型</th><th>版本</th><th>业务范围</th><th>创建时间</th><th>状态</th></tr></thead>
+                        <tbody id="datasetVersionsBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
         <!-- Dashboard 作用域与运行状态 -->
         <section class="dashboard-toolbar" data-overview-only="true" aria-label="大屏筛选与状态">
             <div class="toolbar-group">
@@ -150,6 +219,7 @@
     <script src="js/api.js?v=2"></script>
     <script src="js/ui.js?v=1"></script>
     <script src="js/pages/route-placeholder.js?v=1"></script>
+    <script src="js/pages/data-center.js?v=1"></script>
     <script src="js/app.js?v=1"></script>
     <script src="js/safe-text.js?v=1"></script>
     <script src="js/charts/kpi-cards.js?v=2"></script>

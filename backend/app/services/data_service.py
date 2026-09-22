@@ -56,6 +56,14 @@ def load_report() -> Dict[str, Any]:
         return _REPORT_CACHE
 
 
+def clear_data_caches() -> None:
+    """Clear data and quality caches after a runtime snapshot switch."""
+    global _REPORT_CACHE
+    load_sales.cache_clear()
+    get_data_quality.cache_clear()
+    _REPORT_CACHE = None
+
+
 def _metric_summary(metrics: Any) -> Dict[str, Any]:
     """Keep model-info compact while retaining report traceability counts."""
     if not isinstance(metrics, dict):

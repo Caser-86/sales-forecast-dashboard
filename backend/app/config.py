@@ -10,6 +10,7 @@ from app.core.config import (  # noqa: F401
     ACTIVE_DATASET_FILE,
     ACTIVE_INVENTORY_FILE,
     ACTIVE_MODEL_FILE,
+    ACTIVE_RUNTIME_SNAPSHOT_FILE,
     API_PREFIX,
     BACKEND_DIR,
     DATA_PROCESSED_DIR,
@@ -24,6 +25,7 @@ from app.core.config import (  # noqa: F401
     MODELS_DIR,
     PROJECT_ROOT,
     REPORT_JSON,
+    RUNTIME_SNAPSHOT_DIR,
     SALES_CSV,
     settings,
 )

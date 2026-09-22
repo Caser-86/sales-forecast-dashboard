@@ -65,7 +65,12 @@ class Settings(BaseSettings):
     ACTIVE_DATASET_FILE: str = str(BACKEND_DIR / "data" / "raw" / "active_dataset.json")
     INVENTORY_VERSIONS_DIR: str = str(BACKEND_DIR / "data" / "inventory" / "versions")
     ACTIVE_INVENTORY_FILE: str = str(BACKEND_DIR / "data" / "inventory" / "active_inventory.json")
+    RUNTIME_SNAPSHOT_DIR: str = str(BACKEND_DIR / "runtime" / "versions")
+    ACTIVE_RUNTIME_SNAPSHOT_FILE: str = str(BACKEND_DIR / "runtime" / "active_runtime.json")
     INVENTORY_MAX_AGE_DAYS: int = Field(default=7, ge=0, description="库存快照允许的最大年龄")
+    DATASET_MAX_UPLOAD_BYTES: int = Field(default=5 * 1024 * 1024, ge=1024)
+    DATASET_MAX_ROWS: int = Field(default=100_000, ge=1)
+    DATASET_MAX_ERRORS: int = Field(default=100, ge=1, le=1000)
 
     # ---------- 数据库（SQLite 草案持久化）----------
     DATABASE_URL: str = f"sqlite:///{(BACKEND_DIR / 'dashboard.db').as_posix()}"
@@ -133,6 +138,8 @@ class Settings(BaseSettings):
             "ACTIVE_DATASET_FILE": root / "data" / "raw" / "active_dataset.json",
             "INVENTORY_VERSIONS_DIR": root / "data" / "inventory" / "versions",
             "ACTIVE_INVENTORY_FILE": root / "data" / "inventory" / "active_inventory.json",
+            "RUNTIME_SNAPSHOT_DIR": root / "runtime" / "versions",
+            "ACTIVE_RUNTIME_SNAPSHOT_FILE": root / "runtime" / "active_runtime.json",
         }
         for name, path in path_defaults.items():
             values.setdefault(name, str(path))
@@ -149,6 +156,7 @@ class Settings(BaseSettings):
         Path(self.JOBS_DIR).mkdir(parents=True, exist_ok=True)
         Path(self.DATASET_VERSIONS_DIR).mkdir(parents=True, exist_ok=True)
         Path(self.INVENTORY_VERSIONS_DIR).mkdir(parents=True, exist_ok=True)
+        Path(self.RUNTIME_SNAPSHOT_DIR).mkdir(parents=True, exist_ok=True)
         if self.DATABASE_URL.startswith("sqlite:///"):
             Path(self.DATABASE_URL[10:]).parent.mkdir(parents=True, exist_ok=True)
 
@@ -192,6 +200,8 @@ DATASET_VERSIONS_DIR = Path(settings.DATASET_VERSIONS_DIR)
 ACTIVE_DATASET_FILE = Path(settings.ACTIVE_DATASET_FILE)
 INVENTORY_VERSIONS_DIR = Path(settings.INVENTORY_VERSIONS_DIR)
 ACTIVE_INVENTORY_FILE = Path(settings.ACTIVE_INVENTORY_FILE)
+RUNTIME_SNAPSHOT_DIR = Path(settings.RUNTIME_SNAPSHOT_DIR)
+ACTIVE_RUNTIME_SNAPSHOT_FILE = Path(settings.ACTIVE_RUNTIME_SNAPSHOT_FILE)
 SALES_CSV = settings.SALES_CSV
 FEATURES_CSV = settings.FEATURES_CSV
 REPORT_JSON = settings.REPORT_JSON
