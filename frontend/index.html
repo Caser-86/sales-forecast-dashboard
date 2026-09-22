@@ -13,6 +13,15 @@
         <!-- 标题栏 -->
         <header class="header">
             <div class="header-title">销售数据预测与可视化大屏</div>
+            <nav class="app-nav" aria-label="演示模块导航">
+                <a href="#overview" data-route="overview" aria-current="page">总览</a>
+                <a href="#data" data-route="data">数据</a>
+                <a href="#forecast" data-route="forecast">预测</a>
+                <a href="#inventory" data-route="inventory">库存</a>
+                <a href="#plans" data-route="plans">计划</a>
+                <a href="#models" data-route="models">模型</a>
+                <a href="#system" data-route="system">系统</a>
+            </nav>
             <div class="header-info">
                 <span id="currentDate"></span>
                 <span id="currentTime"></span>
@@ -21,8 +30,15 @@
             </div>
         </header>
 
+        <section id="routePlaceholder" class="route-placeholder hidden" aria-live="polite">
+            <span class="route-kicker">LOCAL DEMO V2 / 规划中</span>
+            <h1 id="routePlaceholderTitle">模块规划中</h1>
+            <p id="routePlaceholderDescription">该模块将在本地完整演示版后续阶段开放。</p>
+            <p class="route-placeholder-note">当前版本保留总览闭环，未开放模块不会展示伪造数据或不可用操作。</p>
+        </section>
+
         <!-- Dashboard 作用域与运行状态 -->
-        <section class="dashboard-toolbar" aria-label="大屏筛选与状态">
+        <section class="dashboard-toolbar" data-overview-only="true" aria-label="大屏筛选与状态">
             <div class="toolbar-group">
                 <label for="scopeProductSelect">商品范围</label>
                 <select id="scopeProductSelect" class="select">
@@ -48,7 +64,7 @@
         </section>
 
         <!-- KPI 卡片 -->
-        <section class="kpi-row">
+        <section class="kpi-row" data-overview-only="true">
             <div class="kpi-card">
                 <div class="kpi-label">总销量（30天）</div>
                 <div class="kpi-value" id="kpiTotalSales">0</div>
@@ -72,7 +88,7 @@
         </section>
 
         <!-- 销量趋势图 -->
-        <section class="chart-row main-chart">
+        <section class="chart-row main-chart" data-overview-only="true">
             <div class="panel">
                 <div class="panel-header">
                     <span class="panel-title">销量趋势图（历史 + 预测）</span>
@@ -86,7 +102,7 @@
         </section>
 
         <!-- 库存热力图 + 品类饼图 -->
-        <section class="chart-row two-col">
+        <section class="chart-row two-col" data-overview-only="true">
             <div class="panel">
                 <div class="panel-header">
                     <span class="panel-title">需求优先级热力图（ABC）</span>
@@ -102,7 +118,7 @@
         </section>
 
         <!-- Top 10 商品 -->
-        <section class="chart-row">
+        <section class="chart-row" data-overview-only="true">
             <div class="panel">
                 <div class="panel-header">
                     <span class="panel-title">Top 10 商品销量排行 + 采购建议</span>
@@ -126,6 +142,8 @@
     <div id="errorBanner" class="error-banner hidden" role="alert" aria-live="assertive"></div>
 
     <script src="js/api.js?v=2"></script>
+    <script src="js/pages/route-placeholder.js?v=1"></script>
+    <script src="js/app.js?v=1"></script>
     <script src="js/safe-text.js?v=1"></script>
     <script src="js/charts/kpi-cards.js?v=2"></script>
     <script src="js/charts/sales-line.js?v=2"></script>

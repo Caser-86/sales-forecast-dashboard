@@ -10,6 +10,7 @@ let lastSavedPlanId = null;
 let planRequestKey = null;
 
 async function init() {
+    initNavigation();
     updateClock();
     setInterval(updateClock, 1000);
 

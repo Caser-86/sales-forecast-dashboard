@@ -23,6 +23,20 @@ def test_dashboard_has_scope_controls_and_refresh_action():
     assert "api.getInventory()" not in script.split("async function loadSelectors()", 1)[1].split("async function currentScope", 1)[0]
 
 
+def test_frontend_has_v2_navigation_contract_and_explicit_unavailable_state():
+    html = (PROJECT_ROOT / "frontend" / "index.html").read_text(encoding="utf-8")
+    app_script = (PROJECT_ROOT / "frontend" / "js" / "app.js").read_text(encoding="utf-8")
+
+    for route in ("overview", "data", "forecast", "inventory", "plans", "models", "system"):
+        assert f'data-route="{route}"' in html
+        assert f'"{route}"' in app_script
+    assert 'id="routePlaceholder"' in html
+    assert "规划中" in html
+    assert 'src="js/app.js?v=1"' in html
+    assert "hashchange" in app_script
+    assert "ROUTE_ORDER" in app_script
+
+
 def test_frontend_api_exposes_quality_endpoints():
     api = (PROJECT_ROOT / "frontend" / "js" / "api.js").read_text(encoding="utf-8")
 

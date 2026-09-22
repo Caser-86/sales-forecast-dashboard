@@ -105,12 +105,13 @@
 
 ### T2. 统一导航与页面骨架
 
-- [ ] 修改 `frontend/index.html`、`frontend/js/dashboard.js`、`frontend/js/api.js`、`frontend/css/dashboard.css`；新增 `frontend/js/app.js`、`frontend/js/pages/` 和 `frontend/js/components/`。
-- [ ] 建立总览、数据、预测、库存、计划、模型、系统导航；使用轻量 hash 路由，刷新和浏览器后退可恢复位置。
+- 第一切片已完成：现有总览保留为可用页面，新增模块显示明确的规划状态；后续页面能力继续在 T2/T3/T4 中实现。
+- [x] 修改 `frontend/index.html`、`frontend/js/dashboard.js`、`frontend/css/dashboard.css`；新增 `frontend/js/app.js` 和 `frontend/js/pages/route-placeholder.js`。
+- [x] 建立总览、数据、预测、库存、计划、模型、系统导航；使用轻量 hash 路由，刷新和浏览器后退可恢复位置。
 - [ ] 统一业务日期、版本标签、加载/空态/失败/重试、表格分页和筛选；筛选条件跨关联页面传递。
-- [ ] 保留现有图表并渐进拆分，不复制第二套计算规则。
+- [x] 保留现有图表并渐进拆分，不复制第二套计算规则。
 - [ ] 扩展 `frontend/e2e/dashboard.smoke.spec.js`，验证导航、刷新、键盘操作和 1366×768/1920×1080/窄屏布局。
-- [ ] 验收：现有 V1 核心路径全部可用，新增入口未实现时明确标记，不能显示假成功。
+- [x] 验收第一切片：现有 V1 核心路径可用，新增入口明确标记，不能显示假成功；已通过真实本地浏览器流程。
 
 ### T3. 持久化任务与候选训练隔离
 
