@@ -265,6 +265,27 @@
             </div>
         </section>
 
+        <section id="systemPage" class="module-page hidden" aria-label="演示系统">
+            <div class="module-page-header">
+                <div>
+                    <span class="route-kicker">SYSTEM / LOCAL OPERATIONS</span>
+                    <h1>演示系统</h1>
+                    <p>查看当前本地演示环境的版本、数据质量和运行快照；诊断操作保持只读。</p>
+                </div>
+                <span id="systemPageStatus" class="module-status" aria-live="polite">加载系统状态中</span>
+            </div>
+
+            <div class="dataset-card">
+                <div class="dataset-card-header"><h2>运行摘要</h2><button id="refreshSystemPage" class="refresh-button" type="button">刷新状态</button></div>
+                <div id="systemSummary" class="system-summary-grid"></div>
+            </div>
+
+            <div class="forecast-table-grid">
+                <div class="dataset-card"><div class="dataset-card-header"><h2>活动运行快照</h2><span class="module-status">只读</span></div><div class="dataset-table-wrap"><table class="dataset-table"><thead><tr><th>组件</th><th>版本</th></tr></thead><tbody id="systemRuntimeBody"></tbody></table></div></div>
+                <div class="dataset-card"><div class="dataset-card-header"><h2>数据质量</h2><span class="module-status">只读</span></div><div class="dataset-table-wrap"><table class="dataset-table"><thead><tr><th>检查项</th><th>结果</th></tr></thead><tbody id="systemQualityBody"></tbody></table></div></div>
+            </div>
+        </section>
+
         <!-- Dashboard 作用域与运行状态 -->
         <section class="dashboard-toolbar" data-overview-only="true" aria-label="大屏筛选与状态">
             <div class="toolbar-group">
@@ -378,6 +399,7 @@
         <script src="js/pages/forecast-analysis.js?v=1"></script>
         <script src="js/pages/replenishment.js?v=1"></script>
         <script src="js/pages/plans.js?v=1"></script>
+        <script src="js/pages/system.js?v=1"></script>
     <script src="js/app.js?v=1"></script>
     <script src="js/safe-text.js?v=1"></script>
     <script src="js/charts/kpi-cards.js?v=2"></script>

@@ -179,6 +179,31 @@ def test_runtime_snapshot_rollback_is_atomic_and_rejects_invalid_target(tmp_path
     assert get_active_runtime_snapshot()["snapshot_id"] == second_snapshot["snapshot_id"]
 
 
+def test_request_snapshot_stays_pinned_during_pointer_switch(tmp_path, monkeypatch):
+    from app.core.config import settings
+    from app.services import runtime_snapshot_service, runtime_state
+
+    raw_dir = tmp_path / "raw"
+    raw_dir.mkdir()
+    _sales_frame().to_csv(raw_dir / "sales_data.csv", index=False)
+    monkeypatch.setattr(settings, "DATA_RAW_DIR", str(raw_dir))
+    monkeypatch.setattr(settings, "RUNTIME_SNAPSHOT_DIR", str(tmp_path / "runtime"))
+    monkeypatch.setattr(settings, "ACTIVE_RUNTIME_SNAPSHOT_FILE", str(tmp_path / "active.json"))
+
+    first = runtime_snapshot_service.publish_runtime_snapshot(
+        data_version="legacy", model_version="legacy", inventory_version="legacy", activate=True,
+    )
+    second = runtime_snapshot_service.publish_runtime_snapshot(
+        data_version="legacy", model_version="legacy", inventory_version="legacy", policy_version="policy-v2", activate=False,
+    )
+    token = runtime_state.bind_request_runtime_snapshot()
+    try:
+        runtime_snapshot_service.activate_runtime_snapshot(second["snapshot_id"])
+        assert runtime_state.get_active_runtime_snapshot()["snapshot_id"] == first["snapshot_id"]
+    finally:
+        runtime_state.reset_request_runtime_snapshot(token)
+    assert runtime_state.get_active_runtime_snapshot()["snapshot_id"] == second["snapshot_id"]
+
 def test_runtime_snapshot_rejects_model_built_for_other_data(tmp_path, monkeypatch):
     from app.core.config import settings
     from app.core.exceptions import RuntimeSnapshotError

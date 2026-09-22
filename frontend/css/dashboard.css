@@ -411,6 +411,27 @@ select:focus-visible,
     color: var(--text);
 }
 
+.system-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 10px;
+    margin-top: 14px;
+}
+
+.system-summary-item {
+    display: grid;
+    gap: 8px;
+    padding: 12px;
+    border: 1px solid rgba(74, 77, 196, 0.55);
+    border-radius: 5px;
+    color: var(--text-dim);
+    font-size: 11px;
+}
+
+.system-summary-item strong { color: var(--text); font-size: 14px; }
+.system-summary-item strong.healthy { color: var(--accent-green); }
+.system-summary-item strong.warning { color: var(--accent-yellow); }
+
 .dataset-card h2 {
     color: var(--text);
     font-size: 16px;
@@ -838,6 +859,8 @@ select:focus-visible,
     .replenishment-input-grid {
         grid-template-columns: 1fr;
     }
+
+    .system-summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 
     .model-summary-card { align-items: stretch; }
 

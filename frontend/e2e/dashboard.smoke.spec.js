@@ -142,3 +142,12 @@ test("opens plan center with immutable draft history surface", async ({ page }) 
     await expect(page.locator("#planVersionsBody")).toBeAttached();
     await expect(page.locator("#planCenterStatus")).not.toHaveText("加载草案中");
 });
+
+test("opens system status and shows runtime diagnostics", async ({ page }) => {
+    await waitForDashboard(page);
+
+    await page.locator('.app-nav [data-route="system"]').click();
+    await expect(page.locator("#systemPage")).toBeVisible();
+    await expect(page.locator("#systemPageStatus")).not.toHaveText("加载系统状态中");
+    await expect(page.locator("#systemRuntimeBody")).toBeAttached();
+});

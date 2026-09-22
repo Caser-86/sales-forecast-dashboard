@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import json
 import re
+from contextvars import ContextVar, Token
 from pathlib import Path
 from typing import Any
 
@@ -14,10 +15,12 @@ from app.core.config import settings
 from app.core.exceptions import RuntimeSnapshotError
 
 _SNAPSHOT_ID_PATTERN = re.compile(r"^runtime-[0-9a-f]{16}$")
+_RUNTIME_UNSET = object()
+_REQUEST_RUNTIME: ContextVar[object] = ContextVar("request_runtime_snapshot", default=_RUNTIME_UNSET)
 
 
-def get_active_runtime_snapshot() -> dict[str, Any] | None:
-    """Return the verified active runtime manifest, or ``None`` before V2."""
+def _read_active_runtime_snapshot() -> dict[str, Any] | None:
+    """Read and verify the process-wide serving pointer."""
     pointer_path = Path(settings.ACTIVE_RUNTIME_SNAPSHOT_FILE)
     if not pointer_path.exists():
         return None
@@ -42,6 +45,23 @@ def get_active_runtime_snapshot() -> dict[str, Any] | None:
     if not isinstance(manifest, dict) or manifest.get("snapshot_id") != snapshot_id:
         raise RuntimeSnapshotError("active 运行快照 manifest 与指针不匹配")
     return manifest
+
+
+def bind_request_runtime_snapshot() -> Token:
+    """Pin the active snapshot for one request until its response completes."""
+    return _REQUEST_RUNTIME.set(_read_active_runtime_snapshot())
+
+
+def reset_request_runtime_snapshot(token: Token) -> None:
+    _REQUEST_RUNTIME.reset(token)
+
+
+def get_active_runtime_snapshot() -> dict[str, Any] | None:
+    """Return the request-pinned snapshot, or the verified process pointer."""
+    request_value = _REQUEST_RUNTIME.get()
+    if request_value is not _RUNTIME_UNSET:
+        return request_value  # type: ignore[return-value]
+    return _read_active_runtime_snapshot()
 
 
 def get_active_runtime_component(name: str) -> str | None:

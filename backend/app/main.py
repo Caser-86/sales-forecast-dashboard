@@ -23,6 +23,7 @@ from app.core.logging import setup_logging
 from app.core.middleware import CatchAllMiddleware, RequestLogMiddleware
 from app.core.rate_limit import RateLimitMiddleware
 from app.core.security import TokenDependency
+from app.services import runtime_state
 from app.services.job_repository import JobRepository
 
 
@@ -50,6 +51,16 @@ app = FastAPI(
     redoc_url="/redoc" if not settings.is_prod else None,
     lifespan=lifespan,
 )
+
+
+@app.middleware("http")
+async def pin_runtime_snapshot(request, call_next):
+    """Keep all component reads in one request on the same runtime version."""
+    token = runtime_state.bind_request_runtime_snapshot()
+    try:
+        return await call_next(request)
+    finally:
+        runtime_state.reset_request_runtime_snapshot(token)
 
 # ---------- 中间件（注册顺序：后注册先执行） ----------
 

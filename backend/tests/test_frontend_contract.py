@@ -129,6 +129,17 @@ def test_frontend_has_plan_center_contract():
     assert "getPlans" in api
 
 
+def test_frontend_has_system_status_contract():
+    html = (PROJECT_ROOT / "frontend" / "index.html").read_text(encoding="utf-8")
+    page = (PROJECT_ROOT / "frontend" / "js" / "pages" / "system.js").read_text(encoding="utf-8")
+
+    for element_id in ("systemPage", "systemPageStatus", "systemRuntimeBody", "systemQualityBody"):
+        assert f'id="{element_id}"' in html
+    assert "getMetadata" in page
+    assert "getDataQuality" in page
+    assert "getDatasets" in page
+
+
 def test_frontend_has_shared_runtime_context_and_retry_contract():
     html = (PROJECT_ROOT / "frontend" / "index.html").read_text(encoding="utf-8")
     ui = (PROJECT_ROOT / "frontend" / "js" / "ui.js").read_text(encoding="utf-8")

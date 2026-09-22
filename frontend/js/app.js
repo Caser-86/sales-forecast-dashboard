@@ -71,6 +71,8 @@ function setRoute(route = getRouteState().route) {
     inventoryDecision?.classList.toggle("hidden", activeRoute !== "inventory");
     const planCenter = document.getElementById("planCenterPage");
     planCenter?.classList.toggle("hidden", activeRoute !== "plans");
+    const systemPage = document.getElementById("systemPage");
+    systemPage?.classList.toggle("hidden", activeRoute !== "system");
     if (activeRoute === "data") {
         window.DataCenterPage?.load();
     }
@@ -85,6 +87,9 @@ function setRoute(route = getRouteState().route) {
     }
     if (activeRoute === "plans") {
         window.PlansPage?.load();
+    }
+    if (activeRoute === "system") {
+        window.SystemPage?.load();
     }
     RoutePlaceholder.render(activeRoute, ROUTE_COPY[activeRoute]);
     RoutePlaceholder.setScope(state.scope);
