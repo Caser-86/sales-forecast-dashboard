@@ -271,10 +271,19 @@ class PlanSummary(BaseModel):
     model_version: str
     inventory_version: str
     policy_version: str
+    status: str = "draft"
+    version: int = Field(default=1, ge=1)
+    updated_at: Optional[str] = None
 
 
 class PlanDetail(PlanSummary):
     snapshot: PlanDraftCreate
+
+
+class PlanTransitionRequest(BaseModel):
+    action: str = Field(min_length=1, max_length=30)
+    expected_version: int = Field(ge=1)
+    reason: str = Field(default="", max_length=500)
 
 
 class JobSubmitRequest(BaseModel):
@@ -299,6 +308,11 @@ class JobResponse(BaseModel):
     error_message: Optional[str] = None
     error_detail: Optional[str] = None
     created: bool = True
+
+
+class AuthLoginRequest(BaseModel):
+    username: str = Field(min_length=1, max_length=50)
+    password: str = Field(min_length=1, max_length=200)
 
 
 class DatasetValidationIssue(BaseModel):

@@ -58,7 +58,7 @@ const api = {
             signal.addEventListener("abort", abortFromCaller, { once: true });
         }
         try {
-            const resp = await fetch(BASE + path, { signal: controller.signal });
+            const resp = await fetch(BASE + path, { signal: controller.signal, credentials: "include" });
             if (!resp.ok) {
                 let message = `API ${path} 失败: ${resp.status}`;
                 try {
@@ -103,7 +103,8 @@ const api = {
                 method: "POST",
                 headers: { "Content-Type": "application/json", ...headers },
                 body: JSON.stringify(body),
-                signal: controller.signal
+                signal: controller.signal,
+                credentials: "include"
             });
             if (!resp.ok) {
                 let message = `API ${path} 失败: ${resp.status}`;
@@ -149,7 +150,8 @@ const api = {
                 method: "POST",
                 headers,
                 body,
-                signal: controller.signal
+                signal: controller.signal,
+                credentials: "include"
             });
             if (!resp.ok) {
                 let message = `API ${path} 失败: ${resp.status}`;
@@ -199,6 +201,10 @@ const api = {
     getModelInfo(options) { return this.get("/model-info", options); },
     getDataQuality(options) { return this.get("/data-quality", options); },
     getMetadata(options) { return this.get("/metadata", options); },
+    getAuthConfig(options) { return this.get("/auth/config", options); },
+    getCurrentUser(options) { return this.get("/auth/me", options); },
+    login(username, password, options) { return this.post("/auth/login", { username, password }, options); },
+    logout(options) { return this.post("/auth/logout", {}, options); },
     createPlan(payload, idempotencyKey, options = {}) {
         return this.post("/plans", payload, {
             ...options,
@@ -222,6 +228,16 @@ const api = {
     previewReplenishment(payload, options) { return this.post("/replenishment/preview", payload, options); },
     getPlans(limit = 50, options) { return this.get(`/plans?limit=${limit}`, options); },
     getPlan(planId, options) { return this.get(`/plans/${encodeURIComponent(planId)}`, options); },
+    transitionPlan(planId, payload, options) {
+        return this.post(`/plans/${encodeURIComponent(planId)}/transition`, payload, options);
+    },
+    createPlanRevision(planId, idempotencyKey, options = {}) {
+        return this.post(`/plans/${encodeURIComponent(planId)}/revisions`, {}, {
+            ...options,
+            headers: { ...(options.headers || {}), "Idempotency-Key": idempotencyKey }
+        });
+    },
+    getPlanEvents(planId, options) { return this.get(`/plans/${encodeURIComponent(planId)}/events`, options); },
     getDatasets(options) { return this.get("/datasets", options); },
     datasetTemplateUrl(kind) { return `${BASE}/datasets/templates/${encodeURIComponent(kind)}`; },
     previewDataset(kind, text, filename, options = {}) {

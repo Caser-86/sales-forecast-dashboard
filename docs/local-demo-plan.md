@@ -1,6 +1,6 @@
 # 本地完整演示版实施计划
 
-日期：2026-09-22。状态：执行中，M1/T1、M1/T2 共享壳、T3/T4/T5 第一切片、T6 预测分析第一切片、T7 库存试算第一切片、T8 计划只读第一切片和 T9 系统诊断第一切片已完成。目标版本：Local Demo V2。
+日期：2026-09-22。状态：执行中，M1/T1、M1/T2 共享壳、T3/T4/T5 第一切片、T6 预测分析第一切片、T7 库存试算第一切片、T8 本地角色审批第一切片和 T9 系统诊断第一切片已完成。目标版本：Local Demo V2。
 
 **Goal:** 在 Windows 本机完成销售数据导入、质量检查、预测分析、库存决策、补货审批与导出、版本恢复的完整演示，关键业务步骤无需手工执行命令。
 
@@ -161,13 +161,14 @@
 
 ### T8. 本地角色、计划审批与审计
 
-- [x] 第一切片：计划历史、不可变详情、版本来源和 CSV 导出页面已接入；审批角色与状态流转明确保留为后续阶段。
-- [ ] 新增 `backend/app/api/auth.py`、`backend/app/services/auth_service.py`、`plan_workflow_service.py`、`frontend/js/pages/plans.js`；修改 `plans.py`、`plan_repository.py`、`schemas.py`、`core/security.py`。
-- [ ] 实现演示账号、密码散列、会话失效、服务端权限矩阵和写请求保护；生产配置不开放预置账号。
-- [ ] 增加向前兼容的数据库迁移、计划版次、状态转换和审计事件，保持已有不可变快照可读取。
-- [ ] 实现计划列表/详情/搜索、编辑草案、提交、批准/驳回、取消与导出；明确导出文件的状态和演示身份。
-- [ ] 扩展 `test_plans.py`、`test_security.py`，新增审批 E2E，覆盖旧库迁移、越权、失效会话、并发修改、重复审批、过期来源和服务重启。
-- [ ] 验收：分析员创建提交，审批员批准/驳回，管理员查看审计；直接调用 API 也不能绕过权限。
+- [x] 第一切片：计划历史、不可变详情、版本来源、CSV 导出和本地角色审批页面已接入；计划支持提交、批准、驳回、取消、拒绝后修订版和管理员审计。
+- [x] 新增 `backend/app/api/auth.py`、`backend/app/services/auth_service.py`、`backend/app/services/plan_workflow_service.py` 和 `frontend/e2e/auth.workflow.spec.js`；修改计划 API、schema、前端 API、计划页和启动器。
+- [x] 实现演示账号、PBKDF2 密码散列、HttpOnly 会话、会话失效、服务端权限矩阵和写请求保护；通过 `-WithAuth` 显式开启，默认本地兼容模式不改变旧演示入口。
+- [x] 增加独立 workflow/event 表、计划版次、状态转换、审计事件和乐观版本号，保留已有不可变草案快照可读取。
+- [x] 实现计划列表/详情、提交、批准/驳回、取消、拒绝后创建修订版与导出；导出继续携带计划状态、版次和来源版本。
+- [x] `test_auth.py`、`test_plan_workflow.py`、`test_plans.py`、`test_security.py`、前端契约测试和带鉴权 Playwright E2E 已覆盖登录、越权、版本冲突、审批和审计。
+- [ ] 补充旧库迁移、过期来源阻止、服务重启后会话/计划恢复和更全面的重复审批/并发 UI 验收。
+- [x] 已验收：分析员创建并提交，审批员批准，管理员查看 `submit`/`approve` 审计事件；直接调用 API 不能绕过权限。
 
 ### T9. 演示场景、备份恢复与诊断
 

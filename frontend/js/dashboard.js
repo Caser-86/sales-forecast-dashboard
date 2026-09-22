@@ -10,6 +10,12 @@ let lastSavedPlanId = null;
 let planRequestKey = null;
 
 async function init() {
+    try {
+        await DemoAuth.init();
+    } catch (error) {
+        showDashboardError(`认证初始化失败: ${error.message}`);
+        return;
+    }
     initNavigation();
     DemoUI.setLoading(true, "正在加载演示数据...");
     updateClock();

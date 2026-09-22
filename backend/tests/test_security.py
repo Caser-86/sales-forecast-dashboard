@@ -75,6 +75,17 @@ class TestApiProtection:
             headers={settings.API_TOKEN_HEADER: "task-003-token"},
         ).status_code == 200
 
+    def test_auth_error_keeps_allowed_cors_headers(self, client, monkeypatch):
+        monkeypatch.setattr(settings, "DEMO_AUTH_ENABLED", True)
+        response = client.get(
+            "/api/auth/me",
+            headers={"Origin": "http://localhost:3000"},
+        )
+
+        assert response.status_code == 401
+        assert response.headers.get("access-control-allow-origin") == "http://localhost:3000"
+        assert response.headers.get("access-control-allow-credentials") == "true"
+
     def test_configured_rate_limit_returns_429(self, client, monkeypatch):
         """超过配置的请求窗口后，业务路由返回 429。"""
         monkeypatch.setattr(settings, "API_TOKEN", "")

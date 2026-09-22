@@ -45,6 +45,8 @@ class Settings(BaseSettings):
     # 可选 API Token 认证。留空则不启用认证。
     API_TOKEN: str = ""
     API_TOKEN_HEADER: str = "X-API-Token"
+    DEMO_AUTH_ENABLED: bool = False
+    DEMO_SESSION_TTL_SECONDS: int = Field(default=8 * 60 * 60, ge=300, le=7 * 24 * 60 * 60)
 
     # ---------- 日志 ----------
     LOG_LEVEL: str = "INFO"

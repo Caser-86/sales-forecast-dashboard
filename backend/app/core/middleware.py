@@ -17,6 +17,15 @@ from app.core.logging import get_logger
 logger = get_logger(__name__)
 
 
+def _with_cors_headers(request: Request, response: StarletteResponse) -> StarletteResponse:
+    origin = request.headers.get("Origin")
+    if origin and origin in settings.cors_origin_list:
+        response.headers["Access-Control-Allow-Origin"] = origin
+        response.headers["Access-Control-Allow-Credentials"] = "true"
+        response.headers["Vary"] = "Origin"
+    return response
+
+
 class CatchAllMiddleware(BaseHTTPMiddleware):
     """捕获未处理异常，统一错误响应格式。"""
 
@@ -27,14 +36,14 @@ class CatchAllMiddleware(BaseHTTPMiddleware):
             return await call_next(request)
         except AppError as e:
             logger.warning("AppError %s: %s", e.code, e.message)
-            return JSONResponse(
+            return _with_cors_headers(request, JSONResponse(
                 status_code=e.http_status,
                 content=e.to_response(include_detail=settings.DEBUG),
-            )
+            ))
         except Exception as e:
             # 未预期异常：记录完整堆栈，但只给客户端通用提示
             logger.exception("未处理异常: %s", e)
-            return JSONResponse(
+            return _with_cors_headers(request, JSONResponse(
                 status_code=500,
                 content={
                     "error": {
@@ -42,7 +51,7 @@ class CatchAllMiddleware(BaseHTTPMiddleware):
                         "message": "服务器内部错误，请联系管理员" if settings.is_prod else str(e),
                     }
                 },
-            )
+            ))
 
 
 class RequestLogMiddleware(BaseHTTPMiddleware):

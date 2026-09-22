@@ -178,3 +178,50 @@ def test_plan_api_save_get_and_export(client, monkeypatch, tmp_path):
     )
     assert partial.status_code == 422
     assert partial.json()["error"]["code"] == "PLAN_INVALID"
+
+
+def test_plan_api_workflow_enforces_server_side_roles(monkeypatch, client, tmp_path):
+    from app.api import plans
+    from app.core.config import settings
+    from app.services.plan_repository import PlanRepository
+
+    database = tmp_path / "workflow.db"
+    monkeypatch.setattr(settings, "DEMO_AUTH_ENABLED", True)
+    monkeypatch.setattr(settings, "DATABASE_URL", f"sqlite:///{database.as_posix()}")
+    monkeypatch.setattr(plans, "get_repository", lambda: PlanRepository(database))
+
+    analyst_login = client.post("/api/auth/login", json={"username": "analyst", "password": "demo-analyst"})
+    assert analyst_login.status_code == 200
+    headers = {"Idempotency-Key": "workflow-request-001"}
+    created = client.post("/api/plans", json=_payload(), headers=headers)
+    assert created.status_code == 201
+    plan_id = created.json()["plan_id"]
+
+    submitted = client.post(
+        f"/api/plans/{plan_id}/transition",
+        json={"action": "submit", "expected_version": 1},
+    )
+    assert submitted.status_code == 200
+    assert submitted.json()["status"] == "submitted"
+    denied = client.post(
+        f"/api/plans/{plan_id}/transition",
+        json={"action": "approve", "expected_version": 2},
+    )
+    assert denied.status_code == 401
+
+    client.post("/api/auth/logout")
+    approver_login = client.post("/api/auth/login", json={"username": "approver", "password": "demo-approver"})
+    assert approver_login.status_code == 200
+    approved = client.post(
+        f"/api/plans/{plan_id}/transition",
+        json={"action": "approve", "expected_version": 2},
+    )
+    assert approved.status_code == 200
+    assert approved.json()["status"] == "approved"
+    assert approved.json()["version"] == 3
+
+    client.post("/api/auth/logout")
+    client.post("/api/auth/login", json={"username": "admin", "password": "demo-admin"})
+    events = client.get(f"/api/plans/{plan_id}/events")
+    assert events.status_code == 200
+    assert [event["action"] for event in events.json()] == ["submit", "approve"]

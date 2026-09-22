@@ -3,7 +3,8 @@ param(
     [string]$Root = (Join-Path $PSScriptRoot "..\.demo-runtime"),
     [int]$BackendPort = 8000,
     [int]$FrontendPort = 3000,
-    [switch]$Prepare
+    [switch]$Prepare,
+    [switch]$WithAuth
 )
 
 $ErrorActionPreference = "Stop"
@@ -60,9 +61,11 @@ $backendProcess = $null
 $frontendProcess = $null
 $previousDemoRoot = $env:DEMO_ROOT
 $previousPythonUtf8 = $env:PYTHONUTF8
+$previousDemoAuth = $env:DEMO_AUTH_ENABLED
 try {
     $env:DEMO_ROOT = $runtimeRoot
     $env:PYTHONUTF8 = "1"
+    if ($WithAuth) { $env:DEMO_AUTH_ENABLED = "true" }
     $backendProcess = Start-Process -FilePath $python -ArgumentList @(
         "-m", "uvicorn", "app.main:app", "--host", "127.0.0.1", "--port", "$BackendPort"
     ) -WorkingDirectory (Join-Path $projectRoot "backend") -RedirectStandardOutput $backendLog -RedirectStandardError $backendErrorLog -PassThru
@@ -107,4 +110,5 @@ try {
 } finally {
     if ($null -eq $previousDemoRoot) { Remove-Item Env:DEMO_ROOT -ErrorAction SilentlyContinue } else { $env:DEMO_ROOT = $previousDemoRoot }
     if ($null -eq $previousPythonUtf8) { Remove-Item Env:PYTHONUTF8 -ErrorAction SilentlyContinue } else { $env:PYTHONUTF8 = $previousPythonUtf8 }
+    if ($null -eq $previousDemoAuth) { Remove-Item Env:DEMO_AUTH_ENABLED -ErrorAction SilentlyContinue } else { $env:DEMO_AUTH_ENABLED = $previousDemoAuth }
 }
