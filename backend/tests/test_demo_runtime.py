@@ -75,6 +75,7 @@ def test_windows_demo_scripts_use_loopback_and_scoped_pid_state():
     assert "demo-process.json" in start_script
     assert "Get-NetTCPConnection" in start_script
     assert "-Prepare" in start_script
+    assert 'WorkingDirectory (Join-Path $projectRoot "backend")' in start_script
     assert "Stop-Process" in stop_script
     assert "demo-process.json" in stop_script
     assert "DateTimeOffset" in stop_script

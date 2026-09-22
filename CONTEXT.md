@@ -12,7 +12,7 @@
 - 默认使用可重复生成的 Demo 销售与库存数据，不是 ERP/WMS 生产数据接入。
 - V1 是单租户、单服务实例、人工导入/训练/激活/回滚模式。
 - V1 验收、浏览器、Docker、依赖和恢复证据集中在 `docs/`；发布结论见 `docs/releases/v1-acceptance.md`。
-- 下一目标为本地完整演示版 V2，计划已制定，M1/T1 正在实现，见 [`docs/local-demo-plan.md`](docs/local-demo-plan.md)。
+- 下一目标为本地完整演示版 V2，M1/T1 已完成、M1/T2 第一切片已完成，详细路线见 [`docs/local-demo-plan.md`](docs/local-demo-plan.md)。
 
 ## 已完成功能
 
@@ -27,7 +27,7 @@
 
 ## 当前正在开发
 
-当前处于本地完整演示版 V2 规划阶段，尚未开始功能实现。详细范围、任务依赖、拟修改文件和验收标准见 [`docs/local-demo-plan.md`](docs/local-demo-plan.md)，未完成项索引见 `TODO.md`。
+当前处于本地完整演示版 V2 执行阶段。M1/T1 已完成，M1/T2 第一切片已完成；数据中心、预测、库存、计划和模型操作等后续页面能力仍按路线图实现。详细范围、任务依赖、拟修改文件和验收标准见 [`docs/local-demo-plan.md`](docs/local-demo-plan.md)，未完成项索引见 `TODO.md`。
 
 ## 未完成任务
 

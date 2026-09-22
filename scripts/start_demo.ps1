@@ -65,7 +65,7 @@ try {
     $env:PYTHONUTF8 = "1"
     $backendProcess = Start-Process -FilePath $python -ArgumentList @(
         "-m", "uvicorn", "app.main:app", "--host", "127.0.0.1", "--port", "$BackendPort"
-    ) -WorkingDirectory $projectRoot -RedirectStandardOutput $backendLog -RedirectStandardError $backendErrorLog -PassThru
+    ) -WorkingDirectory (Join-Path $projectRoot "backend") -RedirectStandardOutput $backendLog -RedirectStandardError $backendErrorLog -PassThru
     $frontendProcess = Start-Process -FilePath $python -ArgumentList @(
         "-m", "http.server", "$FrontendPort", "--bind", "127.0.0.1"
     ) -WorkingDirectory (Join-Path $projectRoot "frontend") -RedirectStandardOutput $frontendLog -RedirectStandardError $frontendErrorLog -PassThru
