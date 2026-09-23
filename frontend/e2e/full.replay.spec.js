@@ -99,7 +99,7 @@ test("replays the complete offline interview workflow in one authenticated sessi
     const draft = planRow(page, planId);
     await expect(draft.locator('[data-action="submit"]')).toBeVisible();
     await draft.locator('[data-action="submit"]').click();
-    await expect(page.locator("#planCenterStatus")).toContainText("更新");
+    await expect(draft.locator("td").nth(1)).toHaveText("待审批");
 
     await page.locator("#demoLogout").click();
     await login(page, "approver", "demo-approver");
@@ -107,7 +107,7 @@ test("replays the complete offline interview workflow in one authenticated sessi
     const submitted = planRow(page, planId);
     await expect(submitted.locator('[data-action="approve"]')).toBeVisible();
     await submitted.locator('[data-action="approve"]').click();
-    await expect(page.locator("#planCenterStatus")).toContainText("更新");
+    await expect(submitted.locator("td").nth(1)).toHaveText("已批准");
 
     await page.locator("#demoLogout").click();
     await login(page, "admin", "demo-admin");

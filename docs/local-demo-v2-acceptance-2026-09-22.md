@@ -32,7 +32,7 @@
 ## 2026-09-23 补充证据
 
 - 全量后端回归：`230 passed`，覆盖率 `86.00%`，Ruff、96 个前端 JavaScript 文件语法检查、Compose 配置和离线资源检查均通过。
-- 鉴权完整回放：在保留历史计划且先切换到 `stale_inventory` 的运行目录上执行 `scripts\verify_offline_demo.ps1 -RunFullReplayE2E`，脚本自动恢复 `standard` 场景，Playwright `1 passed (12.4s)`；输出 `offline_guard=true`、健康状态 `healthy`、20 个商品和 100 个库存单元。随后使用独立端口重跑，Playwright `1 passed (12.5s)`，服务自动停止且未留下 `demo-process.json`。
+- 鉴权完整回放：在保留历史计划且先切换到 `stale_inventory` 的运行目录上执行 `scripts\verify_offline_demo.ps1 -RunFullReplayE2E`，脚本自动恢复 `standard` 场景，Playwright `1 passed (12.4s)`；输出 `offline_guard=true`、健康状态 `healthy`、20 个商品和 100 个库存单元。2026-09-23 收紧提交/批准步骤的等待条件后，在隔离副本、新数据库和独立端口复测，Playwright `1 passed (12.0s)`，输出 `ready=true`、`offline_guard=true`、`full_replay_e2e=true`，服务自动停止。以上是进程级离线守卫证据，不代表物理断网或固定 4 核/8GB 参考机验收。
 - 当前开发机 affinity 短基线：4 核 affinity、100 请求/10 并发，成功 `100/100`，p50 `29.89ms`，p95 `133.41ms`，峰值工作集 `412.7MB`，启动 `8.05s`。这仍是进程/亲和性观测，不是物理参考机验收。
 - 当前开发机 300 秒 affinity 趋势：4 核 affinity、`92,723/92,723` 请求成功，错误率 `0`，p50 `31.96ms`、p95 `36.47ms`、max `202.91ms`，启动 `7.58s`，峰值工作集 `424.1MB`，`under_memory_budget=true`。采样期间工作集从 `414.1MB` 稳定到 `424.1MB`；这仍是进程/亲和性观测，不是物理参考机验收。
 - T10 证据入口：`scripts\run_t10_acceptance.ps1` 已验证会在物理条件不匹配时先停止；当前主机报告 `ready=false`、16 逻辑处理器、23.29GB 内存，报告保存于 `.demo-runtime\logs\t10-acceptance\report.json`。
