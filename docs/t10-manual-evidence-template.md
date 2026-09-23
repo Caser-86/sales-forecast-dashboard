@@ -51,7 +51,7 @@ scripts\start_demo.ps1 -Root .demo-runtime-t10 -BackendPort 18026 -FrontendPort 
 scripts\stop_demo.ps1 -Root .demo-runtime-t10
 ```
 
-人工记录路径为 `.demo-runtime-t10\logs\t10-acceptance\manual-replay.md`。完成并保存人工记录后执行一次 T10 runner；它会运行完整自动回放和 300 秒 benchmark，并将新日志写入同一目录。runner 会保留已存在的人工记录，只在文件不存在时复制空白模板。若目标目录或端口不同，必须在记录中写明实际值。
+人工记录路径为 `.demo-runtime-t10\logs\t10-acceptance\manual-replay.md`。完成并保存所有字段、结果、签署和最终结论后执行一次 T10 runner；它会先验证记录完整，再运行自动回放和 300 秒 benchmark，并将日志写入同一目录。记录仍有占位符、空单元格或未勾选项时，runner 会保留报告并停止。runner 也会保留已存在的人工记录，只在文件不存在时复制空白模板。若目标目录或端口不同，必须在记录中写明实际值。
 
 ## 自动门禁
 
@@ -96,4 +96,4 @@ scripts\stop_demo.ps1 -Root .demo-runtime-t10
 - [ ] 自动化报告、命令输出和人工记录已归档。
 - [ ] 未将 affinity、容器限额或脚本回放当作物理/人工验收替代证据。
 
-最终结论：`未填写`
+T10_FINAL_CONCLUSION: `未填写`

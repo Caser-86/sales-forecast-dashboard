@@ -150,7 +150,7 @@ scripts\run_t10_acceptance.ps1 -Root .demo-runtime
 1. 从仓库根目录操作。联网时先在新的 `.demo-runtime-t10` 目录执行严格硬件检查和 `prepare_demo.py`，记录 `demo-manifest.json` SHA-256；创建 `logs\t10-acceptance` 并把人工记录模板复制为 `manual-replay.md`。准备过程不计入断网人工复演。
 2. 断开外网后执行 `python scripts/verify_offline_demo.py --root .demo-runtime-t10`，再用 `scripts\start_demo.ps1 -Root .demo-runtime-t10 -BackendPort 18026 -FrontendPort 13026 -Offline -WithAuth` 启动；从浏览器完成总览、错误/有效 CSV、预测下钻、库存试算、计划审批、过期库存阻止、备份恢复和诊断包全链路，并同步填写人工记录及证据编号。
 3. 停止并重启服务，确认活动版本、计划和审计仍可读取；整个 M-01 至 M-10 期间不安装依赖、不下载模型、不访问外部服务。
-4. 再次停止服务，保存人工记录后执行 `scripts\run_t10_acceptance.ps1 -Root .demo-runtime-t10 -BackendPort 18026 -FrontendPort 13026`；该 runner 会执行自动完整回放和 300 秒 benchmark，并保留填写中的 `manual-replay.md`。
+4. 再次停止服务，保存完整人工记录后执行 `scripts\run_t10_acceptance.ps1 -Root .demo-runtime-t10 -BackendPort 18026 -FrontendPort 13026`；该 runner 会先校验所有字段、勾选项和结论，再执行自动完整回放和 300 秒 benchmark，并保留填写中的 `manual-replay.md`。记录不完整时 runner 会生成报告并停止。
 5. 归档 `.demo-runtime-t10\logs\t10-acceptance` 中的人工记录、报告、原始日志和截图编号；未完成全部证据前，不将 T10 标记为完成。
 
 参考机开始前先执行严格硬件检查：

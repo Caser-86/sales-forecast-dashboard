@@ -125,12 +125,35 @@ def test_windows_demo_supports_offline_guard_and_reference_cpu_affinity():
     assert "check_reference_machine.ps1" in t10_script
     assert "verify_offline_demo.ps1" in t10_script
     assert "benchmark_demo.ps1" in t10_script
-    assert "manual_fully_disconnected_replay = \"required_external\"" in t10_script
+    assert 'manualReplayStatus = "required_external"' in t10_script
+    assert 'if ($manualEvidenceComplete)' in t10_script
+    assert 'Get-Content -LiteralPath $manualTemplatePath -Raw -Encoding UTF8' in t10_script
+    assert "T10_FINAL_CONCLUSION:" in t10_script
+    assert "[char]0x672A" in t10_script
+    assert "[char]0x586B" in t10_script
+    assert "[char]0x5199" in t10_script
+    assert "manualHasUncheckedItems" in t10_script
+    assert "manualHasEmptyTableCells" in t10_script
+    assert "'(?m)\\|[ \\t]*\\|'" in t10_script
+    assert 'manual_fully_disconnected_replay = $manualReplayStatus' in t10_script
     assert "if (-not (Test-Path -LiteralPath $manualTemplatePath))" in t10_script
     assert "Copy-Item -LiteralPath $manualTemplateSource -Destination $manualTemplatePath" in t10_script
+    assert "manual_evidence_complete = $manualEvidenceComplete" in t10_script
+    assert "if (-not $manualEvidenceComplete)" in t10_script
     assert "-CpuAffinityCores" in benchmark_script
     assert "under_memory_budget" in benchmark_script
     assert "ExpectedLogicalProcessors" in reference_script
     assert "ExpectedMemoryGB" in reference_script
     assert "Win32_ComputerSystem" in reference_script
     assert "$Strict" in reference_script
+
+
+def test_t10_manual_empty_cell_matcher_does_not_cross_table_rows():
+    import re
+
+    t10_script = (PROJECT_ROOT / "scripts" / "run_t10_acceptance.ps1").read_text(encoding="utf-8")
+    matcher = r"\|[ \t]*\|"
+
+    assert "'(?m)\\|[ \\t]*\\|'" in t10_script
+    assert re.search(matcher, "| --- | --- |\n| field | value |") is None
+    assert re.search(matcher, "| field | |") is not None

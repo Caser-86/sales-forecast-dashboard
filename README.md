@@ -56,7 +56,7 @@ scripts\benchmark_demo.ps1 -Root .demo-runtime -CpuCores 4 -MemoryBudgetGB 8 -Du
 scripts\run_t10_acceptance.ps1 -Root .demo-runtime
 ```
 
-长期基线输出中的 `working_set_samples` 是观测证据，不自动等同于“无持续内存增长”；T10 仍要求在物理固定 4 核/8GB 机器和完全断网环境人工复演。
+长期基线输出中的 `working_set_samples` 是观测证据，不自动等同于“无持续内存增长”；T10 仍要求在物理固定 4 核/8GB 机器和完全断网环境人工复演。`run_t10_acceptance.ps1` 要求先填写完整的 `manual-replay.md`，并在运行自动回放前检查空白项和最终结论。
 
 `-RunFullReplayE2E` 每次执行前会把独立演示目录恢复到 `standard` 场景，因此上次回放中断后可以直接重跑，不需要手工清理场景状态。
 `run_t10_acceptance.ps1` 在当前开发机等硬件不匹配时会按预期失败，并保留 `report.json`；它不会把 4 核 affinity 观测冒充物理参考机验收。

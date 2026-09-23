@@ -42,6 +42,21 @@ if (-not (Test-Path -LiteralPath $manualTemplatePath)) {
 if (-not (Test-Path -LiteralPath (Join-Path $runtimeRoot "demo-manifest.json"))) {
     throw "No verified demo manifest found. Run python scripts/prepare_demo.py --root '$runtimeRoot' before the offline handoff."
 }
+$manualEvidenceText = Get-Content -LiteralPath $manualTemplatePath -Raw -Encoding UTF8
+$manualConclusion = [regex]::Match($manualEvidenceText, '(?m)^T10_FINAL_CONCLUSION:\s*(.+?)\s*$')
+$unfilledPlaceholder = [string]([char]0x672A) + [string]([char]0x586B) + [string]([char]0x5199)
+$manualHasUnfilledPlaceholder = $manualEvidenceText.Contains($unfilledPlaceholder)
+$manualHasUncheckedItems = [regex]::IsMatch($manualEvidenceText, '(?m)^\s*-\s*\[\s\]')
+$manualHasEmptyTableCells = [regex]::IsMatch($manualEvidenceText, '(?m)\|[ \t]*\|')
+$manualEvidenceComplete = $true
+if ($manualHasUnfilledPlaceholder) { $manualEvidenceComplete = $false }
+if ($manualHasUncheckedItems) { $manualEvidenceComplete = $false }
+if ($manualHasEmptyTableCells) { $manualEvidenceComplete = $false }
+if (-not $manualConclusion.Success) { $manualEvidenceComplete = $false }
+$manualReplayStatus = "required_external"
+if ($manualEvidenceComplete) {
+    $manualReplayStatus = "operator_recorded"
+}
 
 $referenceFactsText = & powershell -NoProfile -ExecutionPolicy Bypass -File $checkScript `
     -ExpectedLogicalProcessors $ExpectedLogicalProcessors -ExpectedMemoryGB $ExpectedMemoryGB
@@ -68,12 +83,17 @@ $report = [ordered]@{
     benchmark = $null
     benchmark_log = $benchmarkLogPath
     manual_evidence_template = $manualTemplatePath
-    manual_fully_disconnected_replay = "required_external"
+    manual_evidence_complete = $manualEvidenceComplete
+    manual_fully_disconnected_replay = $manualReplayStatus
 }
 
 if ($referenceExitCode -ne 0) {
     $report | ConvertTo-Json -Depth 12 | Set-Content -LiteralPath $reportPath -Encoding utf8
     throw "T10 physical reference-machine gate failed. See $referenceStrictPath and $reportPath."
+}
+if (-not $manualEvidenceComplete) {
+    $report | ConvertTo-Json -Depth 12 | Set-Content -LiteralPath $reportPath -Encoding utf8
+    throw "T10 manual evidence is incomplete. Complete every field and sign-off in $manualTemplatePath before running automated replay and benchmark. See $reportPath."
 }
 
 $ErrorActionPreference = "Continue"
