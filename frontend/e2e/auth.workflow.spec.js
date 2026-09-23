@@ -59,7 +59,7 @@ test("completes analyst approval and admin audit workflow", async ({ page }) => 
     const draft = planRow(page, planId);
     await expect(draft.locator('[data-action="submit"]')).toBeVisible();
     await draft.locator('[data-action="submit"]').click();
-    await expect(page.locator("#planCenterStatus")).toContainText("更新");
+    await expect(draft.locator("td").nth(1)).toHaveText("待审批");
 
     await page.locator("#demoLogout").click();
     await expect(page.locator("#demoLogin")).toBeVisible();
@@ -68,7 +68,7 @@ test("completes analyst approval and admin audit workflow", async ({ page }) => 
     const submitted = planRow(page, planId);
     await expect(submitted.locator('[data-action="approve"]')).toBeVisible();
     await submitted.locator('[data-action="approve"]').click();
-    await expect(page.locator("#planCenterStatus")).toContainText("更新");
+    await expect(submitted.locator("td").nth(1)).toHaveText("已批准");
 
     await page.locator("#demoLogout").click();
     await login(page, "admin", "demo-admin");
@@ -97,7 +97,7 @@ test("shows an optimistic-lock conflict when two approval tabs race", async ({ p
     await page.locator('.app-nav [data-route="plans"]').click();
     const draft = planRow(page, planId);
     await draft.locator('[data-action="submit"]').click();
-    await expect(page.locator("#planCenterStatus")).toContainText("更新");
+    await expect(draft.locator("td").nth(1)).toHaveText("待审批");
 
     await page.locator("#demoLogout").click();
     await expect(page.locator("#demoLogin")).toBeVisible();
@@ -113,7 +113,7 @@ test("shows an optimistic-lock conflict when two approval tabs race", async ({ p
     await expect(secondApproval).toBeVisible();
 
     await firstApproval.locator('[data-action="approve"]').click();
-    await expect(page.locator("#planCenterStatus")).toContainText("更新");
+    await expect(firstApproval.locator("td").nth(1)).toHaveText("已批准");
     racingPage.once("dialog", dialog => dialog.accept("并发操作落后于批准"));
     await secondApproval.locator('[data-action="reject"]').click();
     await expect(racingPage.locator("#planCenterStatus")).toContainText("计划已被其他操作更新");
