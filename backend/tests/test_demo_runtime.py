@@ -126,6 +126,8 @@ def test_windows_demo_supports_offline_guard_and_reference_cpu_affinity():
     assert "verify_offline_demo.ps1" in t10_script
     assert "benchmark_demo.ps1" in t10_script
     assert "manual_fully_disconnected_replay = \"required_external\"" in t10_script
+    assert "if (-not (Test-Path -LiteralPath $manualTemplatePath))" in t10_script
+    assert "Copy-Item -LiteralPath $manualTemplateSource -Destination $manualTemplatePath" in t10_script
     assert "-CpuAffinityCores" in benchmark_script
     assert "under_memory_budget" in benchmark_script
     assert "ExpectedLogicalProcessors" in reference_script

@@ -36,7 +36,9 @@ New-Item -ItemType Directory -Force $evidenceRoot | Out-Null
 if (-not (Test-Path -LiteralPath $manualTemplateSource)) {
     throw "T10 manual evidence template is missing: $manualTemplateSource"
 }
-Copy-Item -LiteralPath $manualTemplateSource -Destination $manualTemplatePath -Force
+if (-not (Test-Path -LiteralPath $manualTemplatePath)) {
+    Copy-Item -LiteralPath $manualTemplateSource -Destination $manualTemplatePath
+}
 if (-not (Test-Path -LiteralPath (Join-Path $runtimeRoot "demo-manifest.json"))) {
     throw "No verified demo manifest found. Run python scripts/prepare_demo.py --root '$runtimeRoot' before the offline handoff."
 }

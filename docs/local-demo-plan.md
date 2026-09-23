@@ -195,7 +195,7 @@
 - [x] 增加 `-RunFullReplayE2E`：在进程级离线守卫和显式鉴权下串联错误/有效 CSV 候选、预测明细、库存试算、计划审批、场景切换、备份恢复和脱敏诊断；每次执行前自动恢复独立演示目录的 `standard` 场景，支持从上次中断状态直接重跑；该命令不替代完全断网人工复演。
 - [x] 增加 `scripts/run_t10_acceptance.ps1`：在目标参考机上串联严格 4 核/8GB 检查、完整业务回放和 300 秒容量采样，并将报告与原始日志集中保存；硬件门禁失败时停止，不把 affinity 观测冒充物理验收。
 - [x] 增加 `scripts/run_container_isolation_smoke.ps1`：用随机命名的 Docker internal network 和临时卷验证前后端容器启动、容器间健康访问、外网阻断及 4 CPU/8 GiB 资源限额；脚本只清理自身资源，不替代物理参考机和人工完全断网回放。
-- [x] 增加 `docs/t10-manual-evidence-template.md`：T10 runner 会在证据目录复制未填写的人工复演记录，覆盖断网方式、机器条件、完整业务步骤和最终签署，模板本身不代表验收通过。
+- [x] 增加 `docs/t10-manual-evidence-template.md`：现场操作员可在复演前复制模板并填写证据；T10 runner 仅在记录文件不存在时复制空白模板，重复运行不会覆盖人工记录。模板覆盖断网方式、机器条件、完整业务步骤和最终签署，本身不代表验收通过。
 - [x] 更新 `README.md`、`CONTEXT.md`、`docs/interview-demo.md` 和 V2 验收记录，形成可按 10–15 分钟扩展的讲稿；V1 文档保留其历史范围。
 - [ ] 验收后标注已完成任务并将本计划作为 V2 实施记录归档，`TODO.md` 只保留未完成项。
 

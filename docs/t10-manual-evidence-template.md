@@ -22,12 +22,15 @@
 
 ### 断网前准备
 
-在目标参考机联网时，使用一个新的、受控的演示目录完成准备，不把依赖下载或模型训练计入断网复演：
+从仓库根目录执行。在目标参考机联网时，使用新的、受控的演示目录完成准备，不把依赖下载或模型训练计入断网复演：
 
 ```powershell
 scripts\check_reference_machine.ps1 -ExpectedLogicalProcessors 4 -ExpectedMemoryGB 8 -Strict
 python scripts\prepare_demo.py --root .demo-runtime-t10
 Get-FileHash .demo-runtime-t10\demo-manifest.json -Algorithm SHA256
+$evidenceRoot = ".demo-runtime-t10\logs\t10-acceptance"
+New-Item -ItemType Directory -Force $evidenceRoot | Out-Null
+Copy-Item -LiteralPath docs\t10-manual-evidence-template.md -Destination (Join-Path $evidenceRoot "manual-replay.md")
 ```
 
 记录 manifest SHA-256 后，断开外网并在整个 M-01 至 M-10 期间保持断网。不要在断网后运行 `pip install`、`npm install`、模型下载或其他依赖准备命令。
@@ -39,29 +42,31 @@ python scripts\verify_offline_demo.py --root .demo-runtime-t10
 scripts\start_demo.ps1 -Root .demo-runtime-t10 -BackendPort 18026 -FrontendPort 13026 -Offline -WithAuth
 ```
 
-浏览器打开 `http://127.0.0.1:13026`，按下方 M-01 至 M-09 逐项操作；M-10 完成后执行一次停止/重启，再确认计划和活动版本仍可读取：
+浏览器打开 `http://127.0.0.1:13026`，按下方 M-01 至 M-10 逐项操作，并在复演过程中持续填写证据目录中的 `manual-replay.md`。完成诊断包后停止并重启服务，再打开页面确认计划、审计和活动版本仍可读取；确认后再次停止服务：
 
 ```powershell
 scripts\stop_demo.ps1 -Root .demo-runtime-t10
 scripts\start_demo.ps1 -Root .demo-runtime-t10 -BackendPort 18026 -FrontendPort 13026 -Offline -WithAuth
+# 浏览器确认重启后的状态后，再停止服务
+scripts\stop_demo.ps1 -Root .demo-runtime-t10
 ```
 
-停止服务后，在同一目标机上执行 benchmark 和 T10 runner，并将生成的日志路径填回本表。若目标目录或端口不同，必须在记录中写明实际值。
+人工记录路径为 `.demo-runtime-t10\logs\t10-acceptance\manual-replay.md`。完成并保存人工记录后执行一次 T10 runner；它会运行完整自动回放和 300 秒 benchmark，并将新日志写入同一目录。runner 会保留已存在的人工记录，只在文件不存在时复制空白模板。若目标目录或端口不同，必须在记录中写明实际值。
 
 ## 自动门禁
 
 | 检查 | 命令/证据 | 结果 |
 | --- | --- | --- |
 | 物理 4 核/8GB | `scripts\check_reference_machine.ps1 -ExpectedLogicalProcessors 4 -ExpectedMemoryGB 8 -Strict`；附 `reference-machine.json` | 未填写 |
-| T10 runner | `scripts\run_t10_acceptance.ps1 -Root .demo-runtime`；附 `report.json` | 未填写 |
+| T10 runner | `scripts\run_t10_acceptance.ps1 -Root .demo-runtime-t10 -BackendPort 18026 -FrontendPort 13026`；附 `report.json`、`full-replay.log`、`benchmark.log` | 未填写 |
 | 外网不可达 | 断网前后记录受控探测结果，不把进程 affinity 当作断网证据 | 未填写 |
-| 离线资源 | `python scripts/verify_offline_demo.py --root .demo-runtime`，要求 `ready=true`、`remote_references=[]` | 未填写 |
+| 离线资源 | `python scripts/verify_offline_demo.py --root .demo-runtime-t10`，要求 `ready=true`、`remote_references=[]` | 未填写 |
 
 ## 人工业务复演
 
 | 编号 | 操作 | 预期结果 | 实际证据/截图编号 | 结果 |
 | --- | --- | --- | --- | --- |
-| M-01 | 从干净 `.demo-runtime` 启动本地服务 | 前端、后端健康；无外网依赖 | | 未填写 |
+| M-01 | 从干净 `.demo-runtime-t10` 启动本地服务 | 前端、后端健康；无外网依赖 | | 未填写 |
 | M-02 | 打开总览并说明业务日期、数据版本、模型版本 | 版本来源明确且页面无伪造实时状态 | | 未填写 |
 | M-03 | 上传错误 CSV 并执行预检 | 行级错误可见，上传按钮被阻止，活动版本不变 | | 未填写 |
 | M-04 | 上传有效 CSV | 预检通过并保存候选版本，活动版本仍可追溯 | | 未填写 |

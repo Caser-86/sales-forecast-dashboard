@@ -141,17 +141,17 @@ scripts\benchmark_demo.ps1 -Root .demo-runtime -CpuCores 4 -MemoryBudgetGB 8 -Du
 scripts\run_t10_acceptance.ps1 -Root .demo-runtime
 ```
 
-预期证据：默认浏览器回归、完整业务回放、失败重试、完整训练期间服务稳定性、候选激活后的跨页面版本一致性和运行快照回滚分别输出明确的 Playwright `passed`；静态离线检查输出 `ready=true` 且 `remote_references=[]`；性能基线输出 `under_memory_budget=true`，长期模式另输出请求持续时间和 `working_set_samples`。`-RunFullReplayE2E` 会在启动前恢复独立演示目录的 `standard` 场景，允许从上次中断状态直接重跑。`run_t10_acceptance.ps1` 会将硬件、回放、容量日志和未填写的人工记录模板集中写入 `.demo-runtime\logs\t10-acceptance`，硬件不匹配时先失败并保留报告。这些命令不能替代固定 4 核/8GB 机器和完全断网人工演示。
+预期证据：默认浏览器回归、完整业务回放、失败重试、完整训练期间服务稳定性、候选激活后的跨页面版本一致性和运行快照回滚分别输出明确的 Playwright `passed`；静态离线检查输出 `ready=true` 且 `remote_references=[]`；性能基线输出 `under_memory_budget=true`，长期模式另输出请求持续时间和 `working_set_samples`。`-RunFullReplayE2E` 会在启动前恢复独立演示目录的 `standard` 场景，允许从上次中断状态直接重跑。`run_t10_acceptance.ps1` 会将硬件、回放和容量日志集中写入演示目录的 `logs\t10-acceptance`；只在人工记录不存在时复制空白模板，已有记录会保留。硬件不匹配时 runner 先失败并保留报告。这些命令不能替代固定 4 核/8GB 机器和完全断网人工演示。
 
 ## 8. T10 现场门禁
 
 在与目标参考机一致的 Windows 环境执行，详细记录模板见 [`docs/t10-manual-evidence-template.md`](t10-manual-evidence-template.md)：
 
-1. 联网时先在新的受控目录执行严格硬件检查和 `prepare_demo.py`，记录 `demo-manifest.json` SHA-256；准备过程不计入断网人工复演。
-2. 断开外网后执行 `verify_offline_demo.py` 静态检查，再用 `start_demo.ps1 -Offline -WithAuth` 启动；从浏览器完成总览、错误/有效 CSV、预测下钻、库存试算、计划审批、过期库存阻止、备份恢复和诊断包全链路。
+1. 从仓库根目录操作。联网时先在新的 `.demo-runtime-t10` 目录执行严格硬件检查和 `prepare_demo.py`，记录 `demo-manifest.json` SHA-256；创建 `logs\t10-acceptance` 并把人工记录模板复制为 `manual-replay.md`。准备过程不计入断网人工复演。
+2. 断开外网后执行 `python scripts/verify_offline_demo.py --root .demo-runtime-t10`，再用 `scripts\start_demo.ps1 -Root .demo-runtime-t10 -BackendPort 18026 -FrontendPort 13026 -Offline -WithAuth` 启动；从浏览器完成总览、错误/有效 CSV、预测下钻、库存试算、计划审批、过期库存阻止、备份恢复和诊断包全链路，并同步填写人工记录及证据编号。
 3. 停止并重启服务，确认活动版本、计划和审计仍可读取；整个 M-01 至 M-10 期间不安装依赖、不下载模型、不访问外部服务。
-4. 在服务停止后执行 `benchmark_demo.ps1 -DurationSeconds 300 -DisableRateLimit` 和 `run_t10_acceptance.ps1`，记录启动时间、API p50/p95、工作集峰值和长期采样趋势。
-5. 使用 `.demo-runtime\logs\t10-acceptance\manual-replay.md` 逐项记录人工复演、断网方式和证据编号；未完成上述证据前，不将 T10 标记为完成。
+4. 再次停止服务，保存人工记录后执行 `scripts\run_t10_acceptance.ps1 -Root .demo-runtime-t10 -BackendPort 18026 -FrontendPort 13026`；该 runner 会执行自动完整回放和 300 秒 benchmark，并保留填写中的 `manual-replay.md`。
+5. 归档 `.demo-runtime-t10\logs\t10-acceptance` 中的人工记录、报告、原始日志和截图编号；未完成全部证据前，不将 T10 标记为完成。
 
 参考机开始前先执行严格硬件检查：
 
