@@ -4,13 +4,9 @@
 """
 from __future__ import annotations
 
-import sys
-from pathlib import Path
+import json
 
-# 注入 backend/ml 路径
-BACKEND_DIR = Path(__file__).resolve().parent.parent
-ML_DIR = BACKEND_DIR / "ml"
-sys.path.insert(0, str(ML_DIR))
+import pytest
 
 
 class TestCategoryEncoder:
@@ -23,7 +19,7 @@ class TestCategoryEncoder:
     """
 
     def _encoder(self):
-        import predictor
+        from ml import predictor
         return predictor._CATEGORY_ENCODER
 
     def test_encoder_covers_5_categories(self):
@@ -53,3 +49,50 @@ class TestCategoryEncoder:
         expected = {c: i for i, c in enumerate(sorted(le.classes_))}
         for cat, idx in expected.items():
             assert int(le.transform([cat])[0]) == idx
+
+
+def test_feature_schema_rejects_mismatched_feature_columns(tmp_path):
+    from app.core.exceptions import ModelArtifactError
+    from ml import predictor
+
+    (tmp_path / "feature_schema.json").write_text(
+        json.dumps({
+            "feature_cols": ["future_sales"],
+            "lstm_feature_cols": [],
+            "target_col": "sales",
+            "horizon_days": 30,
+        }),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ModelArtifactError, match="特征 schema"):
+        predictor._validate_feature_schema(tmp_path)
+
+
+def test_model_selection_rejects_invalid_strategy(tmp_path):
+    from app.core.exceptions import ModelArtifactError
+    from ml import predictor
+
+    (tmp_path / "model_selection.json").write_text(
+        json.dumps({"strategy": "untrusted_model", "weights": {}}),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ModelArtifactError, match="模型选择配置"):
+        predictor._load_model_selection(tmp_path)
+
+
+def test_model_selection_rejects_inconsistent_weights(tmp_path):
+    from app.core.exceptions import ModelArtifactError
+    from ml import predictor
+
+    (tmp_path / "model_selection.json").write_text(
+        json.dumps({
+            "strategy": "lightgbm",
+            "weights": {"lstm": 1.0, "lightgbm": 0.0},
+        }),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ModelArtifactError, match="模型选择配置"):
+        predictor._load_model_selection(tmp_path)

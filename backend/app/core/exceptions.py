@@ -59,9 +59,24 @@ class ValidationError(AppError):
     http_status = 422
 
 
+class DatasetValidationError(ValidationError):
+    """销售数据不符合输入契约。"""
+    code = "DATASET_INVALID"
+
+
+class InventoryValidationError(ValidationError):
+    """库存快照不符合补货计算输入契约。"""
+    code = "INVENTORY_INVALID"
+
+
 class ConflictError(AppError):
     code = "CONFLICT"
     http_status = 409
+
+
+class PlanValidationError(ValidationError):
+    """补货草案不满足可保存契约。"""
+    code = "PLAN_INVALID"
 
 
 class UnauthorizedError(AppError):
@@ -74,6 +89,11 @@ class ServiceUnavailableError(AppError):
     http_status = 503
 
 
+class InventoryUnavailableError(ServiceUnavailableError):
+    """库存快照缺失或已超过允许的新鲜度。"""
+    code = "INVENTORY_UNAVAILABLE"
+
+
 class DataNotInitializedError(ServiceUnavailableError):
     """数据或模型未初始化。"""
     code = "DATA_NOT_INITIALIZED"
@@ -82,3 +102,18 @@ class DataNotInitializedError(ServiceUnavailableError):
 class ModelNotTrainedError(ServiceUnavailableError):
     """模型未训练。"""
     code = "MODEL_NOT_TRAINED"
+
+
+class ModelArtifactError(ServiceUnavailableError):
+    """模型产物缺失、损坏或不满足发布契约。"""
+    code = "MODEL_ARTIFACT_INVALID"
+
+
+class RuntimeSnapshotError(ServiceUnavailableError):
+    """运行快照缺失、损坏或引用了不兼容的版本。"""
+    code = "RUNTIME_SNAPSHOT_INVALID"
+
+
+class ForecastUnavailableError(ServiceUnavailableError):
+    """预测服务无法为请求范围提供可用结果。"""
+    code = "FORECAST_UNAVAILABLE"

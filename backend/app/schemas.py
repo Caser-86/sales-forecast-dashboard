@@ -18,6 +18,11 @@ class ProductList(BaseModel):
     products: List[Product]
 
 
+class Store(BaseModel):
+    store_id: int
+    store_name: str
+
+
 class SalesPoint(BaseModel):
     date: str
     sales: int
@@ -38,6 +43,7 @@ class ForecastPoint(BaseModel):
     predicted_sales: int
     confidence_low: int
     confidence_high: int
+    range_type: str = "scenario"
 
 
 class ForecastResult(BaseModel):
@@ -47,6 +53,24 @@ class ForecastResult(BaseModel):
     total_predicted: int
     suggested_purchase: int
     abc_class: str
+    range_type: str = "scenario"
+
+
+class MetricWindow(BaseModel):
+    unit: str
+    historical_start: str
+    historical_end: str
+    historical_days: int
+    forecast_start: str
+    forecast_end: str
+    forecast_days: int
+
+
+class ForecastCoverage(BaseModel):
+    status: str
+    requested: int
+    succeeded: int
+    failed: int
 
 
 class Kpi(BaseModel):
@@ -54,6 +78,9 @@ class Kpi(BaseModel):
     total_predicted: int
     growth_rate: float
     accuracy: float
+    mape: float
+    window: MetricWindow
+    coverage: ForecastCoverage
     sku_count: int
     alert_count: int
 
@@ -79,6 +106,7 @@ class DashboardData(BaseModel):
     abc_distribution: Dict[str, int]
     top_products: List[TopProduct]
     category_sales: List[CategorySales]
+    coverage: ForecastCoverage
     last_updated: str
 
 
@@ -91,12 +119,37 @@ class InventoryCell(BaseModel):
     suggested_purchase: int
     abc_class: str
     risk_level: str  # high / medium / low
+    inventory_version: Optional[str] = None
+    inventory_as_of_date: Optional[str] = None
+    window_demand: Optional[float] = None
+    net_available: Optional[float] = None
+    target_stock: Optional[float] = None
+    raw_replenishment: Optional[float] = None
+    on_hand: Optional[float] = None
+    confirmed_inbound: Optional[float] = None
+    reserved: Optional[float] = None
+    lead_time_days: Optional[int] = None
+    review_period_days: Optional[int] = None
+    safety_stock: Optional[float] = None
+    pack_size: Optional[int] = None
+    minimum_order_quantity: Optional[int] = None
 
 
 class InventoryResult(BaseModel):
     total: int
     cells: List[InventoryCell]
     risk_summary: Dict[str, int]
+    coverage: ForecastCoverage
+
+
+class ReplenishmentPreviewRequest(BaseModel):
+    product_id: int = Field(ge=1)
+    store_id: int = Field(ge=1)
+    lead_time_days: Optional[int] = Field(default=None, ge=0)
+    review_period_days: Optional[int] = Field(default=None, ge=0)
+    safety_stock: Optional[float] = Field(default=None, ge=0)
+    pack_size: Optional[int] = Field(default=None, gt=0)
+    minimum_order_quantity: Optional[int] = Field(default=None, ge=0)
 
 
 class KpiResult(BaseModel):
@@ -104,6 +157,9 @@ class KpiResult(BaseModel):
     total_predicted: int
     growth_rate: float
     accuracy: float
+    mape: float
+    window: MetricWindow
+    coverage: ForecastCoverage
     sku_count: int
     alert_count: int
     abc_distribution: Dict[str, int]
@@ -117,8 +173,11 @@ class ModelInfoResult(BaseModel):
     horizon_days: int
     feature_count: Optional[int] = None
     ensemble_weights: Dict[str, float] = Field(default_factory=dict)
+    selected_model: Optional[str] = None
+    model_selection: Dict[str, Any] = Field(default_factory=dict)
     split: Dict[str, Any] = Field(default_factory=dict)
     metrics: Dict[str, Dict[str, float]] = Field(default_factory=dict)
+    backtest: Dict[str, Any] = Field(default_factory=dict)
 
 
 class DataQualityResult(BaseModel):
@@ -135,3 +194,195 @@ class DataQualityResult(BaseModel):
     date_gap_count: int
     negative_sales_count: int
     issues: List[str] = Field(default_factory=list)
+
+
+class MetadataResult(BaseModel):
+    data_version: str
+    model_version: str
+    inventory_version: str
+    as_of_date: Optional[str] = None
+    inventory_as_of_date: Optional[str] = None
+    inventory_age_days: Optional[int] = None
+    inventory_max_age_days: int
+    inventory_status: str
+    data_status: str
+    model_status: str
+
+
+class PlanCoverage(BaseModel):
+    status: str
+    requested: int = Field(ge=0)
+    succeeded: int = Field(ge=0)
+    failed: int = Field(ge=0)
+
+
+class PlanItem(BaseModel):
+    product_id: int = Field(ge=1)
+    store_id: int = Field(ge=1)
+    product_name: str
+    store_name: str
+    predicted_sales: int = Field(ge=0)
+    suggested_purchase: int = Field(ge=0)
+    original_suggested_purchase: Optional[int] = Field(default=None, ge=0)
+    risk_level: str
+    on_hand: float = Field(ge=0)
+    confirmed_inbound: float = Field(ge=0)
+    reserved: float = Field(ge=0)
+    lead_time_days: int = Field(ge=0)
+    review_period_days: int = Field(ge=0)
+    safety_stock: float = Field(ge=0)
+    pack_size: int = Field(gt=0)
+    minimum_order_quantity: int = Field(ge=0)
+    inventory_version: Optional[str] = None
+    inventory_as_of_date: Optional[str] = None
+    window_demand: Optional[float] = None
+    net_available: Optional[float] = None
+    target_stock: Optional[float] = None
+    raw_replenishment: Optional[float] = None
+    adjustment_quantity: int = Field(default=0)
+    adjustment_reason: str = ""
+
+
+class PlanDraftCreate(BaseModel):
+    name: str = Field(min_length=1, max_length=120)
+    as_of_date: str
+    inventory_as_of_date: str
+    data_version: str = Field(min_length=1, max_length=100)
+    model_version: str = Field(min_length=1, max_length=100)
+    inventory_version: str = Field(min_length=1, max_length=100)
+    policy_version: str = Field(min_length=1, max_length=100)
+    coverage: PlanCoverage
+    items: List[PlanItem] = Field(min_length=1)
+    adjustments: List[Dict[str, Any]] = Field(default_factory=list)
+
+
+class PlanSaveResult(BaseModel):
+    plan_id: str
+    created: bool
+    created_at: str
+
+
+class PlanSummary(BaseModel):
+    plan_id: str
+    name: str
+    created_at: str
+    item_count: int
+    data_version: str
+    model_version: str
+    inventory_version: str
+    policy_version: str
+    status: str = "draft"
+    version: int = Field(default=1, ge=1)
+    updated_at: Optional[str] = None
+
+
+class PlanDetail(PlanSummary):
+    snapshot: PlanDraftCreate
+
+
+class PlanTransitionRequest(BaseModel):
+    action: str = Field(min_length=1, max_length=30)
+    expected_version: int = Field(ge=1)
+    reason: str = Field(default="", max_length=500)
+
+
+class JobSubmitRequest(BaseModel):
+    data_version: Optional[str] = Field(default=None, min_length=1, max_length=100)
+    model_version: Optional[str] = Field(default=None, min_length=1, max_length=100)
+
+
+class JobResponse(BaseModel):
+    job_id: str
+    kind: str
+    status: str
+    phase: str
+    input_data_version: str
+    input_model_version: str
+    attempt: int
+    created_at: str
+    started_at: Optional[str] = None
+    finished_at: Optional[str] = None
+    heartbeat_at: Optional[str] = None
+    result: Optional[Dict[str, Any]] = None
+    error_code: Optional[str] = None
+    error_message: Optional[str] = None
+    error_detail: Optional[str] = None
+    created: bool = True
+
+
+class AuthLoginRequest(BaseModel):
+    username: str = Field(min_length=1, max_length=50)
+    password: str = Field(min_length=1, max_length=200)
+
+
+class DatasetValidationIssue(BaseModel):
+    row: int = Field(ge=1)
+    column: str = ""
+    message: str
+
+
+class DatasetPreviewResult(BaseModel):
+    kind: str
+    source_name: str
+    valid: bool
+    row_count: int = Field(ge=0)
+    errors: List[DatasetValidationIssue] = Field(default_factory=list)
+    error_count: int = Field(ge=0)
+    truncated: bool = False
+    summary: Dict[str, Any] = Field(default_factory=dict)
+
+
+class DatasetVersionResult(BaseModel):
+    dataset_id: Optional[str] = None
+    inventory_id: Optional[str] = None
+    source_name: Optional[str] = None
+    rows: int = Field(ge=0)
+    created_at_utc: Optional[str] = None
+    date_start: Optional[str] = None
+    date_end: Optional[str] = None
+    as_of_date: Optional[str] = None
+    product_count: int = Field(ge=0)
+    store_count: int = Field(ge=0)
+
+
+class RuntimeSnapshotPublishRequest(BaseModel):
+    data_version: str = Field(min_length=1, max_length=100)
+    model_version: str = Field(min_length=1, max_length=100)
+    inventory_version: str = Field(min_length=1, max_length=100)
+    policy_version: str = Field(default="policy-v1", min_length=1, max_length=100)
+
+
+class RuntimeSnapshotResponse(BaseModel):
+    snapshot_id: str
+    schema_version: int
+    data_version: str
+    model_version: str
+    inventory_version: str
+    policy_version: str
+    created_at_utc: str
+    components: Dict[str, Any] = Field(default_factory=dict)
+    active: bool = False
+    rolled_back_from: Optional[str] = None
+
+
+class DatasetCatalog(BaseModel):
+    active: Dict[str, str]
+    active_runtime: Optional[RuntimeSnapshotResponse] = None
+    sales: List[DatasetVersionResult] = Field(default_factory=list)
+    inventory: List[DatasetVersionResult] = Field(default_factory=list)
+    models: List[Dict[str, Any]] = Field(default_factory=list)
+    runtime_snapshots: List[RuntimeSnapshotResponse] = Field(default_factory=list)
+
+
+class DemoScenarioRequest(BaseModel):
+    confirm: bool = False
+
+
+class DemoArtifactRequest(BaseModel):
+    artifact_name: Optional[str] = None
+
+
+class DemoScenarioResponse(BaseModel):
+    active: str
+    scenario: Dict[str, Any]
+    scenarios: List[Dict[str, Any]] = Field(default_factory=list)

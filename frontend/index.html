@@ -5,24 +5,345 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>销售数据预测与可视化大屏</title>
     <link rel="icon" href="favicon.svg" type="image/svg+xml">
-    <link rel="stylesheet" href="css/dashboard.css">
-    <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js"></script>
+    <link rel="stylesheet" href="css/dashboard.css?v=3">
+    <script src="vendor/echarts.min.js"></script>
 </head>
 <body>
     <div class="dashboard">
         <!-- 标题栏 -->
         <header class="header">
             <div class="header-title">销售数据预测与可视化大屏</div>
+            <nav class="app-nav" aria-label="演示模块导航">
+                <a href="#overview" data-route="overview" aria-current="page">总览</a>
+                <a href="#data" data-route="data">数据</a>
+                <a href="#forecast" data-route="forecast">预测</a>
+                <a href="#inventory" data-route="inventory">库存</a>
+                <a href="#plans" data-route="plans">计划</a>
+                <a href="#models" data-route="models">模型</a>
+                <a href="#system" data-route="system">系统</a>
+            </nav>
             <div class="header-info">
+                <span id="businessDate">业务日期：--</span>
                 <span id="currentDate"></span>
                 <span id="currentTime"></span>
+                <span id="demoIdentity" class="demo-identity hidden"></span>
+                <button id="demoLogout" class="demo-logout hidden" type="button">退出</button>
                 <span class="status-dot"></span>
-                <span class="status-text">服务在线</span>
+                <span id="headerStatus" class="status-text">状态检查中</span>
             </div>
         </header>
 
+        <section id="routePlaceholder" class="route-placeholder hidden" aria-live="polite">
+            <span class="route-kicker">LOCAL DEMO V2 / MODULE STATUS</span>
+            <h1 id="routePlaceholderTitle">模块规划中</h1>
+            <p id="routePlaceholderDescription">该模块将在本地完整演示版后续阶段开放。</p>
+            <div class="route-context" aria-label="当前运行上下文">
+                <span id="routeBusinessDate">业务日期：--</span>
+                <span id="routeVersion">数据版本：--</span>
+                <span id="routeScopeSummary">筛选范围：全部商品 · 全部门店</span>
+            </div>
+            <p class="route-placeholder-note">当前版本保留总览闭环，未开放模块不会展示伪造数据或不可用操作。</p>
+        </section>
+
+        <section id="dataCenterPage" class="module-page hidden" aria-label="数据中心">
+            <div class="module-page-header">
+                <div>
+                    <span class="route-kicker">DATA CONTROL / CANDIDATE FIRST</span>
+                    <h1>数据中心</h1>
+                    <p>先预检、再保存候选版本，最后以运行快照统一切换。当前活动数据不会被坏文件覆盖。</p>
+                </div>
+                <span id="dataCenterStatus" class="module-status" aria-live="polite">加载版本清单中</span>
+            </div>
+
+            <div class="dataset-upload-grid">
+                <article class="dataset-card">
+                    <div class="dataset-card-header">
+                        <h2>销售数据</h2>
+                        <a class="text-link" data-template-kind="sales" href="#">下载 CSV 模板</a>
+                    </div>
+                    <input id="salesDatasetFile" type="file" accept=".csv,text/csv">
+                    <div id="salesDatasetFileName" class="dataset-file-name">尚未选择文件</div>
+                    <div class="dataset-actions">
+                        <button id="previewSalesDataset" class="refresh-button" type="button">预检</button>
+                        <button id="uploadSalesDataset" class="refresh-button dataset-primary" type="button" disabled>保存候选</button>
+                    </div>
+                    <div id="salesDatasetPreview" class="dataset-preview" role="status"></div>
+                </article>
+                <article class="dataset-card">
+                    <div class="dataset-card-header">
+                        <h2>库存快照</h2>
+                        <a class="text-link" data-template-kind="inventory" href="#">下载 CSV 模板</a>
+                    </div>
+                    <input id="inventoryDatasetFile" type="file" accept=".csv,text/csv">
+                    <div id="inventoryDatasetFileName" class="dataset-file-name">尚未选择文件</div>
+                    <div class="dataset-actions">
+                        <button id="previewInventoryDataset" class="refresh-button" type="button">预检</button>
+                        <button id="uploadInventoryDataset" class="refresh-button dataset-primary" type="button" disabled>保存候选</button>
+                    </div>
+                    <div id="inventoryDatasetPreview" class="dataset-preview" role="status"></div>
+                </article>
+            </div>
+
+            <div class="dataset-card runtime-card">
+                <div class="dataset-card-header">
+                    <div>
+                        <h2>运行快照</h2>
+                        <p>选择已经通过校验的数据、模型和库存版本，生成候选快照后再激活。</p>
+                    </div>
+                    <button id="publishRuntimeSnapshot" class="refresh-button dataset-primary" type="button">发布候选快照</button>
+                </div>
+                <div class="runtime-select-grid">
+                    <label>销售版本<select id="runtimeDataVersion"></select></label>
+                    <label>模型版本<select id="runtimeModelVersion"></select></label>
+                    <label>库存版本<select id="runtimeInventoryVersion"></select></label>
+                </div>
+                <div id="runtimeSnapshotPreview" class="dataset-preview" role="status"></div>
+            </div>
+
+            <div class="dataset-card">
+                <div class="dataset-card-header">
+                    <h2>版本清单</h2>
+                    <button id="refreshDatasetCatalog" class="refresh-button" type="button">刷新清单</button>
+                </div>
+                <div class="dataset-table-wrap">
+                    <table class="dataset-table">
+                        <thead><tr><th>类型</th><th>版本</th><th>业务范围</th><th>创建时间</th><th>状态</th><th>操作</th></tr></thead>
+                        <tbody id="datasetVersionsBody"></tbody>
+                    </table>
+                </div>
+                <div class="dataset-pagination" aria-label="版本清单分页">
+                    <span id="datasetVersionSummary" class="module-status">版本 0/0</span>
+                    <button id="datasetVersionPrev" class="refresh-button" type="button" disabled>上一页</button>
+                    <button id="datasetVersionNext" class="refresh-button" type="button" disabled>下一页</button>
+                </div>
+            </div>
+        </section>
+
+        <section id="modelCenterPage" class="module-page hidden" aria-label="模型中心">
+            <div class="module-page-header">
+                <div>
+                    <span class="route-kicker">MODEL CONTROL / HUMAN ACTIVATION</span>
+                    <h1>模型中心</h1>
+                    <p>训练只生成候选包；只有通过版本兼容校验并由人工确认的模型，才会进入活动运行快照。</p>
+                </div>
+                <span id="modelCenterStatus" class="module-status" aria-live="polite">加载模型清单中</span>
+            </div>
+
+            <div class="dataset-card model-summary-card">
+                <div>
+                    <h2>当前服务模型</h2>
+                    <p id="activeModelSummary">模型版本：--</p>
+                    <p id="activeModelRuntimeSummary">运行快照：--</p>
+                </div>
+                <button id="startModelTraining" class="refresh-button dataset-primary" type="button">训练候选模型</button>
+            </div>
+
+            <div id="modelTrainingStatus" class="dataset-preview" role="status"></div>
+
+            <div class="dataset-card">
+                <div class="dataset-card-header">
+                    <h2>模型版本</h2>
+                    <button id="refreshModelCatalog" class="refresh-button" type="button">刷新清单</button>
+                </div>
+                <div class="dataset-table-wrap">
+                    <table class="dataset-table">
+                        <thead><tr><th>版本</th><th>数据版本</th><th>策略</th><th>指标</th><th>校验摘要</th><th>状态</th><th>操作</th></tr></thead>
+                        <tbody id="modelVersionsBody"></tbody>
+                    </table>
+                </div>
+                <div class="dataset-pagination" aria-label="模型版本分页">
+                    <span id="modelVersionSummary" class="module-status">模型 0/0</span>
+                    <button id="modelVersionPrev" class="refresh-button" type="button" disabled>上一页</button>
+                    <button id="modelVersionNext" class="refresh-button" type="button" disabled>下一页</button>
+                </div>
+            </div>
+
+            <div class="dataset-card">
+                <div class="dataset-card-header">
+                    <h2>训练任务</h2>
+                    <span class="module-status">关闭页面后仍可在此查询</span>
+                </div>
+                <div class="dataset-table-wrap">
+                    <table class="dataset-table">
+                        <thead><tr><th>任务</th><th>阶段</th><th>输入版本</th><th>创建时间</th><th>状态</th><th>错误</th><th>操作</th></tr></thead>
+                        <tbody id="modelJobsBody"></tbody>
+                    </table>
+                </div>
+                <div class="dataset-pagination" aria-label="训练任务分页">
+                    <span id="modelJobSummary" class="module-status">任务 0/0</span>
+                    <button id="modelJobPrev" class="refresh-button" type="button" disabled>上一页</button>
+                    <button id="modelJobNext" class="refresh-button" type="button" disabled>下一页</button>
+                </div>
+            </div>
+        </section>
+
+        <section id="forecastAnalysisPage" class="module-page hidden" aria-label="预测分析">
+            <div class="module-page-header">
+                <div>
+                    <span class="route-kicker">FORECAST ANALYSIS / SOURCE TRACEABLE</span>
+                    <h1>预测分析</h1>
+                    <p>下钻到单个商品和门店，查看历史样本、未来 30 天预测、情景范围和模型基线。</p>
+                </div>
+                <span id="forecastAnalysisStatus" class="module-status" aria-live="polite">加载目录中</span>
+            </div>
+
+            <div class="dataset-card forecast-controls-card">
+                <label class="forecast-search-label">搜索商品
+                    <input id="forecastCatalogSearch" type="search" placeholder="商品名称、品类或 ID">
+                </label>
+                <label>商品<select id="forecastProductSelect"></select></label>
+                <label>门店<select id="forecastStoreSelect"></select></label>
+                <button id="loadForecastDetail" class="refresh-button dataset-primary" type="button">加载明细</button>
+                <button id="exportForecastCsv" class="refresh-button" type="button" disabled>导出 CSV</button>
+                <div class="forecast-pagination" aria-label="商品目录分页">
+                    <span id="forecastCatalogSummary" class="module-status">商品 0/0</span>
+                    <button id="forecastCatalogPrev" class="refresh-button" type="button" disabled>上一页</button>
+                    <button id="forecastCatalogNext" class="refresh-button" type="button" disabled>下一页</button>
+                </div>
+            </div>
+
+            <div id="forecastSourceSummary" class="dataset-preview" role="status"></div>
+            <div id="forecastMetricSummary" class="dataset-preview"></div>
+
+            <div class="dataset-card forecast-chart-card">
+                <div id="forecastAnalysisChart" class="forecast-analysis-chart" role="img" aria-label="历史销量与预测销量"></div>
+            </div>
+
+            <div class="forecast-table-grid">
+                <div class="dataset-card">
+                    <div class="dataset-card-header"><h2>历史样本</h2><span class="module-status">最近 30 天</span></div>
+                    <div class="dataset-table-wrap">
+                        <table class="dataset-table"><thead><tr><th>日期</th><th>实际销量</th><th>价格</th><th>促销</th></tr></thead><tbody id="forecastHistoryBody"></tbody></table>
+                    </div>
+                </div>
+                <div class="dataset-card">
+                    <div class="dataset-card-header"><h2>未来 30 天</h2><span class="module-status">情景范围</span></div>
+                    <div class="dataset-table-wrap">
+                        <table class="dataset-table"><thead><tr><th>日期</th><th>预测销量</th><th>下界</th><th>上界</th></tr></thead><tbody id="forecastFutureBody"></tbody></table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="inventoryDecisionPage" class="module-page hidden" aria-label="库存决策">
+            <div class="module-page-header">
+                <div>
+                    <span class="route-kicker">INVENTORY DECISION / WHAT-IF</span>
+                    <h1>库存决策</h1>
+                    <p>风险清单来自活动库存和未来预测；调整参数只做服务端试算，不直接修改库存或草案。</p>
+                    <p id="inventorySourceSummary" class="route-context">来源版本：--</p>
+                </div>
+                <span id="inventoryDecisionStatus" class="module-status" aria-live="polite">加载库存清单中</span>
+            </div>
+
+            <div class="dataset-card forecast-controls-card">
+                <label class="forecast-search-label">搜索商品/门店
+                    <input id="replenishmentSearch" type="search" placeholder="名称、ID 或风险等级">
+                </label>
+                <label>ABC 优先级<select id="replenishmentAbcFilter"><option value="">全部 ABC</option><option value="A">A</option><option value="B">B</option><option value="C">C</option></select></label>
+                <label>风险<select id="replenishmentRiskFilter"><option value="">全部风险</option><option value="high">高风险</option><option value="medium">中风险</option><option value="low">低风险</option></select></label>
+                <button id="refreshReplenishment" class="refresh-button" type="button">刷新清单</button>
+                <button id="createReplenishmentPlan" class="refresh-button dataset-primary" type="button" disabled>将选中项保存为草案</button>
+            </div>
+
+            <div class="dataset-card">
+                <div class="dataset-card-header"><h2>库存风险清单</h2><span id="replenishmentCoverage" class="module-status">覆盖率：--</span></div>
+                <div class="dataset-table-wrap">
+                    <table class="dataset-table"><thead><tr><th>选择</th><th>商品</th><th>门店</th><th>ABC</th><th>风险</th><th>窗口需求</th><th>净可用</th><th>建议采购</th></tr></thead><tbody id="replenishmentBody"></tbody></table>
+                </div>
+                <div class="dataset-pagination" aria-label="库存风险分页">
+                    <span id="replenishmentSummary" class="module-status">库存 0/0</span>
+                    <button id="replenishmentPrev" class="refresh-button" type="button" disabled>上一页</button>
+                    <button id="replenishmentNext" class="refresh-button" type="button" disabled>下一页</button>
+                </div>
+            </div>
+
+            <div id="replenishmentForm" class="dataset-card hidden">
+                <div class="dataset-card-header"><div><h2 id="replenishmentSelectionTitle">补货试算</h2><p>服务端复算窗口需求、目标库存、MOQ 和包装取整。</p></div><button id="runReplenishmentPreview" class="refresh-button dataset-primary" type="button">重新试算</button></div>
+                <div class="replenishment-input-grid">
+                    <label>Lead time<input id="replenishmentLeadTime" type="number" min="0"></label>
+                    <label>Review period<input id="replenishmentReviewPeriod" type="number" min="0"></label>
+                    <label>Safety stock<input id="replenishmentSafetyStock" type="number" min="0" step="0.1"></label>
+                    <label>Pack size<input id="replenishmentPackSize" type="number" min="1"></label>
+                    <label>MOQ<input id="replenishmentMoq" type="number" min="0"></label>
+                    <label>人工调整数量<input id="replenishmentAdjustmentQuantity" type="number" step="1" value="0"></label>
+                    <label class="replenishment-reason-field">调整原因<input id="replenishmentAdjustmentReason" type="text" maxlength="200" placeholder="例如：活动备货"></label>
+                </div>
+                <div id="replenishmentPreview" class="dataset-preview" role="status"></div>
+                <div class="dataset-card-actions"><button id="addReplenishmentPlan" class="refresh-button dataset-primary" type="button">保存选中项为草案</button></div>
+            </div>
+        </section>
+
+        <section id="planCenterPage" class="module-page hidden" aria-label="计划中心">
+            <div class="module-page-header">
+                <div>
+                    <span class="route-kicker">PLAN CENTER / IMMUTABLE DRAFTS</span>
+                    <h1>计划中心</h1>
+                    <p>查看已保存的补货草案、来源版本和明细；支持本地角色提交、审批、驳回、修订、审计与导出。</p>
+                </div>
+                <span id="planCenterStatus" class="module-status" aria-live="polite">加载草案中</span>
+            </div>
+
+            <div class="dataset-card">
+                <div class="dataset-card-header"><h2>草案历史</h2><button id="refreshPlans" class="refresh-button" type="button">刷新列表</button></div>
+                <div class="dataset-table-wrap">
+                    <table class="dataset-table"><thead><tr><th>草案</th><th>状态</th><th>版次</th><th>条目数</th><th>数据版本</th><th>模型版本</th><th>库存版本</th><th>创建时间</th><th>操作</th></tr></thead><tbody id="planVersionsBody"></tbody></table>
+                </div>
+                <div class="dataset-pagination" aria-label="计划历史分页">
+                    <span id="planVersionSummary" class="module-status">草案 0/0</span>
+                    <button id="planVersionPrev" class="refresh-button" type="button" disabled>上一页</button>
+                    <button id="planVersionNext" class="refresh-button" type="button" disabled>下一页</button>
+                </div>
+            </div>
+
+            <div id="planDetail" class="dataset-card hidden">
+                <div class="dataset-card-header"><div><h2 id="planDetailTitle">草案详情</h2><p id="planDetailSource"></p></div><div id="planWorkflowActions" class="dataset-card-actions"><a id="planDetailExport" class="refresh-button plan-link" href="#" download>导出 CSV</a></div></div>
+                <div id="planDetailSummary" class="dataset-preview"></div>
+                <div class="dataset-table-wrap"><table class="dataset-table"><thead><tr><th>商品</th><th>门店</th><th>风险</th><th>预测销量</th><th>原始建议</th><th>建议采购</th><th>人工调整</th><th>原因</th></tr></thead><tbody id="planDetailItemsBody"></tbody></table></div>
+            </div>
+        </section>
+
+        <section id="systemPage" class="module-page hidden" aria-label="演示系统">
+            <div class="module-page-header">
+                <div>
+                    <span class="route-kicker">SYSTEM / LOCAL OPERATIONS</span>
+                    <h1>演示系统</h1>
+                    <p>查看当前本地演示环境的版本、数据质量和运行快照；诊断操作保持只读。</p>
+                </div>
+                <span id="systemPageStatus" class="module-status" aria-live="polite">加载系统状态中</span>
+            </div>
+
+            <div class="dataset-card">
+                <div class="dataset-card-header"><h2>运行摘要</h2><button id="refreshSystemPage" class="refresh-button" type="button">刷新状态</button></div>
+                <div id="systemSummary" class="system-summary-grid"></div>
+            </div>
+
+            <div class="dataset-card" id="demoScenarioCard">
+                <div class="dataset-card-header"><div><h2>确定性演示场景</h2><p class="dataset-card-note">场景只作用于独立 DEMO_ROOT，切换前会要求确认并保留可恢复备份。</p></div><span id="demoScenarioStatus" class="module-status">加载场景中</span></div>
+                <div class="demo-scenario-controls">
+                    <label for="demoScenarioSelect">场景<select id="demoScenarioSelect" class="select"></select></label>
+                    <div class="dataset-actions">
+                        <button id="applyDemoScenario" class="refresh-button dataset-primary" type="button">切换场景</button>
+                        <button id="createDemoBackup" class="refresh-button" type="button">创建备份</button>
+                        <button id="createDiagnosticPackage" class="refresh-button" type="button">生成诊断包</button>
+                    </div>
+                </div>
+                <div id="demoScenarioDescription" class="dataset-preview"></div>
+                <div class="demo-scenario-controls">
+                    <label for="demoBackupSelect">恢复备份<select id="demoBackupSelect" class="select"></select></label>
+                    <button id="restoreDemoBackup" class="refresh-button" type="button">恢复选中备份</button>
+                </div>
+                <div id="demoArtifactStatus" class="dataset-preview" role="status"></div>
+            </div>
+
+            <div class="forecast-table-grid">
+                <div class="dataset-card"><div class="dataset-card-header"><h2>活动运行快照</h2><span class="module-status">只读</span></div><div class="dataset-table-wrap"><table class="dataset-table"><thead><tr><th>组件</th><th>版本</th></tr></thead><tbody id="systemRuntimeBody"></tbody></table></div></div>
+                <div class="dataset-card"><div class="dataset-card-header"><h2>数据质量</h2><span class="module-status">只读</span></div><div class="dataset-table-wrap"><table class="dataset-table"><thead><tr><th>检查项</th><th>结果</th></tr></thead><tbody id="systemQualityBody"></tbody></table></div></div>
+            </div>
+        </section>
+
         <!-- Dashboard 作用域与运行状态 -->
-        <section class="dashboard-toolbar" aria-label="大屏筛选与状态">
+        <section class="dashboard-toolbar" data-overview-only="true" aria-label="大屏筛选与状态">
             <div class="toolbar-group">
                 <label for="scopeProductSelect">商品范围</label>
                 <select id="scopeProductSelect" class="select">
@@ -36,16 +357,21 @@
                 </select>
             </div>
             <button id="refreshDashboard" class="refresh-button" type="button">刷新数据</button>
+            <input id="planName" class="plan-name" type="text" maxlength="120" value="补货草案" aria-label="补货草案名称">
+            <button id="savePlan" class="refresh-button plan-button" type="button" disabled>保存草案</button>
+            <a id="exportPlan" class="refresh-button plan-link hidden" href="#" download>导出草案</a>
+            <span id="planStatus" class="plan-status" aria-live="polite">需要新鲜库存快照后可保存</span>
             <span id="scopeLabel" class="scope-label">当前范围：全部商品 · 全部门店</span>
             <span id="systemStatus" class="system-status pending" aria-live="polite">状态检查中</span>
             <span id="modelSummary" class="model-summary">模型指标：--</span>
+            <span id="versionSummary" class="version-summary">版本：--</span>
             <span id="lastUpdated" class="last-updated">数据更新时间：--</span>
         </section>
 
         <!-- KPI 卡片 -->
-        <section class="kpi-row">
+        <section class="kpi-row" data-overview-only="true">
             <div class="kpi-card">
-                <div class="kpi-label">总销售额（30天）</div>
+                <div class="kpi-label">总销量（30天）</div>
                 <div class="kpi-value" id="kpiTotalSales">0</div>
             </div>
             <div class="kpi-card">
@@ -57,8 +383,8 @@
                 <div class="kpi-value" id="kpiGrowth">0%</div>
             </div>
             <div class="kpi-card">
-                <div class="kpi-label">预测准确率</div>
-                <div class="kpi-value" id="kpiAccuracy">0%</div>
+                <div class="kpi-label">MAPE（越低越好）</div>
+                <div class="kpi-value" id="kpiMape">0%</div>
             </div>
             <div class="kpi-card">
                 <div class="kpi-label">预警商品数</div>
@@ -67,7 +393,7 @@
         </section>
 
         <!-- 销量趋势图 -->
-        <section class="chart-row main-chart">
+        <section class="chart-row main-chart" data-overview-only="true">
             <div class="panel">
                 <div class="panel-header">
                     <span class="panel-title">销量趋势图（历史 + 预测）</span>
@@ -76,33 +402,33 @@
                         <select id="storeSelect" class="select"></select>
                     </div>
                 </div>
-                <div id="salesLine" class="chart"></div>
+                <div id="salesLine" class="chart" role="img" tabindex="0" aria-label="商品门店历史销量与未来预测趋势图"></div>
             </div>
         </section>
 
         <!-- 库存热力图 + 品类饼图 -->
-        <section class="chart-row two-col">
+        <section class="chart-row two-col" data-overview-only="true">
             <div class="panel">
                 <div class="panel-header">
-                    <span class="panel-title">库存热力图（ABC 分级）</span>
+                    <span class="panel-title">需求优先级热力图（ABC）</span>
                 </div>
-                <div id="inventoryHeatmap" class="chart"></div>
+                <div id="inventoryHeatmap" class="chart" role="img" tabindex="0" aria-label="商品与门店需求优先级热力图"></div>
             </div>
             <div class="panel">
                 <div class="panel-header">
-                    <span class="panel-title">品类销售占比</span>
+                    <span class="panel-title">品类销量占比</span>
                 </div>
-                <div id="categoryPie" class="chart"></div>
+                <div id="categoryPie" class="chart" role="img" tabindex="0" aria-label="品类销量占比图"></div>
             </div>
         </section>
 
         <!-- Top 10 商品 -->
-        <section class="chart-row">
+        <section class="chart-row" data-overview-only="true">
             <div class="panel">
                 <div class="panel-header">
                     <span class="panel-title">Top 10 商品销量排行 + 采购建议</span>
                 </div>
-                <div id="topProducts" class="chart"></div>
+                <div id="topProducts" class="chart" role="img" tabindex="0" aria-label="Top 商品销量与采购建议图"></div>
             </div>
         </section>
     </div>
@@ -120,10 +446,37 @@
     <!-- 错误提示横幅 -->
     <div id="errorBanner" class="error-banner hidden" role="alert" aria-live="assertive"></div>
 
+    <section id="demoLogin" class="demo-login hidden" aria-label="本地演示登录">
+        <div class="demo-login-card">
+            <span class="route-kicker">LOCAL DEMO / ROLE SESSION</span>
+            <h1>登录本地演示</h1>
+            <p>服务端会话用于演示分析员、审批员和管理员的权限边界。</p>
+            <form id="demoLoginForm">
+                <label>账号<input id="demoUsername" name="username" autocomplete="username" required></label>
+                <label>密码<input id="demoPassword" name="password" type="password" autocomplete="current-password" required></label>
+                <button class="refresh-button dataset-primary" type="submit">登录</button>
+            </form>
+            <div id="demoLoginStatus" class="dataset-preview" role="status"></div>
+            <small>本地演示账号：analyst / demo-analyst · approver / demo-approver · admin / demo-admin</small>
+        </div>
+    </section>
+
+    <script src="js/auth.js?v=1"></script>
     <script src="js/api.js?v=2"></script>
+    <script src="js/ui.js?v=1"></script>
+        <script src="js/pages/route-placeholder.js?v=1"></script>
+        <script src="js/pages/data-center.js?v=1"></script>
+        <script src="js/pages/model-center.js?v=1"></script>
+        <script src="js/pages/catalog.js?v=1"></script>
+        <script src="js/pages/forecast-analysis.js?v=1"></script>
+        <script src="js/pages/replenishment.js?v=1"></script>
+        <script src="js/pages/plans.js?v=1"></script>
+        <script src="js/pages/system.js?v=1"></script>
+    <script src="js/app.js?v=1"></script>
+    <script src="js/safe-text.js?v=1"></script>
     <script src="js/charts/kpi-cards.js?v=2"></script>
     <script src="js/charts/sales-line.js?v=2"></script>
-    <script src="js/charts/inventory-heatmap.js?v=2"></script>
+    <script src="js/charts/inventory-heatmap.js?v=3"></script>
     <script src="js/charts/category-pie.js?v=2"></script>
     <script src="js/charts/top-products.js?v=2"></script>
     <script src="js/dashboard.js?v=2"></script>

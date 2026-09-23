@@ -1,0 +1,28 @@
+# Secrets and local configuration
+.env
+.env.*
+
+# Runtime data and model artifacts are mounted by Compose
+data/
+logs/
+data/raw/
+data/processed/
+ml/saved_models/
+*.db
+*.db.bak
+*.sqlite*
+
+# Development-only files
+tests/
+.pytest_cache/
+**/.pytest_cache/
+requirements-dev.txt
+pytest.ini
+**/__pycache__/
+*.py[cod]
+*.log
+*.md
+.git/
+.gitignore
+.dockerignore
+Dockerfile

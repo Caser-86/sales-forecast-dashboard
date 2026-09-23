@@ -5,7 +5,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import List
 
-from pydantic import Field, field_validator
+from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # backend/app/core/config.py → 项目根目录
@@ -38,10 +38,15 @@ class Settings(BaseSettings):
     # ---------- 安全 ----------
     # CORS 允许的源。生产环境应配置为前端实际域名，多个用逗号分隔。
     # 示例: "http://localhost:3000,http://dashboard.example.com"
-    CORS_ORIGINS: str = "http://localhost:3000,http://127.0.0.1:3000,http://localhost:5500"
+    CORS_ORIGINS: str = (
+        "http://localhost:3000,http://127.0.0.1:3000,"
+        "http://localhost:5500,http://127.0.0.1:5500"
+    )
     # 可选 API Token 认证。留空则不启用认证。
     API_TOKEN: str = ""
     API_TOKEN_HEADER: str = "X-API-Token"
+    DEMO_AUTH_ENABLED: bool = False
+    DEMO_SESSION_TTL_SECONDS: int = Field(default=8 * 60 * 60, ge=300, le=7 * 24 * 60 * 60)
 
     # ---------- 日志 ----------
     LOG_LEVEL: str = "INFO"
@@ -50,11 +55,26 @@ class Settings(BaseSettings):
     LOG_FILE_BACKUP_COUNT: int = 5
 
     # ---------- 数据路径 ----------
+    # 非空时把所有可写运行时内容放入独立演示目录。
+    DEMO_ROOT: str = ""
     DATA_RAW_DIR: str = str(BACKEND_DIR / "data" / "raw")
     DATA_PROCESSED_DIR: str = str(BACKEND_DIR / "data" / "processed")
     MODELS_DIR: str = str(BACKEND_DIR / "ml" / "saved_models")
+    MODEL_VERSIONS_DIR: str = str(BACKEND_DIR / "ml" / "saved_models" / "versions")
+    JOBS_DIR: str = str(BACKEND_DIR / "jobs")
+    ACTIVE_MODEL_FILE: str = str(BACKEND_DIR / "ml" / "saved_models" / "active_model.json")
+    DATASET_VERSIONS_DIR: str = str(BACKEND_DIR / "data" / "raw" / "versions")
+    ACTIVE_DATASET_FILE: str = str(BACKEND_DIR / "data" / "raw" / "active_dataset.json")
+    INVENTORY_VERSIONS_DIR: str = str(BACKEND_DIR / "data" / "inventory" / "versions")
+    ACTIVE_INVENTORY_FILE: str = str(BACKEND_DIR / "data" / "inventory" / "active_inventory.json")
+    RUNTIME_SNAPSHOT_DIR: str = str(BACKEND_DIR / "runtime" / "versions")
+    ACTIVE_RUNTIME_SNAPSHOT_FILE: str = str(BACKEND_DIR / "runtime" / "active_runtime.json")
+    INVENTORY_MAX_AGE_DAYS: int = Field(default=7, ge=0, description="库存快照允许的最大年龄")
+    DATASET_MAX_UPLOAD_BYTES: int = Field(default=5 * 1024 * 1024, ge=1024)
+    DATASET_MAX_ROWS: int = Field(default=100_000, ge=1)
+    DATASET_MAX_ERRORS: int = Field(default=100, ge=1, le=1000)
 
-    # ---------- 数据库（保留扩展点，当前未启用）----------
+    # ---------- 数据库（SQLite 草案持久化）----------
     DATABASE_URL: str = f"sqlite:///{(BACKEND_DIR / 'dashboard.db').as_posix()}"
 
     # ---------- API ----------
@@ -98,12 +118,49 @@ class Settings(BaseSettings):
             raise ValueError(f"ENV 必须是 development / production / test, 实际: {v}")
         return v
 
+    @model_validator(mode="before")
+    @classmethod
+    def _apply_demo_root(cls, values):
+        """Use one isolated root for every writable demo artifact."""
+        values = dict(values or {})
+        demo_root = values.get("DEMO_ROOT")
+        if not demo_root:
+            return values
+
+        root = Path(str(demo_root)).expanduser().resolve()
+        path_defaults = {
+            "LOG_DIR": root / "logs",
+            "DATA_RAW_DIR": root / "data" / "raw",
+            "DATA_PROCESSED_DIR": root / "data" / "processed",
+            "MODELS_DIR": root / "ml" / "saved_models",
+            "MODEL_VERSIONS_DIR": root / "ml" / "saved_models" / "versions",
+            "JOBS_DIR": root / "jobs",
+            "ACTIVE_MODEL_FILE": root / "ml" / "saved_models" / "active_model.json",
+            "DATASET_VERSIONS_DIR": root / "data" / "raw" / "versions",
+            "ACTIVE_DATASET_FILE": root / "data" / "raw" / "active_dataset.json",
+            "INVENTORY_VERSIONS_DIR": root / "data" / "inventory" / "versions",
+            "ACTIVE_INVENTORY_FILE": root / "data" / "inventory" / "active_inventory.json",
+            "RUNTIME_SNAPSHOT_DIR": root / "runtime" / "versions",
+            "ACTIVE_RUNTIME_SNAPSHOT_FILE": root / "runtime" / "active_runtime.json",
+        }
+        for name, path in path_defaults.items():
+            values.setdefault(name, str(path))
+        values.setdefault("DATABASE_URL", f"sqlite:///{(root / 'dashboard.db').as_posix()}")
+        return values
+
     def ensure_dirs(self) -> None:
         """确保运行时目录存在。"""
         Path(self.LOG_DIR).mkdir(parents=True, exist_ok=True)
         Path(self.DATA_RAW_DIR).mkdir(parents=True, exist_ok=True)
         Path(self.DATA_PROCESSED_DIR).mkdir(parents=True, exist_ok=True)
         Path(self.MODELS_DIR).mkdir(parents=True, exist_ok=True)
+        Path(self.MODEL_VERSIONS_DIR).mkdir(parents=True, exist_ok=True)
+        Path(self.JOBS_DIR).mkdir(parents=True, exist_ok=True)
+        Path(self.DATASET_VERSIONS_DIR).mkdir(parents=True, exist_ok=True)
+        Path(self.INVENTORY_VERSIONS_DIR).mkdir(parents=True, exist_ok=True)
+        Path(self.RUNTIME_SNAPSHOT_DIR).mkdir(parents=True, exist_ok=True)
+        if self.DATABASE_URL.startswith("sqlite:///"):
+            Path(self.DATABASE_URL[10:]).parent.mkdir(parents=True, exist_ok=True)
 
     # ---------- 兼容旧代码的路径常量 ----------
     @property
@@ -141,10 +198,18 @@ settings = get_settings()
 # 模块级路径常量（保持向后兼容）
 DATA_RAW_DIR = Path(settings.DATA_RAW_DIR)
 DATA_PROCESSED_DIR = Path(settings.DATA_PROCESSED_DIR)
+DATASET_VERSIONS_DIR = Path(settings.DATASET_VERSIONS_DIR)
+ACTIVE_DATASET_FILE = Path(settings.ACTIVE_DATASET_FILE)
+INVENTORY_VERSIONS_DIR = Path(settings.INVENTORY_VERSIONS_DIR)
+ACTIVE_INVENTORY_FILE = Path(settings.ACTIVE_INVENTORY_FILE)
+RUNTIME_SNAPSHOT_DIR = Path(settings.RUNTIME_SNAPSHOT_DIR)
+ACTIVE_RUNTIME_SNAPSHOT_FILE = Path(settings.ACTIVE_RUNTIME_SNAPSHOT_FILE)
 SALES_CSV = settings.SALES_CSV
 FEATURES_CSV = settings.FEATURES_CSV
 REPORT_JSON = settings.REPORT_JSON
 MODELS_DIR = Path(settings.MODELS_DIR)
+MODEL_VERSIONS_DIR = Path(settings.MODEL_VERSIONS_DIR)
+ACTIVE_MODEL_FILE = Path(settings.ACTIVE_MODEL_FILE)
 LSTM_PATH = settings.LSTM_PATH
 LGBM_PATH = settings.LGBM_PATH
 DATABASE_URL = settings.DATABASE_URL

@@ -32,3 +32,20 @@ class TestProducts:
         r = client.get("/api/products")
         cats = {p["category"] for p in r.json()["products"]}
         assert len(cats) == 5
+
+    def test_products_support_search_and_pagination(self, client, monkeypatch):
+        from app.api import products
+
+        monkeypatch.setattr(products.data_service, "get_products", lambda: [
+            {"product_id": 1, "product_name": "苹果", "category": "食品", "base_price": 1.0},
+            {"product_id": 2, "product_name": "香蕉", "category": "食品", "base_price": 2.0},
+            {"product_id": 3, "product_name": "洗衣液", "category": "日化", "base_price": 3.0},
+        ])
+
+        response = client.get("/api/products?search=食&page=2&page_size=1")
+
+        assert response.status_code == 200
+        body = response.json()
+        assert body["total"] == 2
+        assert len(body["products"]) == 1
+        assert body["products"][0]["product_id"] == 2

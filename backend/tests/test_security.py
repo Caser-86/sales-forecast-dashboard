@@ -1,12 +1,18 @@
 """安全与中间件测试。"""
 from __future__ import annotations
 
+import pytest
+from app.core.config import settings
+
 
 class TestCors:
     def test_cors_allowed_origin(self, client):
         """白名单内的源应返回 CORS 头。"""
         r = client.get("/api/products", headers={"Origin": "http://localhost:3000"})
         assert r.headers.get("access-control-allow-origin") == "http://localhost:3000"
+
+        loopback = client.get("/api/products", headers={"Origin": "http://127.0.0.1:5500"})
+        assert loopback.headers.get("access-control-allow-origin") == "http://127.0.0.1:5500"
 
     def test_cors_disallowed_origin(self, client):
         """白名单外的源不应返回 CORS 头。"""
@@ -56,3 +62,63 @@ class TestDocsAccess:
         """开发环境 /docs 可访问。"""
         r = client.get("/docs")
         assert r.status_code == 200
+
+
+class TestApiProtection:
+    def test_configured_token_protects_business_routes(self, client, monkeypatch):
+        """配置 Token 后，业务路由必须拒绝缺失凭据并接受正确凭据。"""
+        monkeypatch.setattr(settings, "API_TOKEN", "task-003-token")
+
+        assert client.get("/api/products").status_code == 401
+        assert client.get(
+            "/api/products",
+            headers={settings.API_TOKEN_HEADER: "task-003-token"},
+        ).status_code == 200
+
+    def test_auth_error_keeps_allowed_cors_headers(self, client, monkeypatch):
+        monkeypatch.setattr(settings, "DEMO_AUTH_ENABLED", True)
+        response = client.get(
+            "/api/auth/me",
+            headers={"Origin": "http://localhost:3000"},
+        )
+
+        assert response.status_code == 401
+        assert response.headers.get("access-control-allow-origin") == "http://localhost:3000"
+        assert response.headers.get("access-control-allow-credentials") == "true"
+
+    def test_configured_rate_limit_returns_429(self, client, monkeypatch):
+        """超过配置的请求窗口后，业务路由返回 429。"""
+        monkeypatch.setattr(settings, "API_TOKEN", "")
+        monkeypatch.setattr(settings, "RATE_LIMIT_ENABLED", True)
+        monkeypatch.setattr(settings, "RATE_LIMIT_REQUESTS", 0)
+
+        assert client.get("/api/products").status_code == 429
+
+    def test_rate_limit_does_not_count_cors_preflight(self, client, monkeypatch):
+        from app.core.rate_limit import rate_limiter
+
+        rate_limiter.reset()
+        monkeypatch.setattr(settings, "RATE_LIMIT_ENABLED", True)
+        monkeypatch.setattr(settings, "RATE_LIMIT_REQUESTS", 1)
+        monkeypatch.setattr(settings, "RATE_LIMIT_WINDOW_SECONDS", 60)
+
+        response = client.options(
+            "/api/datasets/sales/preview",
+            headers={
+                "Origin": "http://localhost:3000",
+                "Access-Control-Request-Method": "POST",
+                "Access-Control-Request-Headers": "content-type,x-filename",
+            },
+        )
+
+        assert response.status_code in (200, 204)
+
+    def test_production_requires_api_token(self, monkeypatch):
+        """生产环境未配置 API Token 时拒绝启动。"""
+        from app import main
+
+        monkeypatch.setattr(settings, "ENV", "production")
+        monkeypatch.setattr(settings, "API_TOKEN", "")
+        assert hasattr(main, "validate_runtime_security")
+        with pytest.raises(RuntimeError, match="API_TOKEN"):
+            main.validate_runtime_security()

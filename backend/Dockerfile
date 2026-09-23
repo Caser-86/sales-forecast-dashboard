@@ -7,12 +7,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libgomp1 curl \
     && rm -rf /var/lib/apt/lists/*
 
+RUN python -m pip install --no-cache-dir \
+    pip==26.2.1 \
+    setuptools==84.0.0
+
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # 创建非 root 用户
 RUN useradd -m -u 1000 appuser && \
-    mkdir -p data/raw data/processed ml/saved_models logs && \
+    mkdir -p data/raw data/processed ml/saved_models runtime logs && \
     chown -R appuser:appuser /app
 
 COPY --chown=appuser:appuser . .

@@ -2,9 +2,9 @@
 
 流程：
 1. 加载 features.csv
-2. 按时间切分训练/验证/测试集（70/15/15）
+2. 按时间切分训练/验证/测试集（60/20/20）
 3. 训练 LSTM 与 LightGBM
-4. 评估 MAPE、RMSE，集成评估
+4. 用验证集选择策略，再用测试集做最终滚动评估
 5. 保存模型与评估报告
 """
 from __future__ import annotations
@@ -12,32 +12,45 @@ from __future__ import annotations
 import json
 import os
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Tuple
 
-import joblib
-import lightgbm_model as lgbm_wrapper
 import numpy as np
 import pandas as pd
 import torch
 import torch.nn as nn
-from feature_engineering import (
+from app.core.config import settings
+from sklearn.preprocessing import StandardScaler
+
+from . import lightgbm_model as lgbm_wrapper
+from .artifacts import publish_model_package
+from .backtest import (
+    combine_backtest_results,
+    make_lightgbm_forecaster,
+    make_lstm_forecaster,
+    rolling_backtest,
+    seasonal_naive_forecast,
+    select_forecast_strategy,
+)
+from .feature_engineering import (
     FEATURE_COLS,
     LSTM_FEATURE_COLS,
     TARGET_COL,
     load_features,
 )
-from lstm_model import SEQ_LEN, SalesLSTM, build_sequences
-from lstm_model import save_model as save_lstm
-from sklearn.preprocessing import StandardScaler
+from .future_features import CALENDAR_VERSION
+from .lstm_model import SEQ_LEN, SalesLSTM, build_sequences
+from .lstm_model import save_model as save_lstm
+from .scaler_io import save_scaler
 
 BACKEND_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-PROCESSED_DIR = os.path.join(BACKEND_DIR, "data", "processed")
-MODELS_DIR = os.path.join(BACKEND_DIR, "ml", "saved_models")
+PROCESSED_DIR = settings.DATA_PROCESSED_DIR
+MODELS_DIR = settings.MODELS_DIR
 LSTM_PATH = os.path.join(MODELS_DIR, "lstm_model.pth")
 LGBM_PATH = os.path.join(MODELS_DIR, "lightgbm_model.txt")
-SCALER_X_PATH = os.path.join(MODELS_DIR, "lstm_scaler_x.joblib")
-SCALER_Y_PATH = os.path.join(MODELS_DIR, "lstm_scaler_y.joblib")
-REPORT_PATH = os.path.join(PROCESSED_DIR, "evaluation_report.json")
+SCALER_X_PATH = os.path.join(MODELS_DIR, "lstm_scaler_x.json")
+SCALER_Y_PATH = os.path.join(MODELS_DIR, "lstm_scaler_y.json")
+REPORT_PATH = str(settings.REPORT_JSON)
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 EPOCHS = 100
@@ -90,15 +103,51 @@ def _evaluate_seasonal_naive(
 
 
 def _time_split(df: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
-    """按日期时间切分 70/15/15。"""
+    """按日期时间切分 60/20/20，确保验证集和测试集可容纳30天回测。"""
     dates = np.sort(df["date"].unique())
     n = len(dates)
-    train_end = dates[int(n * 0.70)]
-    val_end = dates[int(n * 0.85)]
+    if n < 5:
+        raise ValueError("训练数据至少需要 5 个日期")
+    train_cut = max(1, int(n * 0.60))
+    validation_cut = max(train_cut + 1, int(n * 0.80))
+    train_end = dates[train_cut - 1]
+    val_end = dates[min(validation_cut - 1, n - 2)]
     train = df[df["date"] <= train_end]
     val = df[(df["date"] > train_end) & (df["date"] <= val_end)]
     test = df[df["date"] > val_end]
     return train, val, test
+
+
+def _early_stopping_window(df: pd.DataFrame, ratio: float = 0.15) -> pd.DataFrame:
+    """Use a tail inside the training corpus for early stopping, not selection."""
+    dates = np.sort(df["date"].unique())
+    holdout_days = max(1, int(len(dates) * ratio))
+    start = dates[max(0, len(dates) - holdout_days)]
+    return df[df["date"] >= start].copy()
+
+
+def _backtest_origins(
+    frame: pd.DataFrame,
+    *,
+    start: pd.Timestamp,
+    end: pd.Timestamp,
+    horizon: int,
+    limit: int = 3,
+) -> list[pd.Timestamp]:
+    """Return early origins whose complete horizon stays inside a split window."""
+    if limit <= 0:
+        raise ValueError("limit 必须大于 0")
+    dates = sorted(pd.to_datetime(frame["date"]).drop_duplicates())
+    candidates = [
+        date for date in dates
+        if pd.Timestamp(start) <= date <= pd.Timestamp(end)
+        and date + pd.Timedelta(days=horizon) <= pd.Timestamp(end)
+    ]
+    if len(candidates) < limit:
+        raise ValueError(
+            f"时间窗口不足以生成 {limit} 个 {horizon} 天回测 origin，实际只有 {len(candidates)} 个"
+        )
+    return [pd.Timestamp(date) for date in candidates[:limit]]
 
 
 # ---------------- LSTM 训练 ----------------
@@ -189,8 +238,8 @@ def train_lstm(train_df: pd.DataFrame, val_df: pd.DataFrame) -> Tuple[SalesLSTM,
 
     # 保存 scaler
     os.makedirs(MODELS_DIR, exist_ok=True)
-    joblib.dump(scaler_x, SCALER_X_PATH)
-    joblib.dump(scaler_y, SCALER_Y_PATH)
+    save_scaler(scaler_x, SCALER_X_PATH)
+    save_scaler(scaler_y, SCALER_Y_PATH)
     save_lstm(model, LSTM_PATH)
     print(f"  LSTM 模型已保存 → {LSTM_PATH}")
     return model, {"scaler_x": scaler_x, "scaler_y": scaler_y}
@@ -252,49 +301,234 @@ def eval_lgbm(model, test_df: pd.DataFrame) -> Tuple[pd.Series, dict]:
     return pd.Series(pred, index=test_df.index), metrics
 
 
+def _active_dataset_version() -> str:
+    """Read the active dataset ID without making training depend on imports."""
+    try:
+        from app.services.dataset_service import get_active_dataset_id
+
+        return get_active_dataset_id()
+    except Exception:
+        return os.environ.get("DATASET_VERSION", "legacy")
+
+
 # ---------------- 主流程 ----------------
 
-def train_all() -> dict:
-    print("[1/4] 加载特征数据...")
+def _rolling_protocol(result: dict) -> dict:
+    """Expose the scope shared by every model in one rolling evaluation."""
+    return {
+        "horizon_days": int(result["horizon"]),
+        "origins": list(result["origins"]),
+        "origin_count": len(result["origins"]),
+        "eligible_key_count": len(result["evaluated_keys"]),
+        "min_history_days": SEQ_LEN,
+    }
+
+
+def _build_selection_candidates(lstm_result: dict, lgbm_result: dict) -> dict:
+    """Build individual, baseline, and transparent fixed-weight candidates."""
+    candidates = {
+        "lstm": {
+            "metrics": lstm_result["model"],
+            "strategy": "lstm",
+            "weights": {"lstm": 1.0, "lightgbm": 0.0},
+        },
+        "lightgbm": {
+            "metrics": lgbm_result["model"],
+            "strategy": "lightgbm",
+            "weights": {"lstm": 0.0, "lightgbm": 1.0},
+        },
+        "seasonal_naive_7d": {
+            "metrics": lgbm_result["baseline"],
+            "strategy": "seasonal_naive_7d",
+            "weights": {"lstm": 0.0, "lightgbm": 0.0},
+        },
+    }
+    for lightgbm_weight in (0.2, 0.4, 0.6, 0.8):
+        combined = combine_backtest_results(
+            lstm_result,
+            lgbm_result,
+            left_weight=1.0 - lightgbm_weight,
+            right_weight=lightgbm_weight,
+        )
+        name = f"ensemble_{int((1.0 - lightgbm_weight) * 100)}_{int(lightgbm_weight * 100)}"
+        candidates[name] = {
+            "metrics": combined["model"],
+            "strategy": "ensemble",
+            "weights": {"lstm": 1.0 - lightgbm_weight, "lightgbm": lightgbm_weight},
+        }
+    return candidates
+
+
+def _select_test_result(selected: dict, lstm_result: dict, lgbm_result: dict) -> dict:
+    """Return the final test result for the strategy selected on validation."""
+    strategy = selected["strategy"]
+    if strategy == "lstm":
+        return lstm_result
+    if strategy == "lightgbm":
+        return lgbm_result
+    if strategy == "seasonal_naive_7d":
+        return {
+            "origins": lgbm_result["origins"],
+            "horizon": lgbm_result["horizon"],
+            "evaluated_keys": lgbm_result["evaluated_keys"],
+            "model": lgbm_result["baseline"],
+        }
+    return combine_backtest_results(
+        lstm_result,
+        lgbm_result,
+        left_weight=float(selected["weights"]["lstm"]),
+        right_weight=float(selected["weights"]["lightgbm"]),
+    )
+
+
+def train_all(*, activate: bool = True, data_version: str | None = None) -> dict:
+    """Train a model package, optionally leaving it as an inactive candidate."""
+    print("[1/6] 加载特征数据...")
     df = load_features()
     print(f"  数据形状: {df.shape}, 日期范围: {df['date'].min()} ~ {df['date'].max()}")
 
     train_df, val_df, test_df = _time_split(df)
-    print(f"[2/4] 切分数据: train={len(train_df)}, val={len(val_df)}, test={len(test_df)}")
+    print(f"[2/6] 切分数据: train={len(train_df)}, val={len(val_df)}, test={len(test_df)}")
 
-    # 训练 LSTM
-    lstm_model, scalers = train_lstm(train_df, val_df)
-    lstm_preds, lstm_metrics = eval_lstm(lstm_model, test_df, scalers)
-    print(f"  LSTM  → MAPE={lstm_metrics['mape']:.2f}%, RMSE={lstm_metrics['rmse']:.2f}")
+    backtest_columns = list(dict.fromkeys(
+        ["date", "product_id", "store_id", "sales"] + FEATURE_COLS + LSTM_FEATURE_COLS
+    ))
+    backtest_frame = df[backtest_columns]
 
-    # 训练 LightGBM
-    lgbm_model = train_lgbm(train_df, val_df)
-    lgbm_preds, lgbm_metrics = eval_lgbm(lgbm_model, test_df)
-    print(f"  LGBM  → MAPE={lgbm_metrics['mape']:.2f}%, RMSE={lgbm_metrics['rmse']:.2f}")
+    # 先只用 train 训练候选模型，validation 只用于策略选择。
+    early_stop_train = _early_stopping_window(train_df)
+    print("[3/6] 训练验证候选模型...")
+    selection_lstm, selection_scalers = train_lstm(train_df, early_stop_train)
+    selection_lgbm = train_lgbm(train_df, early_stop_train)
+    selection_origins = _backtest_origins(
+        backtest_frame,
+        start=train_df["date"].max(),
+        end=val_df["date"].max(),
+        horizon=settings.FORECAST_DAYS,
+    )
+    selection_lgbm_rolling = rolling_backtest(
+        backtest_frame,
+        make_lightgbm_forecaster(selection_lgbm),
+        origins=selection_origins,
+        horizon=settings.FORECAST_DAYS,
+        min_history_days=SEQ_LEN,
+        baseline_forecaster=seasonal_naive_forecast,
+    )
+    selection_lstm_rolling = rolling_backtest(
+        backtest_frame,
+        make_lstm_forecaster(
+            selection_lstm,
+            selection_scalers["scaler_x"],
+            selection_scalers["scaler_y"],
+            DEVICE,
+        ),
+        origins=selection_lgbm_rolling["origins"],
+        horizon=settings.FORECAST_DAYS,
+        min_history_days=SEQ_LEN,
+        baseline_forecaster=seasonal_naive_forecast,
+    )
+    if selection_lgbm_rolling["evaluated_keys"] != selection_lstm_rolling["evaluated_keys"]:
+        raise RuntimeError("LSTM 与 LightGBM 滚动回测评估 key 不一致")
+    selection_candidates = _build_selection_candidates(
+        selection_lstm_rolling,
+        selection_lgbm_rolling,
+    )
+    selected = select_forecast_strategy(selection_candidates)
+    selected["protocol"] = _rolling_protocol(selection_lgbm_rolling)
+    print(
+        f"  验证集选择 → {selected['strategy']} ({selected['candidate']}), "
+        f"{selected['metric']}={selected['score']:.4f}"
+    )
 
-    # 集成（对齐到同一行：LSTM 只能在有 14 天历史的样本上预测）
+    # 策略确定后，用 train + validation 重训最终发布模型，test 只做一次最终评估。
+    fit_df = pd.concat([train_df, val_df], ignore_index=True)
+    print("[4/6] 使用 train + validation 重训发布模型...")
+    final_lstm, scalers = train_lstm(fit_df, _early_stopping_window(fit_df))
+    final_lgbm = train_lgbm(fit_df, _early_stopping_window(fit_df))
+    lstm_preds, lstm_metrics = eval_lstm(final_lstm, test_df, scalers)
+    lgbm_preds, lgbm_metrics = eval_lgbm(final_lgbm, test_df)
+    baseline_metrics = _evaluate_seasonal_naive(df, test_df)
     align = pd.DataFrame({
         "lstm": lstm_preds,
         "lgbm": lgbm_preds,
         "y": test_df[TARGET_COL].values.astype(float),
-    }, index=test_df.index)
-    align = align.dropna(subset=["lstm", "lgbm"])
-    ensemble_arr = 0.4 * align["lstm"].values + 0.6 * align["lgbm"].values
+    }, index=test_df.index).dropna(subset=["lstm", "lgbm"])
+    ensemble_arr = (
+        float(selected["weights"].get("lstm", 0.0)) * align["lstm"].values
+        + float(selected["weights"].get("lightgbm", 0.0)) * align["lgbm"].values
+    )
     ensemble_metrics = {
-        "mape": _mape(align["y"].values, ensemble_arr),
-        "rmse": _rmse(align["y"].values, ensemble_arr),
+        "mape": _mape(align["y"].values, ensemble_arr)
+        if selected["strategy"] == "ensemble" else 0.0,
+        "rmse": _rmse(align["y"].values, ensemble_arr)
+        if selected["strategy"] == "ensemble" else 0.0,
+        "samples": int(len(align)),
     }
-    print(f"  集成  → MAPE={ensemble_metrics['mape']:.2f}%, RMSE={ensemble_metrics['rmse']:.2f} "
-          f"(对齐样本数: {len(align)})")
+    if selected["strategy"] == "lstm":
+        ensemble_metrics = lstm_metrics
+    elif selected["strategy"] == "lightgbm":
+        ensemble_metrics = lgbm_metrics
+    elif selected["strategy"] == "seasonal_naive_7d":
+        ensemble_metrics = baseline_metrics
 
-    baseline_metrics = _evaluate_seasonal_naive(df, test_df)
-    print(f"  前一周同日基线 → MAPE={baseline_metrics['mape']:.2f}%, "
-          f"RMSE={baseline_metrics['rmse']:.2f} (样本数: {baseline_metrics['samples']})")
+    test_origins = _backtest_origins(
+        backtest_frame,
+        start=val_df["date"].max(),
+        end=test_df["date"].max(),
+        horizon=settings.FORECAST_DAYS,
+    )
+    print("[5/6] 在未参与选择的 test 窗口执行最终滚动回测...")
+    test_lgbm_rolling = rolling_backtest(
+        backtest_frame,
+        make_lightgbm_forecaster(final_lgbm),
+        origins=test_origins,
+        horizon=settings.FORECAST_DAYS,
+        min_history_days=SEQ_LEN,
+        baseline_forecaster=seasonal_naive_forecast,
+    )
+    test_lstm_rolling = rolling_backtest(
+        backtest_frame,
+        make_lstm_forecaster(final_lstm, scalers["scaler_x"], scalers["scaler_y"], DEVICE),
+        origins=test_lgbm_rolling["origins"],
+        horizon=settings.FORECAST_DAYS,
+        min_history_days=SEQ_LEN,
+        baseline_forecaster=seasonal_naive_forecast,
+    )
+    if test_lgbm_rolling["evaluated_keys"] != test_lstm_rolling["evaluated_keys"]:
+        raise RuntimeError("最终 LSTM 与 LightGBM 滚动回测评估 key 不一致")
+    selected_test = _select_test_result(selected, test_lstm_rolling, test_lgbm_rolling)
+    rolling_report = {
+        "protocol": _rolling_protocol(test_lgbm_rolling),
+        "lstm": test_lstm_rolling["model"],
+        "lightgbm": test_lgbm_rolling["model"],
+        "seasonal_naive_7d": test_lgbm_rolling["baseline"],
+        "selected": {
+            "strategy": selected["strategy"],
+            "candidate": selected["candidate"],
+            "metrics": selected_test["model"],
+        },
+        "selection": {
+            "protocol": selected["protocol"],
+            "selected": selected,
+            "candidates": {
+                name: spec["metrics"] for name, spec in selection_candidates.items()
+            },
+        },
+    }
+
+    model_selection = {
+        "strategy": selected["strategy"],
+        "candidate": selected["candidate"],
+        "weights": selected["weights"],
+        "metric": selected["metric"],
+        "validation_score": selected["score"],
+        "validation_protocol": selected["protocol"],
+    }
 
     report = {
         "metadata": {
             "trained_at_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-            "horizon_days": 30,
+            "horizon_days": settings.FORECAST_DAYS,
             "feature_count": len(FEATURE_COLS),
             "data": {
                 "rows": int(len(df)),
@@ -308,7 +542,9 @@ def train_all() -> dict:
                 "train_end": str(train_df["date"].max().date()),
                 "validation_end": str(val_df["date"].max().date()),
             },
-            "ensemble_weights": {"lstm": 0.4, "lightgbm": 0.6},
+            "ensemble_weights": selected["weights"],
+            "model_selection": model_selection,
+            "rolling_backtest": rolling_report,
         },
         "seasonal_naive_7d": baseline_metrics,
         "lstm": lstm_metrics,
@@ -318,10 +554,57 @@ def train_all() -> dict:
     os.makedirs(PROCESSED_DIR, exist_ok=True)
     with open(REPORT_PATH, "w", encoding="utf-8") as f:
         json.dump(report, f, ensure_ascii=False, indent=2)
-    print(f"[4/4] 评估报告已保存 → {REPORT_PATH}")
+    (Path(MODELS_DIR) / "evaluation_report.json").write_text(
+        json.dumps(report, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+    print(f"[6/6] 评估报告已保存 → {REPORT_PATH}")
+    category_encoder_path = Path(MODELS_DIR) / "category_encoder.json"
+    category_encoder_path.write_text(
+        json.dumps(
+            {
+                "classes": sorted(df["category"].astype(str).unique().tolist()),
+                "calendar_version": CALENDAR_VERSION,
+            },
+            ensure_ascii=False,
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+    (Path(MODELS_DIR) / "feature_schema.json").write_text(
+        json.dumps(
+            {
+                "feature_cols": FEATURE_COLS,
+                "lstm_feature_cols": LSTM_FEATURE_COLS,
+                "target_col": TARGET_COL,
+                "calendar_version": CALENDAR_VERSION,
+                "horizon_days": settings.FORECAST_DAYS,
+            },
+            ensure_ascii=False,
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+    (Path(MODELS_DIR) / "model_selection.json").write_text(
+        json.dumps(model_selection, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+    data_version = data_version or _active_dataset_version()
+    package = publish_model_package(
+        Path(MODELS_DIR),
+        data_version=data_version,
+        activate=activate,
+    )
+    report["metadata"]["model_id"] = package["model_id"]
+    report["metadata"]["data_version"] = data_version
+    with open(REPORT_PATH, "w", encoding="utf-8") as f:
+        json.dump(report, f, ensure_ascii=False, indent=2)
+    if activate:
+        print(f"  模型版本已发布并激活 → {package['model_id']}")
+    else:
+        print(f"  候选模型包已生成（未激活） → {package['model_id']}")
     print("训练完成。")
     return report
-
 
 if __name__ == "__main__":
     train_all()
