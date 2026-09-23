@@ -31,6 +31,19 @@ class TestHealth:
         assert "lstm_model" in body["checks"]
         assert "lightgbm_model" in body["checks"]
 
+    def test_health_distinguishes_demo_auth_from_api_token_auth(self, client, monkeypatch):
+        """Readiness exposes session auth separately from the legacy API token flag."""
+        from app.core.config import settings
+
+        monkeypatch.setattr(settings, "API_TOKEN", "")
+        monkeypatch.setattr(settings, "DEMO_AUTH_ENABLED", True)
+
+        response = client.get("/health")
+
+        assert response.status_code == 200
+        assert response.json()["auth_enabled"] is False
+        assert response.json()["demo_auth_enabled"] is True
+
     def test_health_checks_all_ok(self, client):
         """健康检查所有依赖项状态应为 ok。"""
         r = client.get("/health")

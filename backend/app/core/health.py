@@ -83,6 +83,7 @@ def _readiness_payload() -> Dict[str, Any]:
         "env": settings.ENV,
         "version": settings.APP_VERSION,
         "auth_enabled": settings.auth_enabled,
+        "demo_auth_enabled": bool(settings.DEMO_AUTH_ENABLED),
         "checks": checks,
     }
 
