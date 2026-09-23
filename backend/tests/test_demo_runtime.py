@@ -125,8 +125,6 @@ def test_windows_demo_supports_offline_guard_and_reference_cpu_affinity():
     assert "check_reference_machine.ps1" in t10_script
     assert "verify_offline_demo.ps1" in t10_script
     assert "benchmark_demo.ps1" in t10_script
-    assert 'manualReplayStatus = "required_external"' in t10_script
-    assert 'if ($manualEvidenceComplete)' in t10_script
     assert 'Get-Content -LiteralPath $manualTemplatePath -Raw -Encoding UTF8' in t10_script
     assert "T10_FINAL_CONCLUSION:" in t10_script
     assert "[char]0x672A" in t10_script
@@ -135,11 +133,12 @@ def test_windows_demo_supports_offline_guard_and_reference_cpu_affinity():
     assert "manualHasUncheckedItems" in t10_script
     assert "manualHasEmptyTableCells" in t10_script
     assert "'(?m)\\|[ \\t]*\\|'" in t10_script
-    assert 'manual_fully_disconnected_replay = $manualReplayStatus' in t10_script
+    assert 'manual_fully_disconnected_replay = "required_external"' in t10_script
     assert "if (-not (Test-Path -LiteralPath $manualTemplatePath))" in t10_script
     assert "Copy-Item -LiteralPath $manualTemplateSource -Destination $manualTemplatePath" in t10_script
     assert "manual_evidence_complete = $manualEvidenceComplete" in t10_script
     assert "if (-not $manualEvidenceComplete)" in t10_script
+    assert "manualReplayStatus" not in t10_script
     assert "-CpuAffinityCores" in benchmark_script
     assert "under_memory_budget" in benchmark_script
     assert "ExpectedLogicalProcessors" in reference_script

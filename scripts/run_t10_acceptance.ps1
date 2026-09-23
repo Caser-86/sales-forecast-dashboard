@@ -53,11 +53,6 @@ if ($manualHasUnfilledPlaceholder) { $manualEvidenceComplete = $false }
 if ($manualHasUncheckedItems) { $manualEvidenceComplete = $false }
 if ($manualHasEmptyTableCells) { $manualEvidenceComplete = $false }
 if (-not $manualConclusion.Success) { $manualEvidenceComplete = $false }
-$manualReplayStatus = "required_external"
-if ($manualEvidenceComplete) {
-    $manualReplayStatus = "operator_recorded"
-}
-
 $referenceFactsText = & powershell -NoProfile -ExecutionPolicy Bypass -File $checkScript `
     -ExpectedLogicalProcessors $ExpectedLogicalProcessors -ExpectedMemoryGB $ExpectedMemoryGB
 $referenceFactsText | Set-Content -LiteralPath $referenceFactsPath -Encoding utf8
@@ -84,7 +79,7 @@ $report = [ordered]@{
     benchmark_log = $benchmarkLogPath
     manual_evidence_template = $manualTemplatePath
     manual_evidence_complete = $manualEvidenceComplete
-    manual_fully_disconnected_replay = $manualReplayStatus
+    manual_fully_disconnected_replay = "required_external"
 }
 
 if ($referenceExitCode -ne 0) {
