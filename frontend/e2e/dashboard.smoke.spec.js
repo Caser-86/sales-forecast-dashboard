@@ -77,6 +77,15 @@ test("navigates with keyboard, survives refresh, and preserves the active scope"
     await expect(page).toHaveURL(/#inventory\?product=1/);
     await expect(page.locator("#inventoryDecisionPage")).toBeVisible();
     await expect(page.locator("#forecastAnalysisPage")).toBeHidden();
+    await page.locator('.app-nav [data-route="overview"]').click();
+    await expect.poll(() => page.evaluate(() => {
+        const chartIds = ["salesLine", "inventoryHeatmap", "categoryPie", "topProducts"];
+        return Math.min(...chartIds.map(id => {
+            const element = document.getElementById(id);
+            const chart = echarts.getInstanceByDom(element);
+            return (chart?.getWidth() || 0) / element.clientWidth;
+        }));
+    })).toBeGreaterThan(0.9);
 });
 
 test("keeps the navigation shell usable at desktop acceptance widths", async ({ page }) => {

@@ -121,6 +121,15 @@ function initNavigation() {
     }
     setRoute(state.route);
     window.addEventListener("hashchange", () => setRoute(window.location.hash.slice(1).toLowerCase()));
+    // Hidden modules may initialize charts at zero width; resize when their layout becomes visible.
+    const chartObserver = new ResizeObserver(entries => {
+        entries.forEach(entry => {
+            if (entry.contentRect.width > 0 && entry.contentRect.height > 0) {
+                requestAnimationFrame(() => window.echarts?.getInstanceByDom(entry.target)?.resize());
+            }
+        });
+    });
+    document.querySelectorAll(".chart").forEach(element => chartObserver.observe(element));
 }
 
 window.AppNavigation = {
