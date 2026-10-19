@@ -8,8 +8,6 @@ function normalizeBase(value) {
 }
 
 function getBase() {
-    const host = window.location.hostname;
-    const port = window.location.port;
     const protocol = window.location.protocol;
 
     // 特殊部署或本地开发可在加载 api.js 前设置 window.API_BASE_URL。
@@ -23,11 +21,7 @@ function getBase() {
         return "http://localhost:8000/api";
     }
 
-    // 开发模式：前端 3000/5500 端口访问 → 后端 8000。
-    if (port === "3000" || port === "5500") {
-        return `${protocol}//${host}:8000/api`;
-    }
-    // 生产模式：通过 nginx 80 端口反代
+    // Windows 启动器与 nginx 均提供同源 API，自定义端口无需浏览器注入配置。
     return "/api";
 }
 

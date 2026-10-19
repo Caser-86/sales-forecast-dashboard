@@ -85,10 +85,10 @@ try {
         $offlineCode = "import offline_socket_guard, uvicorn; uvicorn.run('app.main:app', host='127.0.0.1', port=$BackendPort)"
         $backendArguments = @("-c", "`"$offlineCode`"")
     }
-    $backendProcess = Start-Process -FilePath $python -ArgumentList $backendArguments -WorkingDirectory (Join-Path $projectRoot "backend") -RedirectStandardOutput $backendLog -RedirectStandardError $backendErrorLog -PassThru
+    $backendProcess = Start-Process -FilePath $python -ArgumentList $backendArguments -WorkingDirectory (Join-Path $projectRoot "backend") -RedirectStandardOutput $backendLog -RedirectStandardError $backendErrorLog -WindowStyle Hidden -PassThru
     $frontendProcess = Start-Process -FilePath $python -ArgumentList @(
-        "-m", "http.server", "$FrontendPort", "--bind", "127.0.0.1"
-    ) -WorkingDirectory (Join-Path $projectRoot "frontend") -RedirectStandardOutput $frontendLog -RedirectStandardError $frontendErrorLog -PassThru
+        "-m", "scripts.serve_demo", "--port", "$FrontendPort", "--backend-port", "$BackendPort"
+    ) -WorkingDirectory $projectRoot -RedirectStandardOutput $frontendLog -RedirectStandardError $frontendErrorLog -WindowStyle Hidden -PassThru
 
     if ($CpuAffinityCores -gt 0) {
         $logicalProcessors = (Get-CimInstance Win32_Processor | Measure-Object -Property NumberOfLogicalProcessors -Sum).Sum
@@ -108,7 +108,8 @@ try {
         try {
             $health = Invoke-WebRequest -Uri "$backendUrl/health" -UseBasicParsing -TimeoutSec 2
             $frontend = Invoke-WebRequest -Uri $frontendUrl -UseBasicParsing -TimeoutSec 2
-            if ($health.StatusCode -eq 200 -and $frontend.StatusCode -eq 200) { $ready = $true; break }
+            $proxiedHealth = Invoke-WebRequest -Uri "$frontendUrl/health" -UseBasicParsing -TimeoutSec 2
+            if ($health.StatusCode -eq 200 -and $frontend.StatusCode -eq 200 -and $proxiedHealth.StatusCode -eq 200) { $ready = $true; break }
         } catch { }
         Start-Sleep -Seconds 1
     }

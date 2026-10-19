@@ -1,6 +1,26 @@
 # 部署与面试前检查清单
 
-这份清单用于在面试前从干净状态启动并验证项目。它只证明本机 Docker Compose 可运行，不代表项目已经完成公网部署。
+这份清单用于在面试前启动并验证项目，涵盖 Windows 原生入口与可选的 Docker Compose 入口。检查结果用于本地演示验收。
+
+## Windows 面试现场快速检查
+
+首次安装和数据/模型准备按 [README](../README.md) 完成。面试当天在仓库根目录执行：
+
+```powershell
+scripts\start_demo.ps1 -Root .demo-runtime -WithAuth
+Invoke-RestMethod http://127.0.0.1:3000/health | ConvertTo-Json -Depth 5
+Invoke-RestMethod http://127.0.0.1:3000/api/auth/config | ConvertTo-Json -Depth 5
+```
+
+确认健康状态为 `healthy`、`demo_auth_enabled=true`，认证配置为 `enabled=true`，再打开 <http://127.0.0.1:3000>。前端入口同时转发 API；自定义端口时以 `-FrontendPort` 为浏览器与上述检查的端口，无需修改页面脚本。
+
+管理员登录后确认标准场景、活动版本和质量状态；退出并试登录分析员与审批员，按 [12 分钟讲稿](interview-demo.md) 完成一次草案、审批和导出。演示结束执行：
+
+```powershell
+scripts\stop_demo.ps1 -Root .demo-runtime
+```
+
+以下第 1–6 节用于 Compose 运行与排错，第 7–8 节用于完整 V2 验收。
 
 ## 1. 启动前准备
 

@@ -53,6 +53,8 @@ test("keeps primary actions reachable at the narrow viewport", async ({ page }) 
 
 test("navigates with keyboard, survives refresh, and preserves the active scope", async ({ page }) => {
     await waitForDashboard(page);
+    await expect(page.locator("#dataCenterPage")).toBeHidden();
+    await expect(page.locator("#modelCenterPage")).toBeHidden();
 
     await page.locator("#scopeProductSelect").selectOption("1");
     await page.locator('.app-nav [data-route="forecast"]').focus();
@@ -67,6 +69,14 @@ test("navigates with keyboard, survives refresh, and preserves the active scope"
     await expect(page).toHaveURL(/#forecast\?product=1/);
     await expect(page.locator("#routePlaceholderTitle")).toHaveText("预测分析");
     await expect(page.locator(".app-nav [data-route=forecast]")).toHaveAttribute("aria-current", "page");
+    await expect(page.locator(".kpi-row")).toBeHidden();
+    await expect(page).toHaveTitle("预测分析 · 零售预测与补货工作台");
+    await page.locator("#demoGuide summary").click();
+    await expect(page.locator('[data-guide-route="forecast"]')).toHaveAttribute("aria-current", "step");
+    await page.locator('[data-guide-route="inventory"]').click();
+    await expect(page).toHaveURL(/#inventory\?product=1/);
+    await expect(page.locator("#inventoryDecisionPage")).toBeVisible();
+    await expect(page.locator("#forecastAnalysisPage")).toBeHidden();
 });
 
 test("keeps the navigation shell usable at desktop acceptance widths", async ({ page }) => {

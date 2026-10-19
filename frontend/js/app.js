@@ -39,8 +39,8 @@ function buildRouteHash(route, scope = {}) {
 }
 
 function updateNavigationLinks(scope) {
-    document.querySelectorAll(".app-nav [data-route]").forEach(link => {
-        link.setAttribute("href", buildRouteHash(link.dataset.route, scope));
+    document.querySelectorAll(".app-nav [data-route], [data-guide-route]").forEach(link => {
+        link.setAttribute("href", buildRouteHash(link.dataset.route || link.dataset.guideRoute, scope));
     });
 }
 
@@ -49,6 +49,11 @@ function setRoute(route = getRouteState().route) {
     const activeRoute = ROUTE_ORDER.includes(route) ? route : state.route;
     const dashboard = document.querySelector(".dashboard");
     dashboard.dataset.route = activeRoute;
+    document.title = `${ROUTE_COPY[activeRoute].title} · 零售预测与补货工作台`;
+    document.querySelectorAll("[data-guide-route]").forEach(link => {
+        if (link.dataset.guideRoute === activeRoute) link.setAttribute("aria-current", "step");
+        else link.removeAttribute("aria-current");
+    });
     document.querySelectorAll(".app-nav [data-route]").forEach(link => {
         const isActive = link.dataset.route === activeRoute;
         link.classList.toggle("active", isActive);

@@ -1,15 +1,15 @@
-/* 销售数据预测与可视化大屏 - 暗紫色科技风主题 */
+/* 零售工作台：沿用深色图表，降低装饰噪声并强化操作层级。 */
 :root {
     --bg-main: #0d0e2c;
     --bg-panel: #1a1b3a;
-    --border: #4a4dc4;
+    --border: #353b65;
     --primary: #6c5ce7;
     --accent-cyan: #00e5ff;
     --accent-red: #ff6b6b;
     --accent-yellow: #ffd93d;
     --accent-green: #6bcf7f;
     --text: #e0e0ff;
-    --text-dim: #8a8db5;
+    --text-dim: #a4acc9;
 }
 
 * {
@@ -21,14 +21,18 @@
 html, body {
     width: 100%;
     height: 100%;
-    font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
+    font-family: "Segoe UI Variable Text", "Microsoft YaHei UI", "PingFang SC", sans-serif;
     background: var(--bg-main);
     color: var(--text);
-    overflow: hidden;
+    overflow-x: hidden;
+    overflow-y: auto;
 }
 
 button:focus-visible,
 select:focus-visible,
+input:focus-visible,
+a:focus-visible,
+summary:focus-visible,
 [tabindex="0"]:focus-visible {
     outline: 3px solid var(--accent-yellow);
     outline-offset: 3px;
@@ -36,7 +40,7 @@ select:focus-visible,
 
 .dashboard {
     width: 100vw;
-    height: 100vh;
+    min-height: 100vh;
     padding: 12px 20px;
     display: flex;
     flex-direction: column;
@@ -129,7 +133,7 @@ select:focus-visible,
     max-width: 260px;
 }
 
-.hidden { display: none; }
+.hidden { display: none !important; }
 
 .version-summary {
     color: var(--text-dim);
@@ -170,30 +174,32 @@ select:focus-visible,
 
 /* 标题栏 */
 .header {
-    display: flex;
-    justify-content: space-between;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 14px 24px;
     align-items: center;
-    padding: 8px 16px;
+    padding: 16px 4px 14px;
     border-bottom: 1px solid var(--border);
-    background: linear-gradient(90deg, rgba(108, 92, 231, 0.1), transparent);
 }
 
+.header-brand { min-width: 0; }
+.brand-caption { display: flex; align-items: center; gap: 12px; font-family: "Bahnschrift", sans-serif; color: var(--text-dim); font-size: 10px; letter-spacing: 2px; }
+.demo-badge { padding: 2px 7px; border: 1px solid var(--border); border-radius: 4px; letter-spacing: 0; color: var(--accent-yellow); }
 .header-title {
-    font-size: 26px;
-    font-weight: bold;
-    letter-spacing: 4px;
-    background: linear-gradient(90deg, var(--accent-cyan), var(--primary));
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
-    text-shadow: 0 0 20px rgba(108, 92, 231, 0.5);
+    margin-top: 6px;
+    font-size: 24px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    color: var(--text);
 }
 
 .header-info {
     display: flex;
+    grid-column: 1 / -1;
+    flex-wrap: wrap;
     align-items: center;
     gap: 16px;
-    font-size: 14px;
+    font-size: 12px;
     color: var(--text-dim);
 }
 
@@ -203,9 +209,9 @@ select:focus-visible,
     height: 8px;
     border-radius: 50%;
     background: var(--accent-green);
-    box-shadow: 0 0 8px var(--accent-green);
-    animation: pulse 1.5s infinite;
 }
+.header-info:has(.status-text.warning) .status-dot { background: var(--accent-yellow); }
+.header-info:has(.status-text.error) .status-dot { background: var(--accent-red); }
 
 .status-text {
     color: var(--accent-green);
@@ -216,7 +222,7 @@ select:focus-visible,
     align-items: center;
     gap: 4px;
     margin-left: auto;
-    margin-right: 24px;
+    margin-right: 0;
     padding: 4px;
     border: 1px solid rgba(74, 77, 196, 0.7);
     border-radius: 999px;
@@ -225,7 +231,7 @@ select:focus-visible,
 
 .app-nav a {
     padding: 6px 10px;
-    border-radius: 999px;
+    border-radius: 5px;
     color: var(--text-dim);
     font-size: 12px;
     text-decoration: none;
@@ -237,6 +243,18 @@ select:focus-visible,
     background: rgba(0, 229, 255, 0.12);
     color: var(--accent-cyan);
 }
+
+.demo-guide { flex-shrink: 0; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-panel); }
+.demo-guide summary { padding: 12px 16px; cursor: pointer; color: var(--text); font-size: 13px; }
+.guide-summary { margin-left: 16px; color: var(--text-dim); font-size: 12px; }
+.guide-steps { list-style: none; counter-reset: demo-step; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px; padding: 4px 16px 12px; }
+.guide-steps li { counter-increment: demo-step; min-width: 0; }
+.guide-steps a { display: grid; gap: 7px; height: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 6px; color: var(--text); text-decoration: none; }
+.guide-steps a::before { content: counter(demo-step, decimal-leading-zero); color: var(--text-dim); font-family: "Bahnschrift", monospace; font-size: 12px; }
+.guide-steps a:hover, .guide-steps a[aria-current="step"] { border-color: var(--accent-cyan); background: rgba(0, 229, 255, 0.06); }
+.guide-steps strong { font-size: 13px; font-weight: 600; }
+.guide-steps span, .guide-note { color: var(--text-dim); font-size: 11px; line-height: 1.6; }
+.guide-note { padding: 0 16px 14px; }
 
 .route-placeholder {
     flex: 1;
@@ -606,6 +624,7 @@ select:focus-visible,
 
 .dataset-table th { color: var(--accent-cyan); font-weight: 600; }
 .dataset-table td:nth-child(2) { color: var(--text); }
+.dataset-table tbody tr:hover { background: rgba(255, 255, 255, 0.035); }
 
 .dataset-table-action {
     border: 1px solid var(--accent-cyan);
@@ -663,7 +682,7 @@ select:focus-visible,
     font-size: 28px;
     font-weight: bold;
     color: var(--accent-cyan);
-    text-shadow: 0 0 12px rgba(0, 229, 255, 0.4);
+    font-variant-numeric: tabular-nums;
 }
 
 /* 图表行 */
@@ -671,11 +690,12 @@ select:focus-visible,
     display: flex;
     gap: 12px;
     flex: 1;
-    min-height: 0;
+    min-height: 360px;
 }
 
 .chart-row.main-chart {
     flex: 1.4;
+    min-height: 430px;
 }
 
 .two-col {
@@ -871,6 +891,7 @@ select:focus-visible,
 }
 
 @media screen and (max-width: 1100px) {
+    .guide-steps { grid-template-columns: repeat(4, minmax(0, 1fr)); }
     .dashboard-toolbar { flex-wrap: wrap; }
     .scope-label { margin-left: 0; }
 }
@@ -892,6 +913,7 @@ select:focus-visible,
     }
 
     .header {
+        display: flex;
         align-items: flex-start;
         flex-direction: column;
         gap: 8px;
@@ -902,6 +924,9 @@ select:focus-visible,
         font-size: 18px;
         letter-spacing: 2px;
     }
+
+    .guide-summary { display: block; margin: 6px 0 0; line-height: 1.6; }
+    .guide-steps { grid-template-columns: repeat(2, minmax(0, 1fr)); padding: 4px 10px 12px; }
 
     .header-info {
         flex-wrap: wrap;
@@ -1041,4 +1066,8 @@ select:focus-visible,
         display: block;
         margin: 10px auto 0;
     }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
 }

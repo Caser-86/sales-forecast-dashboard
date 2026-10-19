@@ -3,17 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>销售数据预测与可视化大屏</title>
+    <title>零售预测与补货工作台</title>
     <link rel="icon" href="favicon.svg" type="image/svg+xml">
-    <link rel="stylesheet" href="css/dashboard.css?v=3">
+    <link rel="stylesheet" href="css/dashboard.css?v=4">
     <script src="vendor/echarts.min.js"></script>
 </head>
 <body>
     <div class="dashboard">
         <!-- 标题栏 -->
         <header class="header">
-            <div class="header-title">销售数据预测与可视化大屏</div>
-            <nav class="app-nav" aria-label="演示模块导航">
+            <div class="header-brand">
+                <span class="brand-caption">RETAIL OPERATIONS <span class="demo-badge">演示数据</span></span>
+                <div class="header-title">零售预测与补货工作台</div>
+            </div>
+            <nav class="app-nav" aria-label="业务模块导航">
                 <a href="#overview" data-route="overview" aria-current="page">总览</a>
                 <a href="#data" data-route="data">数据</a>
                 <a href="#forecast" data-route="forecast">预测</a>
@@ -32,6 +35,20 @@
                 <span id="headerStatus" class="status-text">状态检查中</span>
             </div>
         </header>
+
+        <details class="demo-guide" id="demoGuide">
+            <summary><span>演示路线</span><span class="guide-summary">从数据到审批，7 个环节走完补货决策 · 约 12 分钟</span></summary>
+            <ol class="guide-steps" aria-label="面试演示路线">
+                <li><a href="#overview" data-guide-route="overview"><strong>经营总览</strong><span>说明业务日期与风险</span></a></li>
+                <li><a href="#data" data-guide-route="data"><strong>数据校验</strong><span>错误预检与候选版本</span></a></li>
+                <li><a href="#models" data-guide-route="models"><strong>模型评估</strong><span>比较基线与发布策略</span></a></li>
+                <li><a href="#forecast" data-guide-route="forecast"><strong>需求预测</strong><span>下钻商品与门店</span></a></li>
+                <li><a href="#inventory" data-guide-route="inventory"><strong>补货试算</strong><span>解释公式与人工调整</span></a></li>
+                <li><a href="#plans" data-guide-route="plans"><strong>审批与导出</strong><span>演示角色流转与审计</span></a></li>
+                <li><a href="#system" data-guide-route="system"><strong>异常与恢复</strong><span>过期拦截与备份恢复</span></a></li>
+            </ol>
+            <p class="guide-note">路线仅用于导航，不代表验收结果。审批演示需启用本地角色登录；现场优先展示已训练模型，完整训练可后台运行。</p>
+        </details>
 
         <section id="routePlaceholder" class="route-placeholder hidden" aria-live="polite">
             <span class="route-kicker">LOCAL DEMO V2 / MODULE STATUS</span>
@@ -462,7 +479,7 @@
     </section>
 
     <script src="js/auth.js?v=1"></script>
-    <script src="js/api.js?v=2"></script>
+    <script src="js/api.js?v=3"></script>
     <script src="js/ui.js?v=1"></script>
         <script src="js/pages/route-placeholder.js?v=1"></script>
         <script src="js/pages/data-center.js?v=1"></script>
@@ -472,7 +489,7 @@
         <script src="js/pages/replenishment.js?v=1"></script>
         <script src="js/pages/plans.js?v=1"></script>
         <script src="js/pages/system.js?v=1"></script>
-    <script src="js/app.js?v=1"></script>
+    <script src="js/app.js?v=2"></script>
     <script src="js/safe-text.js?v=1"></script>
     <script src="js/charts/kpi-cards.js?v=2"></script>
     <script src="js/charts/sales-line.js?v=2"></script>
