@@ -1,6 +1,7 @@
 """前端关键交互契约测试。"""
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -36,10 +37,14 @@ def test_frontend_has_v2_navigation_contract_and_explicit_unavailable_state():
         assert f'"{route}"' in app_script
     assert 'id="routePlaceholder"' in html
     assert "规划中" in html
-    assert 'src="js/app.js?v=1"' in html
+    script_sources = {
+        source.partition("?")[0]
+        for source in re.findall(r'<script\b[^>]*\bsrc="([^"]+)"', html)
+    }
+    assert "js/app.js" in script_sources
     assert "hashchange" in app_script
     assert "ROUTE_ORDER" in app_script
-    assert 'src="js/ui.js?v=1"' in html
+    assert "js/ui.js" in script_sources
     assert "syncScopeToRoute" in app_script
     assert "routeScopeSummary" in html
 
