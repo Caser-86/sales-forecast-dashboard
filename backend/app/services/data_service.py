@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 from functools import lru_cache
+from threading import Lock
 from typing import Any, Dict, List
 
 import pandas as pd
@@ -14,33 +15,103 @@ import pandas as pd
 from app.config import REPORT_JSON, SALES_CSV, settings
 from app.core.exceptions import DataNotInitializedError, NotFoundError
 from app.core.logging import get_logger
+from app.services.dataset_service import get_active_sales_path
 
 logger = get_logger(__name__)
+_REPORT_CACHE: Dict[str, Any] | None = None
+_REPORT_LOCK = Lock()
 
 
 @lru_cache(maxsize=1)
 def load_sales() -> pd.DataFrame:
     """加载并缓存历史销量数据。"""
-    if not SALES_CSV.exists():
-        logger.error("销售数据文件不存在: %s", SALES_CSV)
+    sales_path = get_active_sales_path(fallback=SALES_CSV)
+    if not sales_path.exists():
+        logger.error("销售数据文件不存在: %s", sales_path)
         raise DataNotInitializedError(
             "销售数据未初始化",
-            detail=f"请先运行 python scripts/init_data.py 生成数据。路径: {SALES_CSV}",
+            detail=f"请先运行 python scripts/init_data.py 或 scripts/import_sales.py。路径: {sales_path}",
         )
-    logger.info("加载销售数据: %s", SALES_CSV)
-    df = pd.read_csv(SALES_CSV)
+    logger.info("加载销售数据: %s", sales_path)
+    df = pd.read_csv(sales_path)
     df["date"] = pd.to_datetime(df["date"])
     return df
 
 
-@lru_cache(maxsize=1)
 def load_report() -> Dict[str, Any]:
     """加载模型评估报告。"""
-    if not REPORT_JSON.exists():
+    global _REPORT_CACHE
+    if _REPORT_CACHE is not None:
+        return _REPORT_CACHE
+    with _REPORT_LOCK:
+        if _REPORT_CACHE is not None:
+            return _REPORT_CACHE
+        if not REPORT_JSON.exists():
+            _REPORT_CACHE = {}
+        else:
+            import json
+
+            with open(REPORT_JSON, "r", encoding="utf-8") as f:
+                _REPORT_CACHE = json.load(f)
+        return _REPORT_CACHE
+
+
+def clear_data_caches() -> None:
+    """Clear data and quality caches after a runtime snapshot switch."""
+    global _REPORT_CACHE
+    load_sales.cache_clear()
+    get_data_quality.cache_clear()
+    _REPORT_CACHE = None
+
+
+def _metric_summary(metrics: Any) -> Dict[str, Any]:
+    """Keep model-info compact while retaining report traceability counts."""
+    if not isinstance(metrics, dict):
         return {}
-    import json
-    with open(REPORT_JSON, "r", encoding="utf-8") as f:
-        return json.load(f)
+    fields = ("samples", "mape_samples", "mae", "rmse", "wape", "mape")
+    summary = {field: metrics[field] for field in fields if field in metrics}
+    summary["per_horizon_count"] = len(metrics.get("per_horizon", {}))
+    summary["segment_count"] = len(metrics.get("segments", {}))
+    return summary
+
+
+def _backtest_summary(backtest: Any) -> Dict[str, Any]:
+    """Expose a bounded API summary; keep the full report in the artifact file."""
+    if not isinstance(backtest, dict):
+        return {}
+    model_names = ("lstm", "lightgbm", "seasonal_naive_7d")
+    summary: Dict[str, Any] = {
+        "protocol": backtest.get("protocol", {}),
+        **{
+            name: _metric_summary(backtest.get(name))
+            for name in model_names
+            if isinstance(backtest.get(name), dict)
+        },
+    }
+    selected = backtest.get("selected")
+    if isinstance(selected, dict):
+        summary["selected"] = {
+            "strategy": selected.get("strategy"),
+            "candidate": selected.get("candidate"),
+            "metrics": _metric_summary(selected.get("metrics")),
+        }
+    selection = backtest.get("selection")
+    if isinstance(selection, dict):
+        selected_meta = selection.get("selected")
+        candidates = selection.get("candidates")
+        summary["selection"] = {
+            "protocol": selection.get("protocol", {}),
+            "selected": {
+                key: selected_meta.get(key)
+                for key in ("candidate", "strategy", "weights", "metric", "score", "ranking")
+                if isinstance(selected_meta, dict) and key in selected_meta
+            },
+            "candidates": {
+                str(name): _metric_summary(metrics)
+                for name, metrics in candidates.items()
+            } if isinstance(candidates, dict) else {},
+        }
+    return summary
 
 
 def get_model_info() -> Dict[str, Any]:
@@ -51,6 +122,11 @@ def get_model_info() -> Dict[str, Any]:
         name: {
             "mape": float(report[name]["mape"]),
             "rmse": float(report[name]["rmse"]),
+            **{
+                field: int(report[name][field])
+                for field in ("samples", "mape_samples")
+                if field in report[name]
+            },
         }
         for name in metric_keys
         if isinstance(report.get(name), dict)
@@ -65,6 +141,7 @@ def get_model_info() -> Dict[str, Any]:
         "lightgbm": float(settings.ENSEMBLE_WEIGHTS[1]),
     }
     weights = metadata.get("ensemble_weights", default_weights)
+    model_selection = metadata.get("model_selection", {})
     return {
         "status": "ready" if "ensemble" in metrics else "unavailable",
         "trained_at_utc": metadata.get("trained_at_utc"),
@@ -73,8 +150,11 @@ def get_model_info() -> Dict[str, Any]:
         "horizon_days": int(metadata.get("horizon_days", settings.FORECAST_DAYS)),
         "feature_count": metadata.get("feature_count"),
         "ensemble_weights": {str(k): float(v) for k, v in weights.items()},
+        "selected_model": model_selection.get("strategy", "ensemble"),
+        "model_selection": model_selection,
         "split": split,
         "metrics": metrics,
+        "backtest": _backtest_summary(metadata.get("rolling_backtest", {})),
     }
 
 
@@ -113,7 +193,7 @@ def get_data_quality() -> Dict[str, Any]:
     return {
         "status": "error" if df.empty else ("healthy" if not issues else "warning"),
         "checked_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-        "source": SALES_CSV.name,
+        "source": get_active_sales_path(fallback=SALES_CSV).name,
         "rows": int(len(df)),
         "date_start": str(df["date"].min().date()) if len(df) else None,
         "date_end": str(df["date"].max().date()) if len(df) else None,
@@ -208,6 +288,30 @@ def get_total_sales_last_n(
     return int(_apply_scope(recent, product_id, store_id)["sales"].sum())
 
 
+def get_metric_window(days: int = 30, forecast_days: int | None = None) -> Dict[str, Any]:
+    """Return the date window shared by dashboard quantity metrics."""
+    if days <= 0:
+        raise ValueError("days 必须大于 0")
+    if forecast_days is None:
+        forecast_days = settings.FORECAST_DAYS
+    if forecast_days <= 0:
+        raise ValueError("forecast_days 必须大于 0")
+
+    last_date = load_sales()["date"].max().date()
+    historical_start = last_date - timedelta(days=days - 1)
+    forecast_start = last_date + timedelta(days=1)
+    forecast_end = forecast_start + timedelta(days=forecast_days - 1)
+    return {
+        "unit": "units",
+        "historical_start": historical_start.isoformat(),
+        "historical_end": last_date.isoformat(),
+        "historical_days": days,
+        "forecast_start": forecast_start.isoformat(),
+        "forecast_end": forecast_end.isoformat(),
+        "forecast_days": forecast_days,
+    }
+
+
 @lru_cache(maxsize=16)
 def get_recent_product_demand(
     days: int = 30,
@@ -228,8 +332,12 @@ def get_recent_product_demand(
 def get_category_sales(
     product_id: int | None = None,
     store_id: int | None = None,
+    days: int = 30,
 ) -> List[Dict[str, Any]]:
     df = load_sales()
+    last_date = df["date"].max()
+    start = last_date - timedelta(days=days - 1)
+    df = df[df["date"] >= start]
     df = _apply_scope(df, product_id, store_id)
     g = df.groupby("category")["sales"].sum().reset_index()
     total = int(g["sales"].sum())
@@ -248,8 +356,12 @@ def get_top_products(
     n: int = 10,
     product_id: int | None = None,
     store_id: int | None = None,
+    days: int = 30,
 ) -> List[Dict[str, Any]]:
     df = load_sales()
+    last_date = df["date"].max()
+    start = last_date - timedelta(days=days - 1)
+    df = df[df["date"] >= start]
     df = _apply_scope(df, product_id, store_id)
     g = df.groupby(["product_id", "product_name", "category"])["sales"].sum().reset_index()
     g = g.sort_values("sales", ascending=False).head(n)

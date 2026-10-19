@@ -27,7 +27,7 @@ DEFAULT_PARAMS = {
 
 def train_lgbm(X_train: np.ndarray, y_train: np.ndarray,
                X_val: np.ndarray, y_val: np.ndarray,
-               params: dict | None = None) -> lgb.LGBMRegressor:
+               params: dict | None = None) -> lgb.LGBMRegressor | lgb.Booster:
     """训练 LightGBM 回归器并返回模型对象。"""
     p = dict(DEFAULT_PARAMS)
     if params:
@@ -38,25 +38,45 @@ def train_lgbm(X_train: np.ndarray, y_train: np.ndarray,
     n_estimators = p.pop("n_estimators", 500)
 
     model = lgb.LGBMRegressor(n_estimators=n_estimators, **p)
-    model.fit(
-        X_train, y_train,
-        eval_set=[(X_val, y_val)],
-        callbacks=[
-            lgb.early_stopping(es, verbose=False),
-            lgb.log_evaluation(period=0),
-        ],
-    )
-    return model
+    try:
+        model.fit(
+            X_train, y_train,
+            eval_set=[(X_val, y_val)],
+            callbacks=[
+                lgb.early_stopping(es, verbose=False),
+                lgb.log_evaluation(period=0),
+            ],
+        )
+        return model
+    except TypeError as exc:
+        # LightGBM 4.5's sklearn wrapper passes force_all_finite, which was
+        # removed by newer scikit-learn releases. Native training avoids that
+        # adapter boundary while keeping the same validation protocol.
+        if "force_all_finite" not in str(exc):
+            raise
+        native_params = dict(p)
+        native_params["verbosity"] = native_params.pop("verbose", -1)
+        return lgb.train(
+            native_params,
+            lgb.Dataset(X_train, label=y_train),
+            num_boost_round=n_estimators,
+            valid_sets=[lgb.Dataset(X_val, label=y_val)],
+            callbacks=[
+                lgb.early_stopping(es, verbose=False),
+                lgb.log_evaluation(period=0),
+            ],
+        )
 
 
-def save_model(model: lgb.LGBMRegressor, path: str, feature_cols: list[str]) -> None:
+def save_model(model: lgb.LGBMRegressor | lgb.Booster, path: str, feature_cols: list[str]) -> None:
     """保存 LightGBM 模型与特征列。
 
     注意：LightGBM 的 C 库在 Windows 上对非 ASCII 路径支持不佳，
     因此先导出为字符串，再用 Python 的 open 写入（正确处理 Unicode 路径）。
     """
     os.makedirs(os.path.dirname(path), exist_ok=True)
-    model_str = model.booster_.model_to_string()
+    booster = model.booster_ if hasattr(model, "booster_") else model
+    model_str = booster.model_to_string()
     with open(path, "w", encoding="utf-8") as f:
         f.write(model_str)
     sidecar = path + ".meta.json"

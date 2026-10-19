@@ -12,6 +12,7 @@ from datetime import date, timedelta
 
 import numpy as np
 import pandas as pd
+from app.core.config import settings
 
 # 固定随机种子，保证可复现
 RANDOM_SEED = 42
@@ -20,8 +21,23 @@ np.random.seed(RANDOM_SEED)
 # 项目根目录（backend/ 的上一级）
 BACKEND_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PROJECT_ROOT = os.path.dirname(BACKEND_DIR)
-RAW_DIR = os.path.join(BACKEND_DIR, "data", "raw")
+RAW_DIR = settings.DATA_RAW_DIR
 OUTPUT_PATH = os.path.join(RAW_DIR, "sales_data.csv")
+INVENTORY_OUTPUT_PATH = os.path.join(RAW_DIR, "inventory_snapshot.csv")
+
+REQUIRED_INVENTORY_COLUMNS = (
+    "as_of_date",
+    "product_id",
+    "store_id",
+    "on_hand",
+    "confirmed_inbound",
+    "reserved",
+    "lead_time_days",
+    "review_period_days",
+    "safety_stock",
+    "pack_size",
+    "minimum_order_quantity",
+)
 
 START_DATE = date(2025, 1, 1)
 END_DATE = date(2025, 6, 30)
@@ -176,6 +192,43 @@ def generate_sales_data(output_path: str = OUTPUT_PATH) -> str:
     print(f"[data_generator] 商品数: {df['product_id'].nunique()}, "
           f"门店数: {df['store_id'].nunique()}, "
           f"日期范围: {df['date'].min()} ~ {df['date'].max()}")
+    return output_path
+
+
+def generate_inventory_snapshot(
+    sales_path: str = OUTPUT_PATH,
+    output_path: str = INVENTORY_OUTPUT_PATH,
+) -> str:
+    """Generate a deterministic demo inventory snapshot from recent sales."""
+    sales = pd.read_csv(sales_path, parse_dates=["date"])
+    if sales.empty:
+        raise ValueError("销售数据为空，无法生成库存快照")
+
+    latest_date = sales["date"].max()
+    recent = sales[sales["date"] >= latest_date - pd.Timedelta(days=29)]
+    average_sales = recent.groupby(["product_id", "store_id"], as_index=False)["sales"].mean()
+    rows = []
+    for row in average_sales.itertuples(index=False):
+        daily_demand = float(row.sales)
+        rows.append({
+            "as_of_date": latest_date.date().isoformat(),
+            "product_id": int(row.product_id),
+            "store_id": int(row.store_id),
+            "on_hand": max(0.0, round(daily_demand * 5, 2)),
+            "confirmed_inbound": 0.0,
+            "reserved": 0.0,
+            "lead_time_days": 3,
+            "review_period_days": 4,
+            "safety_stock": max(0.0, round(daily_demand * 2, 2)),
+            "pack_size": 12,
+            "minimum_order_quantity": 24,
+        })
+
+    inventory = pd.DataFrame(rows, columns=REQUIRED_INVENTORY_COLUMNS)
+    inventory = inventory.sort_values(["product_id", "store_id"]).reset_index(drop=True)
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    inventory.to_csv(output_path, index=False, encoding="utf-8-sig")
+    print(f"[data_generator] 生成 {len(inventory)} 行库存快照 → {output_path}")
     return output_path
 
 

@@ -7,11 +7,12 @@ from __future__ import annotations
 import os
 
 import pandas as pd
+from app.core.config import settings
 from sklearn.preprocessing import LabelEncoder
 
 BACKEND_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-RAW_PATH = os.path.join(BACKEND_DIR, "data", "raw", "sales_data.csv")
-PROCESSED_DIR = os.path.join(BACKEND_DIR, "data", "processed")
+RAW_PATH = str(settings.SALES_CSV)
+PROCESSED_DIR = settings.DATA_PROCESSED_DIR
 OUTPUT_PATH = os.path.join(PROCESSED_DIR, "features.csv")
 
 # 用于 LightGBM 的特征列

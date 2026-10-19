@@ -5,8 +5,8 @@ import os
 import sys
 from pathlib import Path
 
-# 注入 backend 到 sys.path，使测试可直接 import app
-BACKEND_DIR = Path(__file__).resolve().parent
+# 注入 backend 到 sys.path，使测试可直接 import app 和 ml 包。
+BACKEND_DIR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(BACKEND_DIR))
 
 # 测试环境：禁用认证，使用 DEBUG 日志

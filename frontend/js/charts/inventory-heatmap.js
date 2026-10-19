@@ -1,6 +1,9 @@
 /* 库存热力图：商品 × 门店，按风险等级着色 */
 const InventoryHeatmap = {
     chart: null,
+    lastData: null,
+    requestId: 0,
+    controller: null,
 
     init() {
         this.chart = echarts.init(document.getElementById("inventoryHeatmap"));
@@ -14,7 +17,14 @@ const InventoryHeatmap = {
                 textStyle: { color: "#e0e0ff" },
                 formatter: function (p) {
                     const d = p.data;
-                    return `${d.product_name}<br/>${d.store_name}<br/>预测销量: ${d.predicted}<br/>建议采购: ${d.suggested}<br/>分级: ${d.abc}`;
+                    return `${escapeHtml(d.product_name)}<br/>${escapeHtml(d.store_name)}` +
+                        `<br/>窗口需求: ${d.window_demand}` +
+                        `<br/>可用库存: ${d.net_available}` +
+                        `<br/>目标库存: ${d.target_stock}` +
+                        `<br/>原始补货: ${d.raw_replenishment}` +
+                        `<br/>建议采购: ${d.suggested}` +
+                        `<br/>包装/MOQ: ${d.pack_size}/${d.minimum_order_quantity}` +
+                        `<br/>需求优先级: ${escapeHtml(d.abc)}`;
                 }
             },
             xAxis: {
@@ -58,8 +68,14 @@ const InventoryHeatmap = {
     },
 
     async load(scope = {}) {
+        const requestId = ++this.requestId;
+        this.controller?.abort();
+        this.controller = new AbortController();
+        const signal = this.controller.signal;
         try {
-            const inv = await api.getInventory(scope);
+            const inv = await api.getInventory(scope, { signal });
+            if (requestId !== this.requestId) return;
+            this.lastData = inv;
             const cells = inv.cells;
             if (!cells.length) {
                 this.chart.setOption({
@@ -67,7 +83,7 @@ const InventoryHeatmap = {
                     yAxis: { data: [] },
                     series: [{ data: [] }]
                 });
-                return;
+                return inv;
             }
 
             const products = [...new Set(cells.map(c => c.product_id))].sort((a, b) => a - b);
@@ -87,7 +103,13 @@ const InventoryHeatmap = {
                 store_name: c.store_name,
                 predicted: c.predicted_sales,
                 suggested: c.suggested_purchase,
-                abc: c.abc_class
+                abc: c.abc_class,
+                window_demand: c.window_demand,
+                net_available: c.net_available,
+                target_stock: c.target_stock,
+                raw_replenishment: c.raw_replenishment,
+                pack_size: c.pack_size,
+                minimum_order_quantity: c.minimum_order_quantity
             }));
 
             this.chart.setOption({
@@ -95,10 +117,14 @@ const InventoryHeatmap = {
                 yAxis: { data: stores.map(s => storeName[s]) },
                 series: [{ data }]
             });
+            return inv;
         } catch (e) {
+            if (e.name === "AbortError") return;
             console.error("库存热力图加载失败:", e);
             window.showDashboardError?.(`库存热力图加载失败: ${e.message}`);
             throw e;
+        } finally {
+            if (requestId === this.requestId) this.controller = null;
         }
     }
 };

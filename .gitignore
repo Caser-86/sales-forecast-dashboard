@@ -15,16 +15,17 @@ build/
 
 # ML
 *.pth
-*.txt
-!requirements.txt
-!requirements-dev.txt
 backend/ml/saved_models/*
 !backend/ml/saved_models/.gitkeep
 backend/data/raw/*
 backend/data/processed/*
+backend/data/inventory/*
+backend/jobs/*
 !backend/data/raw/.gitkeep
 !backend/data/processed/.gitkeep
+!backend/data/inventory/.gitkeep
 *.db
+*.db.bak
 *.sqlite3
 
 # IDE
@@ -56,4 +57,10 @@ docker-compose.override.yml
 .coverage
 htmlcov/
 .playwright-cli/
+.demo-runtime/
+.demo-runtime-*/
+.superpowers/
 output/playwright/
+frontend/node_modules/
+frontend/playwright-report/
+frontend/test-results/

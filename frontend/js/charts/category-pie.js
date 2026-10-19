@@ -1,4 +1,4 @@
-/* 品类销售占比饼图（环形 + 中心总额） */
+/* 品类销量占比饼图（环形 + 中心总量） */
 const CategoryPieChart = {
     chart: null,
 
@@ -11,7 +11,9 @@ const CategoryPieChart = {
                 backgroundColor: "rgba(26, 27, 58, 0.95)",
                 borderColor: "#4a4dc4",
                 textStyle: { color: "#e0e0ff" },
-                formatter: "{b}: {c} ({d}%)"
+                formatter: function (params) {
+                    return `${escapeHtml(params.name)}: ${params.value} (${params.percent}%)`;
+                }
             },
             legend: {
                 bottom: 5,
@@ -43,7 +45,7 @@ const CategoryPieChart = {
                 left: "center",
                 top: "40%",
                 style: {
-                    text: "总销售额\n0",
+                    text: "总销量\n0",
                     fill: "#00e5ff",
                     font: "bold 16px Microsoft YaHei",
                     textAlign: "center"
@@ -73,7 +75,7 @@ const CategoryPieChart = {
             series: [{ data }],
             graphic: {
                 style: {
-                    text: `总销售额\n${total.toLocaleString()}`
+                    text: `总销量\n${total.toLocaleString()}`
                 }
             }
         });

@@ -31,10 +31,14 @@ def classify_abc(
     ranked = sorted(normalized.items(), key=lambda item: (-item[1], str(item[0])))
     result: dict[Key, str] = {}
     cumulative = 0.0
-    for key, value in ranked:
+    for index, (key, value) in enumerate(ranked):
         cumulative += value
         ratio = cumulative / grand_total
-        if ratio <= class_a_threshold:
+        # Always keep the highest-demand item visible as A, even if it crosses
+        # the first cumulative threshold by itself.
+        if index == 0:
+            result[key] = "A"
+        elif ratio <= class_a_threshold:
             result[key] = "A"
         elif ratio <= class_b_threshold:
             result[key] = "B"

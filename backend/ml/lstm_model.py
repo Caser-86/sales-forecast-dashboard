@@ -72,7 +72,9 @@ def save_model(model: nn.Module, path: str) -> None:
 
 
 def load_model(path: str, device: torch.device | str = "cpu") -> SalesLSTM:
-    ckpt = torch.load(path, map_location=device, weights_only=False)
+    ckpt = torch.load(path, map_location=device, weights_only=True)
+    if not isinstance(ckpt, dict) or not {"state_dict", "input_dim", "hidden_size", "num_layers"}.issubset(ckpt):
+        raise ValueError("LSTM 模型产物格式无效")
     model = SalesLSTM(
         input_dim=ckpt["input_dim"],
         hidden_size=ckpt["hidden_size"],

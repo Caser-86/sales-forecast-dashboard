@@ -34,10 +34,16 @@ jobs:
           python scripts/train_models.py
 
       - name: Run backend tests
-        run: python -m pytest backend/tests -q
+        run: python -m pytest backend/tests -q --cov=backend/app --cov=backend/common --cov-report=term-missing --cov-fail-under=85
 
       - name: Run Ruff
         run: python -m ruff check backend scripts
+
+      - name: Check installed dependency consistency
+        run: python -m pip check
+
+      - name: Check patch whitespace
+        run: git diff --check
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -54,3 +60,138 @@ jobs:
 
       - name: Validate Docker Compose configuration
         run: docker compose config --quiet
+
+      - name: Build deployment images
+        run: docker compose build --pull=false
+
+      - name: Start deployment stack
+        shell: bash
+        env:
+          RATE_LIMIT_REQUESTS: 300
+        run: |
+          if ! docker compose up -d; then
+            echo "=== Compose state after startup failure ==="
+            docker compose ps -a
+            echo "=== Backend logs ==="
+            docker compose logs --no-color backend
+            echo "=== Container health metadata ==="
+            docker inspect sales-backend || true
+            exit 1
+          fi
+
+      - name: Wait for deployment stack
+        shell: bash
+        run: |
+          for attempt in {1..30}; do
+            if curl --fail --silent http://127.0.0.1:3000/health > /dev/null; then
+              exit 0
+            fi
+            sleep 2
+          done
+          docker compose ps
+          docker compose logs --no-color
+          exit 1
+
+      - name: Install browser test dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Install Chromium
+        working-directory: frontend
+        run: npx playwright install --with-deps chromium
+
+      - name: Run browser E2E
+        working-directory: frontend
+        env:
+          CI: true
+        run: npm run test:e2e
+
+      - name: Run authenticated approval E2E
+        working-directory: frontend
+        shell: bash
+        env:
+          CI: true
+          DEMO_AUTH_ENABLED: true
+          API_BASE_URL: http://127.0.0.1:8000/api
+          BASE_URL: http://127.0.0.1:3000
+        run: |
+          docker compose up -d --force-recreate backend
+          for attempt in {1..30}; do
+            if curl --fail --silent http://127.0.0.1:8000/health > /dev/null; then
+              break
+            fi
+            sleep 2
+          done
+          npm run test:e2e -- auth.workflow.spec.js
+
+      - name: Upload browser test artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-artifacts
+          path: |
+            frontend/test-results/
+            frontend/playwright-report/
+          if-no-files-found: ignore
+
+      - name: Stop deployment stack
+        if: always()
+        run: docker compose down -v
+
+  security:
+    name: Dependency Audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Audit direct dependencies
+        run: |
+          python -m pip install --disable-pip-version-check pip-audit==2.7.3
+          pip-audit -r backend/requirements.txt \
+            --vulnerability-service osv \
+            --index-url https://pypi.org/simple \
+            --extra-index-url https://download.pytorch.org/whl/cpu \
+            --strict --progress-spinner off
+
+  windows-demo:
+    name: Windows Demo Startup
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Python dependencies
+        shell: pwsh
+        run: python -m pip install -r backend/requirements-dev.txt
+
+      - name: Prepare isolated demo runtime
+        shell: pwsh
+        run: python scripts/prepare_demo.py --root .demo-runtime
+
+      - name: Start, probe, and stop Windows demo
+        shell: pwsh
+        run: |
+          $env:CORS_ORIGINS = "http://127.0.0.1:13000"
+          .\scripts\start_demo.ps1 -Root .demo-runtime -BackendPort 18000 -FrontendPort 13000
+          try {
+            $health = Invoke-RestMethod http://127.0.0.1:18000/health
+            if ($health.status -ne "healthy") { throw "Windows demo health was $($health.status)" }
+            $products = Invoke-RestMethod http://127.0.0.1:18000/api/products
+            if (-not $products.products) { throw "Windows demo returned no products" }
+            Invoke-WebRequest http://127.0.0.1:13000 -UseBasicParsing | Out-Null
+          } finally {
+            .\scripts\stop_demo.ps1 -Root .demo-runtime
+          }

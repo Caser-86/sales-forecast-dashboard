@@ -7,17 +7,25 @@ from __future__ import annotations
 
 # 所有常量从新配置模块重新导出
 from app.core.config import (  # noqa: F401
+    ACTIVE_DATASET_FILE,
+    ACTIVE_INVENTORY_FILE,
+    ACTIVE_MODEL_FILE,
+    ACTIVE_RUNTIME_SNAPSHOT_FILE,
     API_PREFIX,
     BACKEND_DIR,
     DATA_PROCESSED_DIR,
     DATA_RAW_DIR,
     DATABASE_URL,
+    DATASET_VERSIONS_DIR,
     FEATURES_CSV,
+    INVENTORY_VERSIONS_DIR,
     LGBM_PATH,
     LSTM_PATH,
+    MODEL_VERSIONS_DIR,
     MODELS_DIR,
     PROJECT_ROOT,
     REPORT_JSON,
+    RUNTIME_SNAPSHOT_DIR,
     SALES_CSV,
     settings,
 )

@@ -8,16 +8,25 @@ services:
       # 持久化数据与模型（不进镜像，便于升级时保留）
       - ./backend/data:/app/data
       - ./backend/ml/saved_models:/app/ml/saved_models
-      - ./backend/logs:/app/logs
+      # Keep mutable plan state out of the host-owned demo data bind mount.
+      - backend_runtime:/app/runtime
+      # Named volume keeps appuser writable on Linux hosts and survives container replacement.
+      - backend_logs:/app/logs
     environment:
-      - ENV=${ENV:-production}
+      - ENV=${ENV:-development}
       - DEBUG=${DEBUG:-false}
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
-      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:3000,http://127.0.0.1:3000}
+      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:3000,http://127.0.0.1:3000,http://localhost:5500,http://127.0.0.1:5500}
       - API_TOKEN=${API_TOKEN:-}
       - API_TOKEN_HEADER=${API_TOKEN_HEADER:-X-API-Token}
+      - DEMO_AUTH_ENABLED=${DEMO_AUTH_ENABLED:-false}
+      - DATABASE_URL=${DATABASE_URL:-sqlite:////app/runtime/dashboard.db}
       - FORECAST_DAYS=${FORECAST_DAYS:-30}
       - FORECAST_WORKERS=${FORECAST_WORKERS:-4}
+      - INVENTORY_MAX_AGE_DAYS=${INVENTORY_MAX_AGE_DAYS:-7}
+      - RATE_LIMIT_ENABLED=${RATE_LIMIT_ENABLED:-true}
+      - RATE_LIMIT_REQUESTS=${RATE_LIMIT_REQUESTS:-100}
+      - RATE_LIMIT_WINDOW_SECONDS=${RATE_LIMIT_WINDOW_SECONDS:-60}
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://localhost:8000/health"]
@@ -34,4 +43,14 @@ services:
     depends_on:
       backend:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "--quiet", "http://127.0.0.1/"]
+      interval: 30s
+      timeout: 5s
+      start_period: 5s
+      retries: 3
     restart: unless-stopped
+
+volumes:
+  backend_runtime:
+  backend_logs:

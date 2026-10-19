@@ -20,3 +20,12 @@ def test_classify_abc_matches_by_key_when_values_are_equal():
     assert result["first"] == "A"
     assert result["second"] == "A"
     assert result["third"] == "C"
+
+
+def test_classify_abc_keeps_the_highest_demand_item_in_class_a():
+    assert classify_abc({"only": 100}) == {"only": "A"}
+
+    result = classify_abc({"dominant": 95, "tail": 5})
+
+    assert result["dominant"] == "A"
+    assert result["tail"] == "C"

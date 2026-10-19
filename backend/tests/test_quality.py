@@ -12,6 +12,20 @@ class TestQualityEndpoints:
         assert "metrics" in body
         assert "ensemble" in body["metrics"]
         assert "split" in body
+        assert "backtest" in body
+        assert body["selected_model"] in {"lstm", "lightgbm", "ensemble", "seasonal_naive_7d"}
+        assert "model_selection" in body
+        selected_metrics = body["metrics"]["ensemble"]
+        backtest_metrics = body["backtest"].get("selected", {}).get("metrics", {})
+        assert selected_metrics.get("samples", backtest_metrics.get("samples", 0)) > 0
+        if body["backtest"]:
+            backtest = body["backtest"]
+            assert backtest["protocol"]["horizon_days"] == 30
+            assert backtest["protocol"]["origin_count"] > 0
+            assert backtest["lstm"]["samples"] > 0
+            assert backtest["lstm"]["per_horizon_count"] == 30
+            assert backtest["lstm"]["segment_count"] == 100
+            assert len(r.content) < 100_000
 
     def test_data_quality_exposes_integrity_checks(self, client):
         r = client.get("/api/data-quality")

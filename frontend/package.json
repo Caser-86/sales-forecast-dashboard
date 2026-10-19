@@ -1,0 +1,11 @@
+{
+  "name": "sales-forecast-dashboard-frontend-tests",
+  "private": true,
+  "scripts": {
+    "test:e2e": "playwright test",
+    "test:e2e:zoom": "node ../scripts/verify_browser_zoom.js"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.63.0"
+  }
+}

@@ -1,6 +1,8 @@
-/* 销量折线图：历史 + 预测 + 置信区间 */
+/* 销量折线图：历史 + 预测 + 情景范围 */
 const SalesLineChart = {
     chart: null,
+    requestId: 0,
+    controller: null,
 
     init() {
         this.chart = echarts.init(document.getElementById("salesLine"));
@@ -14,7 +16,7 @@ const SalesLineChart = {
                 textStyle: { color: "#e0e0ff" }
             },
             legend: {
-                data: ["历史销量", "预测销量", "置信区间", "价格"],
+                data: ["历史销量", "预测销量", "情景范围", "价格"],
                 textStyle: { color: "#e0e0ff" },
                 top: 5
             },
@@ -62,14 +64,25 @@ const SalesLineChart = {
                     lineStyle: { width: 2, type: "dashed" }
                 },
                 {
-                    name: "置信区间",
+                    name: "情景范围下界",
+                    type: "line",
+                    smooth: true,
+                    symbol: "none",
+                    data: [],
+                    lineStyle: { opacity: 0 },
+                    areaStyle: { color: "transparent" },
+                    stack: "scenario-range",
+                    tooltip: { show: false }
+                },
+                {
+                    name: "情景范围",
                     type: "line",
                     smooth: true,
                     symbol: "none",
                     data: [],
                     lineStyle: { opacity: 0 },
                     areaStyle: { color: "rgba(0, 229, 255, 0.12)" },
-                    stack: "confidence"
+                    stack: "scenario-range"
                 },
                 {
                     name: "价格",
@@ -87,11 +100,16 @@ const SalesLineChart = {
     },
 
     async load(productId, storeId) {
+        const requestId = ++this.requestId;
+        this.controller?.abort();
+        this.controller = new AbortController();
+        const signal = this.controller.signal;
         try {
             const [sales, forecast] = await Promise.all([
-                api.getSales(productId, storeId, 90),
-                api.getForecast(productId, storeId)
+                api.getSales(productId, storeId, 90, { signal }),
+                api.getForecast(productId, storeId, { signal })
             ]);
+            if (requestId !== this.requestId) return;
 
             // 合并日期轴
             const histDates = sales.points.map(p => p.date);
@@ -100,16 +118,18 @@ const SalesLineChart = {
 
             // 历史销量
             const histSales = sales.points.map(p => p.sales);
+            const historicalTail = histSales.length ? [histSales[histSales.length - 1]] : [];
+            const historicalPadding = new Array(Math.max(histDates.length - 1, 0)).fill(null);
             // 预测序列：历史段为 null，预测段补齐
-            const foreSales = new Array(histDates.length - 1).fill(null)
-                .concat([histSales[histSales.length - 1]])
+            const foreSales = historicalPadding
+                .concat(historicalTail)
                 .concat(forecast.forecast.map(p => p.predicted_sales));
-            // 置信区间（上下界）
-            const confLow = new Array(histDates.length - 1).fill(null)
-                .concat([histSales[histSales.length - 1]])
+            // 保留 API 字段名兼容性，但按情景范围展示，不宣称统计覆盖率。
+            const confLow = historicalPadding
+                .concat(historicalTail)
                 .concat(forecast.forecast.map(p => p.confidence_low));
-            const confHigh = new Array(histDates.length - 1).fill(null)
-                .concat([histSales[histSales.length - 1]])
+            const confHigh = historicalPadding
+                .concat(historicalTail)
                 .concat(forecast.forecast.map(p => p.confidence_high));
             // 置信带：用 high-low 表示宽度
             const confBand = confHigh.map((h, i) => h === null ? null : (h - confLow[i]));
@@ -123,13 +143,17 @@ const SalesLineChart = {
                     { data: histSales },
                     { data: foreSales },
                     { data: confLow },
+                    { data: confBand },
                     { data: histPrice.concat(new Array(foreDates.length).fill(null)) }
                 ]
             });
         } catch (e) {
+            if (e.name === "AbortError") return;
             console.error("销量趋势加载失败:", e);
             window.showDashboardError?.(`销量趋势加载失败: ${e.message}`);
             throw e;
+        } finally {
+            if (requestId === this.requestId) this.controller = null;
         }
     }
 };
